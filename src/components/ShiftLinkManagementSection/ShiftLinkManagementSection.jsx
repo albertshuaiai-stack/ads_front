@@ -306,9 +306,8 @@ function ShiftLinkManagementSection({
             />
 
             <p className="field-help">
-              Supported input columns include adsName, platformName, fullUrl, remarks, adsOwner,
-              seqNumber, displayNumber, and displayTimes. Legacy headers such as capMainName,
-              platform, remark, and Campaign Name also work.
+              Use these Excel headers only: adsType, adsName, platformName, fullUrl,
+              landingPageUrl, displayNumber, remarks.
             </p>
 
             {bulkAdsError ? (

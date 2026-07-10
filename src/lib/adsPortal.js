@@ -137,17 +137,21 @@ function toOptionalNumber(value) {
 }
 
 const SHIFT_LINK_UPLOAD_HEADERS = [
+  'adsType',
   'adsName',
   'platformName',
   'fullUrl',
   'landingPageUrl',
-  'urlSuffix',
   'displayNumber',
-  'displayTimes',
-  'seqNumber',
   'remarks',
-  'adsOwner',
 ]
+
+function createShiftLinkUploadRow(payload) {
+  return SHIFT_LINK_UPLOAD_HEADERS.reduce((row, key) => {
+    row[key] = payload[key] ?? ''
+    return row
+  }, {})
+}
 
 function readShiftLinkPayloadFromRow(row, rowNumber) {
   const adsName = toOptionalTrimmedString(
@@ -164,6 +168,9 @@ function readShiftLinkPayloadFromRow(row, rowNumber) {
     getRowValue(row, ['platformName', 'platform name', 'platform']),
   )
   const fullUrl = toOptionalTrimmedString(getRowValue(row, ['fullUrl', 'full url', 'url']))
+  const adsType = toOptionalTrimmedString(
+      getRowValue(row, ['adsType', 'ads type', 'type']),
+  )
 
   if (!adsName) {
     throw new Error(`Row ${rowNumber}: Campaign Name is required.`)
@@ -177,8 +184,13 @@ function readShiftLinkPayloadFromRow(row, rowNumber) {
     throw new Error(`Row ${rowNumber}: Full URL is required.`)
   }
 
+  if (!adsType) {
+    throw new Error(`Row ${rowNumber}: Ads Type is required.`)
+  }
+
   const parsedUrl = parseAdsUrl(fullUrl)
   const payload = {
+    adsType,
     adsName,
     platformName,
     fullUrl,
@@ -240,7 +252,7 @@ async function createShiftLinkUploadFile(file, fallbackAdsOwner) {
     if (payload.adsOwner === undefined && fallbackAdsOwner) {
       payload.adsOwner = fallbackAdsOwner
     }
-    return payload
+    return createShiftLinkUploadRow(payload)
   })
   const worksheet = XLSX.utils.json_to_sheet(normalizedRows, {
     header: SHIFT_LINK_UPLOAD_HEADERS,
