@@ -57,7 +57,7 @@ function TestShiftLinkSection({
               id="testShiftLinkCampainName"
               value={campainName}
               onChange={(event) => onCampainNameChange(event.target.value)}
-              placeholder="Enter campain_name"
+              placeholder="Enter campaign_name"
               required
             />
           </div>
@@ -76,7 +76,7 @@ function TestShiftLinkSection({
 
         <p className="field-help">
           Uses <code>/api/normal/ads</code> and <code>/api/matrix/ads</code> with
-          <code> campain_name</code> and <code>api_key</code>.
+          <code> campaign_name</code> and <code>api_key</code>.
         </p>
 
         {testError ? (

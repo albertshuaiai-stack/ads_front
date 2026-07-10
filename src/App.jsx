@@ -7,8 +7,8 @@ import NormalAdsManagementSection from './components/NormalAdsManagementSection/
 import PageHeader from './components/PageHeader/PageHeader'
 import PlatformManagementSection from './components/PlatformManagementSection/PlatformManagementSection'
 import RoleManagementSection from './components/RoleManagementSection/RoleManagementSection'
+import ShiftLinkLogSection from './components/ShiftLinkLogSection/ShiftLinkLogSection'
 import ShiftLinkManagementSection from './components/ShiftLinkManagementSection/ShiftLinkManagementSection'
-import ShiftLinkAuditSection from './components/ShiftLinkAuditSection/ShiftLinkAuditSection'
 import Sidebar from './components/Sidebar/Sidebar'
 import TestShiftLinkSection from './components/TestShiftLinkSection/TestShiftLinkSection'
 import UserManagementSection from './components/UserManagementSection/UserManagementSection'
@@ -58,7 +58,7 @@ const MENU_GROUPS = [
       { id: 'normal-ads-management', label: 'Normal Ads Tasks' },
       { id: 'matrix-ads-management', label: 'Matrix Ads Tasks' },
       { id: 'ads-url-management', label: 'Shift Link' },
-      { id: 'shift-link-audit', label: 'Shift Link Audit' },
+      { id: 'shift-link-log', label: 'Shift Link Log' },
       { id: 'test-shift-link', label: 'Shift Link Testing' },
     ],
   },
@@ -177,7 +177,7 @@ function getNextAdsStatus(value) {
   return normalizeAdsStatusValue(value) === 'RUNNING' ? 'PAUSED' : 'RUNNING'
 }
 
-function normalizeAuditAdsType(value) {
+function normalizeShiftLinkAdsType(value) {
   const normalized = String(value ?? '').trim().toLowerCase()
 
   if (normalized === 'normal') {
@@ -272,11 +272,22 @@ function App() {
   const [matrixAdsTestResponse, setMatrixAdsTestResponse] = useState(null)
   const [normalAdsTestLoading, setNormalAdsTestLoading] = useState(false)
   const [matrixAdsTestLoading, setMatrixAdsTestLoading] = useState(false)
-  const [shiftLinkAuditFilters, setShiftLinkAuditFilters] = useState({
+  const [shiftLinkLogFilters, setShiftLinkLogFilters] = useState({
     adsType: '',
+    adsName: '',
     platformName: '',
-    campainName: '',
   })
+  const [shiftLinkLogCatalog, setShiftLinkLogCatalog] = useState([])
+  const [shiftLinkLogCatalogLoading, setShiftLinkLogCatalogLoading] = useState(false)
+  const [shiftLinkLogCatalogError, setShiftLinkLogCatalogError] = useState('')
+  const [shiftLinkLogs, setShiftLinkLogs] = useState([])
+  const [shiftLinkLogsLoading, setShiftLinkLogsLoading] = useState(false)
+  const [shiftLinkLogsError, setShiftLinkLogsError] = useState('')
+  const [shiftLinkLogsLoaded, setShiftLinkLogsLoaded] = useState(false)
+  const [shiftLinkLogPagination, setShiftLinkLogPagination] = useState(() => createInitialPagination())
+  const shiftLinkLogPaginationRef = useRef(shiftLinkLogPagination)
+  const [shiftLinkLogQueryApplied, setShiftLinkLogQueryApplied] = useState(false)
+  const shiftLinkLogFiltersRef = useRef(shiftLinkLogFilters)
 
   const [users, setUsers] = useState([])
   const [usersLoading, setUsersLoading] = useState(false)
@@ -317,9 +328,6 @@ function App() {
   const [adsMessage, setAdsMessage] = useState('')
   const [adsUrlPagination, setAdsUrlPagination] = useState(() => createInitialPagination())
   const adsUrlPaginationRef = useRef(adsUrlPagination)
-  const [auditAdsUrls, setAuditAdsUrls] = useState([])
-  const [auditAdsLoading, setAuditAdsLoading] = useState(false)
-  const [auditAdsError, setAuditAdsError] = useState('')
   const [editingAdsId, setEditingAdsId] = useState(null)
   const [editingAdsOriginal, setEditingAdsOriginal] = useState(null)
   const [capMainName, setCapMainName] = useState('')
@@ -472,6 +480,20 @@ function App() {
     ]
   }, [])
 
+  const shiftLinkLogColumns = useMemo(() => {
+    return [
+      { key: 'id', label: 'ID', fields: ['id'] },
+      { key: 'adsType', label: 'Ads Type', fields: ['adsType'] },
+      { key: 'adsName', label: 'Ads Name', fields: ['adsName', 'capMainName', 'campainName'] },
+      { key: 'platformName', label: 'Platform Name', fields: ['platformName', 'platform'] },
+      { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
+      { key: 'displayTimes', label: 'Display Time', fields: ['displayTimes'] },
+      { key: 'remarks', label: 'Remarks', fields: ['remarks', 'remark'] },
+      { key: 'adsOwner', label: 'Ads Owner', fields: ['adsOwner'] },
+      { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
+    ]
+  }, [])
+
   const adsStatusOptions = useMemo(
     () => [
       { value: 'RUNNING', label: 'Running' },
@@ -511,15 +533,73 @@ function App() {
     return options
   }, [currentUserRole])
 
-  const defaultAuditAdsType = useMemo(
+  const defaultShiftLinkLogAdsType = useMemo(
     () => (adsTypeOptions.length === 1 ? adsTypeOptions[0].value : ''),
     [adsTypeOptions],
   )
 
-  const allowedAuditAdsTypes = useMemo(
+  const allowedShiftLinkLogAdsTypes = useMemo(
     () => new Set(adsTypeOptions.map((option) => option.value)),
     [adsTypeOptions],
   )
+
+  const availableShiftLinkLogCatalog = useMemo(() => {
+    return shiftLinkLogCatalog.filter((item) => {
+      const adsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
+      return (
+        adsType &&
+        allowedShiftLinkLogAdsTypes.has(adsType) &&
+        isOwnedByCurrentUser(item, currentUserProfile, currentUser, identifier)
+      )
+    })
+  }, [shiftLinkLogCatalog, allowedShiftLinkLogAdsTypes, currentUserProfile, currentUser, identifier])
+
+  const shiftLinkLogAdsNameOptions = useMemo(() => {
+    const names = new Set()
+
+    availableShiftLinkLogCatalog.forEach((item) => {
+      const adsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
+      if (shiftLinkLogFilters.adsType && adsType !== shiftLinkLogFilters.adsType) {
+        return
+      }
+
+      const adsName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
+      )
+      if (adsName) {
+        names.add(adsName)
+      }
+    })
+
+    return Array.from(names).sort((left, right) => left.localeCompare(right))
+  }, [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType])
+
+  const shiftLinkLogPlatformOptions = useMemo(() => {
+    const names = new Set()
+
+    availableShiftLinkLogCatalog.forEach((item) => {
+      const adsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
+      if (shiftLinkLogFilters.adsType && adsType !== shiftLinkLogFilters.adsType) {
+        return
+      }
+
+      const adsName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
+      )
+      if (shiftLinkLogFilters.adsName && adsName !== shiftLinkLogFilters.adsName) {
+        return
+      }
+
+      const platformName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['platformName', 'platform']),
+      )
+      if (platformName) {
+        names.add(platformName)
+      }
+    })
+
+    return Array.from(names).sort((left, right) => left.localeCompare(right))
+  }, [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsName, shiftLinkLogFilters.adsType])
 
   const normalAdsColumns = useMemo(() => {
     const preferredOrder = [
@@ -585,94 +665,6 @@ function App() {
     remainingFields.sort((left, right) => left.localeCompare(right))
     return [...orderedFields, ...remainingFields]
   }, [matrixAds])
-
-  const auditBaseAdsUrls = useMemo(() => {
-    return auditAdsUrls.filter((item) => {
-      const adsType = normalizeAuditAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
-      return adsType && allowedAuditAdsTypes.has(adsType)
-    })
-  }, [auditAdsUrls, allowedAuditAdsTypes])
-
-  const auditPlatformOptions = useMemo(() => {
-    const names = new Set()
-
-    auditBaseAdsUrls.forEach((item) => {
-      const adsType = normalizeAuditAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
-      if (shiftLinkAuditFilters.adsType && adsType !== shiftLinkAuditFilters.adsType) {
-        return
-      }
-
-      const platformName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['platformName', 'platform']),
-      )
-
-      if (platformName) {
-        names.add(platformName)
-      }
-    })
-
-    return Array.from(names).sort((left, right) => left.localeCompare(right))
-  }, [auditBaseAdsUrls, shiftLinkAuditFilters.adsType])
-
-  const auditCampainOptions = useMemo(() => {
-    const names = new Set()
-
-    auditBaseAdsUrls.forEach((item) => {
-      const adsType = normalizeAuditAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
-      if (shiftLinkAuditFilters.adsType && adsType !== shiftLinkAuditFilters.adsType) {
-        return
-      }
-
-      const platformName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['platformName', 'platform']),
-      )
-      if (
-        shiftLinkAuditFilters.platformName &&
-        platformName !== shiftLinkAuditFilters.platformName
-      ) {
-        return
-      }
-
-      const campainName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
-      )
-      if (campainName) {
-        names.add(campainName)
-      }
-    })
-
-    return Array.from(names).sort((left, right) => left.localeCompare(right))
-  }, [auditBaseAdsUrls, shiftLinkAuditFilters.adsType, shiftLinkAuditFilters.platformName])
-
-  const filteredAuditAdsUrls = useMemo(() => {
-    return auditBaseAdsUrls.filter((item) => {
-      const adsType = normalizeAuditAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
-      const platformName = toOptionalTrimmedString(firstDefinedValue(item, ['platformName', 'platform']))
-      const campainName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
-      )
-
-      if (shiftLinkAuditFilters.adsType && adsType !== shiftLinkAuditFilters.adsType) {
-        return false
-      }
-
-      if (
-        shiftLinkAuditFilters.platformName &&
-        platformName !== shiftLinkAuditFilters.platformName
-      ) {
-        return false
-      }
-
-      if (
-        shiftLinkAuditFilters.campainName &&
-        campainName !== shiftLinkAuditFilters.campainName
-      ) {
-        return false
-      }
-
-      return true
-    })
-  }, [auditBaseAdsUrls, shiftLinkAuditFilters])
 
   const canCreateNormalAds = useMemo(() => {
     if (normalAdsTotalCount == null) {
@@ -740,27 +732,13 @@ function App() {
     setShowAdsModal(true)
   }
 
-  function handleShiftLinkAuditAdsTypeChange(value) {
-    setShiftLinkAuditFilters({
-      adsType: value,
-      platformName: '',
-      campainName: '',
-    })
-  }
-
-  function handleShiftLinkAuditPlatformChange(value) {
-    setShiftLinkAuditFilters((current) => ({
-      ...current,
-      platformName: value,
-      campainName: '',
-    }))
-  }
-
-  function handleShiftLinkAuditCampainChange(value) {
-    setShiftLinkAuditFilters((current) => ({
-      ...current,
-      campainName: value,
-    }))
+  function handleShiftLinkLogFiltersChange(nextFilters) {
+    setShiftLinkLogFilters(nextFilters)
+    setShiftLinkLogQueryApplied(false)
+    setShiftLinkLogs([])
+    setShiftLinkLogsError('')
+    setShiftLinkLogsLoaded(false)
+    setShiftLinkLogPagination((current) => createInitialPagination(current.size))
   }
 
   function handleUsersPageChange(page) {
@@ -1046,20 +1024,52 @@ function App() {
     [token],
   )
 
-  const loadAuditAdsUrls = useCallback(async () => {
-    setAuditAdsLoading(true)
-    setAuditAdsError('')
+  const loadShiftLinkLogCatalog = useCallback(async () => {
+    setShiftLinkLogCatalogLoading(true)
+    setShiftLinkLogCatalogError('')
 
     try {
       const response = await requestApi('/shift-links/all', { token })
-      setAuditAdsUrls(extractItems(response))
+      setShiftLinkLogCatalog(extractItems(response))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
-      setAuditAdsError(message)
+      setShiftLinkLogCatalogError(message)
     } finally {
-      setAuditAdsLoading(false)
+      setShiftLinkLogCatalogLoading(false)
     }
   }, [token])
+
+  const loadShiftLinkLogs = useCallback(
+    async (filters = shiftLinkLogFiltersRef.current, pageConfig = shiftLinkLogPaginationRef.current) => {
+      setShiftLinkLogsLoading(true)
+      setShiftLinkLogsError('')
+
+      try {
+        const response = await requestApi(
+          `/shift-link-logs${buildQueryString({
+            adsType: filters.adsType,
+            adsName: filters.adsName,
+            platformName: filters.platformName,
+            page: pageConfig.page,
+            size: pageConfig.size,
+          })}`,
+          { token },
+        )
+        setShiftLinkLogs(extractItems(response))
+        setShiftLinkLogPagination(buildPaginationState(response, pageConfig))
+        setShiftLinkLogsLoaded(true)
+        setShiftLinkLogQueryApplied(true)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setShiftLinkLogsError(message)
+        setShiftLinkLogs([])
+        setShiftLinkLogsLoaded(true)
+      } finally {
+        setShiftLinkLogsLoading(false)
+      }
+    },
+    [token],
+  )
 
   const loadPlatforms = useCallback(async () => {
     setPlatformsLoading(true)
@@ -1209,12 +1219,20 @@ function App() {
   }, [adsUrlFilters])
 
   useEffect(() => {
+    shiftLinkLogFiltersRef.current = shiftLinkLogFilters
+  }, [shiftLinkLogFilters])
+
+  useEffect(() => {
     usersPaginationRef.current = usersPagination
   }, [usersPagination])
 
   useEffect(() => {
     adsUrlPaginationRef.current = adsUrlPagination
   }, [adsUrlPagination])
+
+  useEffect(() => {
+    shiftLinkLogPaginationRef.current = shiftLinkLogPagination
+  }, [shiftLinkLogPagination])
 
   useEffect(() => {
     normalAdsFiltersRef.current = normalAdsFilters
@@ -1240,7 +1258,7 @@ function App() {
         'ads-platform-management',
         'auto-script',
         'test-shift-link',
-        'shift-link-audit',
+        'shift-link-log',
         'normal-ads-management',
         'matrix-ads-management',
         'ads-url-management',
@@ -1260,12 +1278,60 @@ function App() {
     if (menus.length > 0) {
       menus.push('auto-script')
       menus.push('ads-url-management')
+      menus.push('shift-link-log')
       menus.push('test-shift-link')
-      menus.push('shift-link-audit')
     }
 
     return menus
   }, [currentUserRole])
+
+  useEffect(() => {
+    setShiftLinkLogFilters((current) => {
+      const nextAdsType =
+        current.adsType && allowedShiftLinkLogAdsTypes.has(current.adsType)
+          ? current.adsType
+          : defaultShiftLinkLogAdsType
+
+      if (current.adsType === nextAdsType) {
+        return current
+      }
+
+      return {
+        adsType: nextAdsType,
+        adsName: '',
+        platformName: '',
+      }
+    })
+  }, [defaultShiftLinkLogAdsType, allowedShiftLinkLogAdsTypes])
+
+  useEffect(() => {
+    if (
+      shiftLinkLogFilters.adsName &&
+      !shiftLinkLogAdsNameOptions.includes(shiftLinkLogFilters.adsName)
+    ) {
+      setShiftLinkLogFilters((current) => ({
+        ...current,
+        adsName: '',
+        platformName: '',
+      }))
+      return
+    }
+
+    if (
+      shiftLinkLogFilters.platformName &&
+      !shiftLinkLogPlatformOptions.includes(shiftLinkLogFilters.platformName)
+    ) {
+      setShiftLinkLogFilters((current) => ({
+        ...current,
+        platformName: '',
+      }))
+    }
+  }, [
+    shiftLinkLogAdsNameOptions,
+    shiftLinkLogFilters.adsName,
+    shiftLinkLogFilters.platformName,
+    shiftLinkLogPlatformOptions,
+  ])
 
   useEffect(() => {
     if (!isAuthenticated || !currentUser) {
@@ -1325,62 +1391,6 @@ function App() {
   }, [currentUser, currentUserProfile, isAuthenticated, loadRunningAdsCounts])
 
   useEffect(() => {
-    setShiftLinkAuditFilters((current) => {
-      const nextAdsType =
-        current.adsType && allowedAuditAdsTypes.has(current.adsType)
-          ? current.adsType
-          : defaultAuditAdsType
-
-      if (
-        current.adsType === nextAdsType &&
-        current.platformName === '' &&
-        current.campainName === ''
-      ) {
-        return current
-      }
-
-      if (current.adsType === nextAdsType) {
-        return current
-      }
-
-      return {
-        adsType: nextAdsType,
-        platformName: '',
-        campainName: '',
-      }
-    })
-  }, [defaultAuditAdsType, allowedAuditAdsTypes])
-
-  useEffect(() => {
-    if (
-      shiftLinkAuditFilters.platformName &&
-      !auditPlatformOptions.includes(shiftLinkAuditFilters.platformName)
-    ) {
-      setShiftLinkAuditFilters((current) => ({
-        ...current,
-        platformName: '',
-        campainName: '',
-      }))
-      return
-    }
-
-    if (
-      shiftLinkAuditFilters.campainName &&
-      !auditCampainOptions.includes(shiftLinkAuditFilters.campainName)
-    ) {
-      setShiftLinkAuditFilters((current) => ({
-        ...current,
-        campainName: '',
-      }))
-    }
-  }, [
-    auditCampainOptions,
-    auditPlatformOptions,
-    shiftLinkAuditFilters.campainName,
-    shiftLinkAuditFilters.platformName,
-  ])
-
-  useEffect(() => {
     if (!isAuthenticated) {
       return
     }
@@ -1417,6 +1427,15 @@ function App() {
       return
     }
 
+    if (activeMenu === 'shift-link-log') {
+      void loadShiftLinkLogCatalog()
+      void loadShiftLinkLogs(
+        shiftLinkLogQueryApplied ? shiftLinkLogFiltersRef.current : {},
+        shiftLinkLogPaginationRef.current,
+      )
+      return
+    }
+
     if (activeMenu === 'normal-ads-management') {
       void loadNormalAds(normalAdsQueryApplied ? normalAdsFiltersRef.current : {})
       void loadPlatforms()
@@ -1429,11 +1448,6 @@ function App() {
       return
     }
 
-    if (activeMenu === 'shift-link-audit') {
-      void loadAuditAdsUrls()
-      return
-    }
-
     if (activeMenu === 'ads-platform-management') {
       void loadPlatforms()
     }
@@ -1443,7 +1457,9 @@ function App() {
     loadUsers,
     loadRoles,
     loadAdsUrls,
-    loadAuditAdsUrls,
+    loadShiftLinkLogCatalog,
+    loadShiftLinkLogs,
+    shiftLinkLogQueryApplied,
     loadNormalAds,
     loadMatrixAds,
     loadPlatforms,
@@ -1808,9 +1824,6 @@ function App() {
     setAdsError('')
     setAdsMessage('')
     setAdsUrlPagination(createInitialPagination())
-    setAuditAdsUrls([])
-    setAuditAdsLoading(false)
-    setAuditAdsError('')
     setShowBulkAdsModal(false)
     setBulkAdsFile(null)
     setBulkAdsSaving(false)
@@ -1840,11 +1853,20 @@ function App() {
     setMatrixAdsTestResponse(null)
     setNormalAdsTestLoading(false)
     setMatrixAdsTestLoading(false)
-    setShiftLinkAuditFilters({
-      adsType: defaultAuditAdsType,
+    setShiftLinkLogFilters({
+      adsType: defaultShiftLinkLogAdsType,
+      adsName: '',
       platformName: '',
-      campainName: '',
     })
+    setShiftLinkLogCatalog([])
+    setShiftLinkLogCatalogLoading(false)
+    setShiftLinkLogCatalogError('')
+    setShiftLinkLogs([])
+    setShiftLinkLogsLoading(false)
+    setShiftLinkLogsError('')
+    setShiftLinkLogsLoaded(false)
+    setShiftLinkLogPagination(createInitialPagination())
+    setShiftLinkLogQueryApplied(false)
     setShowUserModal(false)
     setShowAdsModal(false)
     setShowPlatformModal(false)
@@ -1879,7 +1901,7 @@ function App() {
 
     try {
       const response = await requestApi(
-        `${path}${buildQueryString({ campain_name: campainName, api_key: apiKey })}`,
+        `${path}${buildQueryString({ campaign_name: campainName, api_key: apiKey })}`,
         { token },
       )
       setResponse(response)
@@ -2268,6 +2290,58 @@ function App() {
     }
   }
 
+  async function handleShiftLinkLogSearch(event) {
+    event.preventDefault()
+    setShiftLinkLogCatalogError('')
+    await loadShiftLinkLogs({
+      adsType: toOptionalTrimmedString(shiftLinkLogFilters.adsType),
+      adsName: toOptionalTrimmedString(shiftLinkLogFilters.adsName),
+      platformName: toOptionalTrimmedString(shiftLinkLogFilters.platformName),
+    }, {
+      page: 0,
+      size: shiftLinkLogPaginationRef.current.size,
+    })
+  }
+
+  function handleReloadShiftLinkLogs() {
+    setShiftLinkLogFilters({
+      adsType: defaultShiftLinkLogAdsType,
+      adsName: '',
+      platformName: '',
+    })
+    setShiftLinkLogQueryApplied(false)
+    setShiftLinkLogCatalogError('')
+    setShiftLinkLogs([])
+    setShiftLinkLogsError('')
+    setShiftLinkLogsLoaded(false)
+    setShiftLinkLogPagination((current) => createInitialPagination(current.size))
+    void loadShiftLinkLogCatalog()
+    void loadShiftLinkLogs({}, { page: 0, size: shiftLinkLogPaginationRef.current.size })
+  }
+
+  function handleShiftLinkLogPageChange(page) {
+    if (!shiftLinkLogQueryApplied) {
+      return
+    }
+
+    void loadShiftLinkLogs(shiftLinkLogFiltersRef.current, {
+      page,
+      size: shiftLinkLogPaginationRef.current.size,
+    })
+  }
+
+  function handleShiftLinkLogPageSizeChange(size) {
+    if (!shiftLinkLogQueryApplied) {
+      setShiftLinkLogPagination(createInitialPagination(size))
+      return
+    }
+
+    void loadShiftLinkLogs(shiftLinkLogFiltersRef.current, {
+      page: 0,
+      size,
+    })
+  }
+
   function startEditPlatform(item) {
     setEditingPlatformId(item.id)
     setPlatformName(item.platformName || '')
@@ -2345,10 +2419,10 @@ function App() {
           ? 'Auto Script'
         : activeMenu === 'ads-url-management'
           ? 'Shift Link'
+          : activeMenu === 'shift-link-log'
+            ? 'Shift Link Log'
           : activeMenu === 'test-shift-link'
             ? 'Shift Link Testing'
-          : activeMenu === 'shift-link-audit'
-            ? 'Shift Link Audit'
           : activeMenu === 'normal-ads-management'
             ? 'Normal Ads Tasks'
             : activeMenu === 'matrix-ads-management'
@@ -2494,6 +2568,28 @@ function App() {
         onPageSizeChange={handleAdsUrlPageSizeChange}
       />
     )
+  } else if (activeMenu === 'shift-link-log') {
+    activeSection = (
+      <ShiftLinkLogSection
+        filters={shiftLinkLogFilters}
+        adsTypeOptions={adsTypeOptions}
+        adsNameOptions={shiftLinkLogAdsNameOptions}
+        platformOptions={shiftLinkLogPlatformOptions}
+        catalogLoading={shiftLinkLogCatalogLoading}
+        catalogError={shiftLinkLogCatalogError}
+        logs={shiftLinkLogs}
+        logsLoading={shiftLinkLogsLoading}
+        logsError={shiftLinkLogsError}
+        hasLoadedLogs={shiftLinkLogsLoaded}
+        logColumns={shiftLinkLogColumns}
+        pagination={shiftLinkLogPagination}
+        onFiltersChange={handleShiftLinkLogFiltersChange}
+        onSearch={(event) => void handleShiftLinkLogSearch(event)}
+        onReload={handleReloadShiftLinkLogs}
+        onPageChange={handleShiftLinkLogPageChange}
+        onPageSizeChange={handleShiftLinkLogPageSizeChange}
+      />
+    )
   } else if (activeMenu === 'test-shift-link') {
     activeSection = (
       <TestShiftLinkSection
@@ -2508,23 +2604,6 @@ function App() {
         matrixAdsTestResponse={matrixAdsTestResponse}
         onTestNormalAds={() => void runTestShiftLink('normal')}
         onTestMatrixAds={() => void runTestShiftLink('matrix')}
-      />
-    )
-  } else if (activeMenu === 'shift-link-audit') {
-    activeSection = (
-      <ShiftLinkAuditSection
-        adsUrls={filteredAuditAdsUrls}
-        adsLoading={auditAdsLoading}
-        adsError={auditAdsError}
-        adsUrlColumns={adsUrlColumns}
-        auditFilters={shiftLinkAuditFilters}
-        adsTypeOptions={adsTypeOptions}
-        platformOptions={auditPlatformOptions}
-        campainOptions={auditCampainOptions}
-        onAuditAdsTypeChange={handleShiftLinkAuditAdsTypeChange}
-        onAuditPlatformChange={handleShiftLinkAuditPlatformChange}
-        onAuditCampainChange={handleShiftLinkAuditCampainChange}
-        formatAdsStatusLabel={formatAdsStatusLabel}
       />
     )
   } else if (activeMenu === 'auto-script') {

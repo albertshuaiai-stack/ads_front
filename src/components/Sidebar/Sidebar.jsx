@@ -30,21 +30,22 @@ function getIconFor(id) {
           <path d="M14 10a4 4 0 00-5.657 0L6.93 11.414a4 4 0 105.657 5.657L14 15.656" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
+    case 'shift-link-log':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <path d="M7 4h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M7 9h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M7 14h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M17 14l2 2-4 4-2-2 4-4z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" />
+        </svg>
+      )
     case 'test-shift-link':
       return (
         <svg {...common} aria-hidden focusable="false">
           <path d="M9 3h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           <path d="M10 3v4l-4.5 7.5A4 4 0 0 0 8.93 21h6.14a4 4 0 0 0 3.43-6.5L14 7V3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M9 14h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-        </svg>
-      )
-    case 'shift-link-audit':
-      return (
-        <svg {...common} aria-hidden focusable="false">
-          <path d="M4 6h16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          <path d="M7 12h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          <path d="M10 18h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" />
         </svg>
       )
     case 'auto-script':
