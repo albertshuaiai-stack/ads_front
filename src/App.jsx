@@ -1,0 +1,2708 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import LoginForm from './components/LoginForm/LoginForm'
+import ChangePasswordModal from './components/ChangePasswordModal/ChangePasswordModal'
+import GoogleAdsScriptPanel from './components/GoogleAdsScriptPanel/GoogleAdsScriptPanel'
+import MatrixAdsManagementSection from './components/MatrixAdsManagementSection/MatrixAdsManagementSection'
+import NormalAdsManagementSection from './components/NormalAdsManagementSection/NormalAdsManagementSection'
+import PageHeader from './components/PageHeader/PageHeader'
+import PlatformManagementSection from './components/PlatformManagementSection/PlatformManagementSection'
+import RoleManagementSection from './components/RoleManagementSection/RoleManagementSection'
+import ShiftLinkManagementSection from './components/ShiftLinkManagementSection/ShiftLinkManagementSection'
+import ShiftLinkAuditSection from './components/ShiftLinkAuditSection/ShiftLinkAuditSection'
+import Sidebar from './components/Sidebar/Sidebar'
+import TestShiftLinkSection from './components/TestShiftLinkSection/TestShiftLinkSection'
+import UserManagementSection from './components/UserManagementSection/UserManagementSection'
+import './App.css'
+import { COUNTRY_OPTIONS, toCountryCode } from './lib/countryOptions'
+import {
+  TOKEN_STORAGE_KEY,
+  USER_STORAGE_KEY,
+  ROLE_STORAGE_KEY,
+  NORMAL_ADS_TOTAL_STORAGE_KEY,
+  MATRIX_ADS_TOTAL_STORAGE_KEY,
+  buildQueryString,
+  createShiftLinkUploadFile,
+  createEmptyAffiliateRow,
+  downloadStaticFile,
+  extractItems,
+  firstDefinedValue,
+  formatTableValue,
+  getDefaultMenuForRole,
+  getLoggedInAdsOwner,
+  isAdminRole,
+  isMatrixRole,
+  isNormalRole,
+  normalizeAffiliateRow,
+  normalizeHeader,
+  parseAdsUrl,
+  requestApi,
+  toOptionalTrimmedString,
+  uploadApiFile,
+} from './lib/adsPortal'
+
+const MENU_GROUPS = [
+  {
+    id: 'system',
+    title: 'System Management',
+    items: [
+      { id: 'user-management', label: 'User' },
+      { id: 'role-management', label: 'User Role' },
+      { id: 'ads-platform-management', label: 'Platform' },
+    ],
+  },
+  {
+    id: 'ads',
+    title: 'Advertisement',
+    items: [
+      { id: 'auto-script', label: 'Auto Script' },
+      { id: 'normal-ads-management', label: 'Normal Ads Tasks' },
+      { id: 'matrix-ads-management', label: 'Matrix Ads Tasks' },
+      { id: 'ads-url-management', label: 'Shift Link' },
+      { id: 'shift-link-audit', label: 'Shift Link Audit' },
+      { id: 'test-shift-link', label: 'Shift Link Testing' },
+    ],
+  },
+]
+
+const SHIFT_LINK_TEMPLATE_FILE_URL = '/templates/Shift_Link_Temp.xlsx'
+
+function toDateInputValue(value) {
+  const text = toOptionalTrimmedString(value)
+  if (!text) {
+    return ''
+  }
+
+  const match = text.match(/^\d{4}[-/]\d{2}[-/]\d{2}/)
+  return match ? match[0].replace(/\//g, '-') : ''
+}
+
+function toApiDateValue(value) {
+  const text = toOptionalTrimmedString(value)
+  if (!text) {
+    return undefined
+  }
+
+  if (/^\d{4}\/\d{2}\/\d{2}$/.test(text)) {
+    return text.replace(/\//g, '-')
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return text
+  }
+
+  return text
+}
+
+function formatDateDisplayValue(value) {
+  const dateValue = toDateInputValue(value)
+  return dateValue ? dateValue.replace(/-/g, '/') : formatTableValue(value)
+}
+
+function getUserExpireDate(user) {
+  return firstDefinedValue(user, ['expireDate', 'expireAt', 'expiry', 'expire'])
+}
+
+function validateUserName(value) {
+  const text = toOptionalTrimmedString(value)
+  if (!text) {
+    throw new Error('User Name is required.')
+  }
+
+  if (text.length < 2) {
+    throw new Error('User Name must be at least 2 characters.')
+  }
+
+  if (text.length > 50) {
+    throw new Error('User Name must be 50 characters or fewer.')
+  }
+
+  return text
+}
+
+function validateUserEmail(value) {
+  const text = toOptionalTrimmedString(value)
+  if (!text) {
+    throw new Error('Email is required.')
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
+    throw new Error('Please enter a valid email address.')
+  }
+
+  return text
+}
+
+function validateUserPhoneNumber(value) {
+  const text = toOptionalTrimmedString(value)
+  if (!text) {
+    throw new Error('Phone Number is required.')
+  }
+
+  if (!/^[0-9+\-()\s]{7,20}$/.test(text)) {
+    throw new Error('Please enter a valid phone number using 7-20 digits and common symbols.')
+  }
+
+  return text
+}
+
+function normalizeAdsStatusValue(value) {
+  const text = String(value ?? '').trim().toUpperCase()
+
+  if (text === 'ACTIVE') {
+    return 'RUNNING'
+  }
+
+  return text
+}
+
+function formatAdsStatusLabel(value) {
+  const status = normalizeAdsStatusValue(value)
+
+  if (status === 'RUNNING') {
+    return 'Running'
+  }
+
+  if (status === 'PAUSED') {
+    return 'Paused'
+  }
+
+  return formatTableValue(value)
+}
+
+function getAdsStatusActionLabel(value) {
+  return normalizeAdsStatusValue(value) === 'RUNNING' ? 'Pause' : 'Active'
+}
+
+function getNextAdsStatus(value) {
+  return normalizeAdsStatusValue(value) === 'RUNNING' ? 'PAUSED' : 'RUNNING'
+}
+
+function normalizeAuditAdsType(value) {
+  const normalized = String(value ?? '').trim().toLowerCase()
+
+  if (normalized === 'normal') {
+    return 'Normal'
+  }
+
+  if (normalized === 'matrix') {
+    return 'Matrix'
+  }
+
+  return ''
+}
+
+function toOptionalCount(value) {
+  if (value == null || value === '') {
+    return null
+  }
+
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) ? numberValue : null
+}
+
+function getUserIdentityCandidates(currentUserProfile, currentUser, identifier) {
+  return [
+    currentUserProfile?.userName,
+    currentUserProfile?.userEmail,
+    currentUserProfile?.userPhoneNumber,
+    currentUser,
+    identifier,
+  ]
+    .map((value) => normalizeHeader(value))
+    .filter(Boolean)
+}
+
+function isOwnedByCurrentUser(item, currentUserProfile, currentUser, identifier) {
+  const owner = normalizeHeader(item?.adsOwner)
+  if (!owner) {
+    return false
+  }
+
+  return getUserIdentityCandidates(currentUserProfile, currentUser, identifier).includes(owner)
+}
+
+function createInitialPagination(size = 10) {
+  return {
+    page: 0,
+    size,
+    totalElements: 0,
+    totalPages: 0,
+  }
+}
+
+function buildPaginationState(response, fallback) {
+  const page = toOptionalCount(response?.number) ?? fallback.page
+  const size = toOptionalCount(response?.size) ?? fallback.size
+  const totalElements = toOptionalCount(response?.totalElements) ?? extractItems(response).length
+  const totalPages =
+    toOptionalCount(response?.totalPages) ??
+    (size > 0 ? Math.ceil(totalElements / size) : 0)
+
+  return {
+    page,
+    size,
+    totalElements,
+    totalPages,
+  }
+}
+
+function App() {
+  const [identifier, setIdentifier] = useState('')
+  const [password, setPassword] = useState('')
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [loginError, setLoginError] = useState('')
+  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_STORAGE_KEY))
+  const [currentUser, setCurrentUser] = useState(() => localStorage.getItem(USER_STORAGE_KEY) || '')
+  const [currentUserRole, setCurrentUserRole] = useState(() => localStorage.getItem(ROLE_STORAGE_KEY) || '')
+  const [currentUserProfile, setCurrentUserProfile] = useState(null)
+  const [normalAdsTotalCount, setNormalAdsTotalCount] = useState(() =>
+    toOptionalCount(localStorage.getItem(NORMAL_ADS_TOTAL_STORAGE_KEY)),
+  )
+  const [matrixAdsTotalCount, setMatrixAdsTotalCount] = useState(() =>
+    toOptionalCount(localStorage.getItem(MATRIX_ADS_TOTAL_STORAGE_KEY)),
+  )
+  const [runningNormalAdsCount, setRunningNormalAdsCount] = useState(0)
+  const [runningMatrixAdsCount, setRunningMatrixAdsCount] = useState(0)
+
+  const [activeMenu, setActiveMenu] = useState('user-management')
+  const [testShiftLinkCampainName, setTestShiftLinkCampainName] = useState('')
+  const [testShiftLinkApiKey, setTestShiftLinkApiKey] = useState('')
+  const [testShiftLinkError, setTestShiftLinkError] = useState('')
+  const [normalAdsTestResponse, setNormalAdsTestResponse] = useState(null)
+  const [matrixAdsTestResponse, setMatrixAdsTestResponse] = useState(null)
+  const [normalAdsTestLoading, setNormalAdsTestLoading] = useState(false)
+  const [matrixAdsTestLoading, setMatrixAdsTestLoading] = useState(false)
+  const [shiftLinkAuditFilters, setShiftLinkAuditFilters] = useState({
+    adsType: '',
+    platformName: '',
+    campainName: '',
+  })
+
+  const [users, setUsers] = useState([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [usersError, setUsersError] = useState('')
+  const [usersMessage, setUsersMessage] = useState('')
+  const [usersPagination, setUsersPagination] = useState(() => createInitialPagination())
+  const usersPaginationRef = useRef(usersPagination)
+  const [editingUserId, setEditingUserId] = useState(null)
+  const [userName, setUserName] = useState('')
+  const [userEmail, setUserEmail] = useState('')
+  const [userPhoneNumber, setUserPhoneNumber] = useState('')
+  const [userPassword, setUserPassword] = useState('')
+  const [userRole, setUserRole] = useState('')
+  const [expireDate, setExpireDate] = useState('')
+  const [userStatus, setUserStatus] = useState('ENABLED')
+  const [savingUser, setSavingUser] = useState(false)
+  const [showUserModal, setShowUserModal] = useState(false)
+
+  const [roles, setRoles] = useState([])
+  const [rolesLoading, setRolesLoading] = useState(false)
+  const [rolesError, setRolesError] = useState('')
+  const [rolesMessage, setRolesMessage] = useState('')
+  const [editingRoleId, setEditingRoleId] = useState(null)
+  const [roleName, setRoleName] = useState('')
+  const [savingRole, setSavingRole] = useState(false)
+  const [showRoleModal, setShowRoleModal] = useState(false)
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changePasswordError, setChangePasswordError] = useState('')
+  const [changePasswordMessage, setChangePasswordMessage] = useState('')
+  const [savingChangePassword, setSavingChangePassword] = useState(false)
+
+  const [adsUrls, setAdsUrls] = useState([])
+  const [adsLoading, setAdsLoading] = useState(false)
+  const [adsError, setAdsError] = useState('')
+  const [adsMessage, setAdsMessage] = useState('')
+  const [adsUrlPagination, setAdsUrlPagination] = useState(() => createInitialPagination())
+  const adsUrlPaginationRef = useRef(adsUrlPagination)
+  const [auditAdsUrls, setAuditAdsUrls] = useState([])
+  const [auditAdsLoading, setAuditAdsLoading] = useState(false)
+  const [auditAdsError, setAuditAdsError] = useState('')
+  const [editingAdsId, setEditingAdsId] = useState(null)
+  const [editingAdsOriginal, setEditingAdsOriginal] = useState(null)
+  const [capMainName, setCapMainName] = useState('')
+  const [adsType, setAdsType] = useState('')
+  const [platform, setPlatform] = useState('')
+  const [fullUrl, setFullUrl] = useState('')
+  const [displayNumber, setDisplayNumber] = useState('')
+  const [remark, setRemark] = useState('')
+  const [savingAds, setSavingAds] = useState(false)
+  const [showAdsModal, setShowAdsModal] = useState(false)
+  const [showBulkAdsModal, setShowBulkAdsModal] = useState(false)
+  const [bulkAdsFile, setBulkAdsFile] = useState(null)
+  const [bulkAdsSaving, setBulkAdsSaving] = useState(false)
+  const [bulkAdsError, setBulkAdsError] = useState('')
+  const [bulkAdsMessage, setBulkAdsMessage] = useState('')
+
+  const [adsUrlFilters, setAdsUrlFilters] = useState({
+    platformName: '',
+    status: '',
+  })
+  const [adsUrlQueryApplied, setAdsUrlQueryApplied] = useState(false)
+  const adsUrlFiltersRef = useRef(adsUrlFilters)
+
+  const [normalAds, setNormalAds] = useState([])
+  const [normalAdsLoading, setNormalAdsLoading] = useState(false)
+  const [normalAdsError, setNormalAdsError] = useState('')
+  const [normalAdsMessage, setNormalAdsMessage] = useState('')
+  const [normalAdsPagination, setNormalAdsPagination] = useState(() => createInitialPagination())
+  const normalAdsPaginationRef = useRef(normalAdsPagination)
+  const [editingNormalAdsId, setEditingNormalAdsId] = useState(null)
+  const [normalCampainName, setNormalCampainName] = useState('')
+  const [normalCampainCountry, setNormalCampainCountry] = useState('')
+  const [normalPlatformName, setNormalPlatformName] = useState('')
+  const [normalAffiliteUrl, setNormalAffiliteUrl] = useState('')
+  const [normalLandingPageUrl, setNormalLandingPageUrl] = useState('')
+  const [normalDynamicProxyInfo, setNormalDynamicProxyInfo] = useState('')
+  const [normalDynamicProxyInfoBackup, setNormalDynamicProxyInfoBackup] = useState('')
+  const [normalIntervalTime, setNormalIntervalTime] = useState('')
+  const [normalStatus, setNormalStatus] = useState('RUNNING')
+  const [savingNormalAds, setSavingNormalAds] = useState(false)
+  const [showNormalAdsModal, setShowNormalAdsModal] = useState(false)
+  const [normalAdsFilters, setNormalAdsFilters] = useState({
+    campainName: '',
+    platformName: '',
+    status: '',
+  })
+  const [normalAdsQueryApplied, setNormalAdsQueryApplied] = useState(false)
+  const normalAdsFiltersRef = useRef(normalAdsFilters)
+
+  const [matrixAds, setMatrixAds] = useState([])
+  const [matrixAdsLoading, setMatrixAdsLoading] = useState(false)
+  const [matrixAdsError, setMatrixAdsError] = useState('')
+  const [matrixAdsMessage, setMatrixAdsMessage] = useState('')
+  const [matrixAdsPagination, setMatrixAdsPagination] = useState(() => createInitialPagination())
+  const matrixAdsPaginationRef = useRef(matrixAdsPagination)
+  const [editingMatrixAdsId, setEditingMatrixAdsId] = useState(null)
+  const [matrixCampainName, setMatrixCampainName] = useState('')
+  const [matrixCampainCountry, setMatrixCampainCountry] = useState('')
+  const [matrixLandingPageUrl, setMatrixLandingPageUrl] = useState('')
+  const [matrixDynamicProxyInfo, setMatrixDynamicProxyInfo] = useState('')
+  const [matrixDynamicProxyInfoBackup, setMatrixDynamicProxyInfoBackup] = useState('')
+  const [matrixIntervalTime, setMatrixIntervalTime] = useState('')
+  const [matrixStatus, setMatrixStatus] = useState('RUNNING')
+  const [matrixAffiliateRows, setMatrixAffiliateRows] = useState([createEmptyAffiliateRow()])
+  const [savingMatrixAds, setSavingMatrixAds] = useState(false)
+  const [showMatrixAdsModal, setShowMatrixAdsModal] = useState(false)
+  const [matrixAdsFilters, setMatrixAdsFilters] = useState({
+    campainName: '',
+    platformName: '',
+    status: '',
+  })
+  const [matrixAdsQueryApplied, setMatrixAdsQueryApplied] = useState(false)
+  const matrixAdsFiltersRef = useRef(matrixAdsFilters)
+
+  const [platforms, setPlatforms] = useState([])
+  const [platformsLoading, setPlatformsLoading] = useState(false)
+  const [platformsError, setPlatformsError] = useState('')
+  const [platformsMessage, setPlatformsMessage] = useState('')
+  const [editingPlatformId, setEditingPlatformId] = useState(null)
+  const [platformName, setPlatformName] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [platformRemarks, setPlatformRemarks] = useState('')
+  const [savingPlatform, setSavingPlatform] = useState(false)
+  const [showPlatformModal, setShowPlatformModal] = useState(false)
+
+  const isAuthenticated = useMemo(() => Boolean(token), [token])
+
+  const platformOptions = useMemo(() => {
+    const names = new Set()
+
+    platforms.forEach((item) => {
+      if (item?.platformName) {
+        names.add(item.platformName)
+      }
+    })
+
+    const editingPlatformName =
+      editingAdsOriginal?.platformName || editingAdsOriginal?.platform
+    if (editingPlatformName) {
+      names.add(editingPlatformName)
+    }
+
+    return Array.from(names).sort((left, right) => left.localeCompare(right))
+  }, [editingAdsOriginal, platforms])
+
+  const roleOptions = useMemo(() => {
+    const names = new Set()
+
+    roles.forEach((item) => {
+      if (item?.roleName) {
+        names.add(item.roleName)
+      }
+    })
+
+    if (userRole) {
+      names.add(userRole)
+    }
+
+    return Array.from(names).sort((left, right) => left.localeCompare(right))
+  }, [roles, userRole])
+
+  const adsUrlColumns = useMemo(() => {
+    return [
+      { key: 'id', label: 'ID', fields: ['id'] },
+      {
+        key: 'adsName',
+        label: 'Campaign Name',
+        fields: ['adsName', 'capMainName', 'campainName'],
+      },
+      { key: 'adsType', label: 'Ads Type', fields: ['adsType', 'ads_type'] },
+      { key: 'platformName', label: 'Platform Name', fields: ['platformName', 'platform'] },
+      { key: 'adsOwner', label: 'Ads Owner', fields: ['adsOwner'] },
+      { key: 'seqNumber', label: 'Seq Number', fields: ['seqNumber'] },
+      { key: 'displayNumber', label: 'Display Number', fields: ['displayNumber'] },
+      {
+        key: 'displayTimes',
+        label: 'Display Time',
+        fields: ['displayTimes'],
+      },
+      {
+        key: 'landingPageUrl',
+        label: 'Landing Page Url',
+        fields: ['landingPageUrl', 'landingUrl'],
+      },
+      { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
+      { key: 'remarks', label: 'Remarks', fields: ['remarks', 'remark'] },
+      { key: 'status', label: 'Status', fields: ['status'] },
+      { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
+      { key: 'updateDate', label: 'Update Date', fields: ['updateDate'] },
+    ]
+  }, [])
+
+  const adsStatusOptions = useMemo(
+    () => [
+      { value: 'RUNNING', label: 'Running' },
+      { value: 'PAUSED', label: 'Paused' },
+    ],
+    [],
+  )
+
+  const paymentMethodOptions = useMemo(
+    () => [
+      { value: 'PayPal', label: 'PayPal' },
+      { value: 'Gift Card', label: 'Gift Card' },
+      { value: 'Bank Trans', label: 'Bank Trans' },
+      { value: 'Others', label: 'Others' },
+    ],
+    [],
+  )
+
+  const adsTypeOptions = useMemo(() => {
+    if (isAdminRole(currentUserRole)) {
+      return [
+        { value: 'Normal', label: 'Normal' },
+        { value: 'Matrix', label: 'Matrix' },
+      ]
+    }
+
+    const options = []
+
+    if (isNormalRole(currentUserRole)) {
+      options.push({ value: 'Normal', label: 'Normal' })
+    }
+
+    if (isMatrixRole(currentUserRole)) {
+      options.push({ value: 'Matrix', label: 'Matrix' })
+    }
+
+    return options
+  }, [currentUserRole])
+
+  const defaultAuditAdsType = useMemo(
+    () => (adsTypeOptions.length === 1 ? adsTypeOptions[0].value : ''),
+    [adsTypeOptions],
+  )
+
+  const allowedAuditAdsTypes = useMemo(
+    () => new Set(adsTypeOptions.map((option) => option.value)),
+    [adsTypeOptions],
+  )
+
+  const normalAdsColumns = useMemo(() => {
+    const preferredOrder = [
+      'id',
+      'campainName',
+      'campainCountry',
+      'platformName',
+      'affiliteUrl',
+      'landingPageUrl',
+      'dynamicProxyInfo',
+      'intervalTime',
+      'status',
+      'createDate',
+      'updateDate',
+    ]
+    const fieldNames = new Set()
+
+    normalAds.forEach((item) => {
+      if (item && typeof item === 'object') {
+        Object.keys(item).forEach((key) => fieldNames.add(key))
+      }
+    })
+
+    const orderedFields = preferredOrder.filter((fieldName) => fieldNames.has(fieldName))
+    const remainingFields = Array.from(fieldNames).filter(
+      (fieldName) =>
+        !preferredOrder.includes(fieldName) &&
+        fieldName !== 'adsOwner' &&
+        fieldName !== 'dynamicProxyInfoBackup',
+    )
+
+    remainingFields.sort((left, right) => left.localeCompare(right))
+    return [...orderedFields, ...remainingFields]
+  }, [normalAds])
+
+  const matrixAdsColumns = useMemo(() => {
+    const preferredOrder = [
+      'id',
+      'campainName',
+      'campainCountry',
+      'landingPageUrl',
+      'dynamicProxyInfo',
+      'dynamicProxyInfoBackup',
+      'intervalTime',
+      'status',
+      'affiliateInfos',
+      'createDate',
+      'updateDate',
+    ]
+    const fieldNames = new Set()
+
+    matrixAds.forEach((item) => {
+      if (item && typeof item === 'object') {
+        Object.keys(item).forEach((key) => fieldNames.add(key))
+      }
+    })
+
+    const orderedFields = preferredOrder.filter((fieldName) => fieldNames.has(fieldName))
+    const remainingFields = Array.from(fieldNames).filter(
+      (fieldName) => !preferredOrder.includes(fieldName) && fieldName !== 'adsOwner',
+    )
+
+    remainingFields.sort((left, right) => left.localeCompare(right))
+    return [...orderedFields, ...remainingFields]
+  }, [matrixAds])
+
+  const auditBaseAdsUrls = useMemo(() => {
+    return auditAdsUrls.filter((item) => {
+      const adsType = normalizeAuditAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
+      return adsType && allowedAuditAdsTypes.has(adsType)
+    })
+  }, [auditAdsUrls, allowedAuditAdsTypes])
+
+  const auditPlatformOptions = useMemo(() => {
+    const names = new Set()
+
+    auditBaseAdsUrls.forEach((item) => {
+      const adsType = normalizeAuditAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
+      if (shiftLinkAuditFilters.adsType && adsType !== shiftLinkAuditFilters.adsType) {
+        return
+      }
+
+      const platformName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['platformName', 'platform']),
+      )
+
+      if (platformName) {
+        names.add(platformName)
+      }
+    })
+
+    return Array.from(names).sort((left, right) => left.localeCompare(right))
+  }, [auditBaseAdsUrls, shiftLinkAuditFilters.adsType])
+
+  const auditCampainOptions = useMemo(() => {
+    const names = new Set()
+
+    auditBaseAdsUrls.forEach((item) => {
+      const adsType = normalizeAuditAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
+      if (shiftLinkAuditFilters.adsType && adsType !== shiftLinkAuditFilters.adsType) {
+        return
+      }
+
+      const platformName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['platformName', 'platform']),
+      )
+      if (
+        shiftLinkAuditFilters.platformName &&
+        platformName !== shiftLinkAuditFilters.platformName
+      ) {
+        return
+      }
+
+      const campainName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
+      )
+      if (campainName) {
+        names.add(campainName)
+      }
+    })
+
+    return Array.from(names).sort((left, right) => left.localeCompare(right))
+  }, [auditBaseAdsUrls, shiftLinkAuditFilters.adsType, shiftLinkAuditFilters.platformName])
+
+  const filteredAuditAdsUrls = useMemo(() => {
+    return auditBaseAdsUrls.filter((item) => {
+      const adsType = normalizeAuditAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
+      const platformName = toOptionalTrimmedString(firstDefinedValue(item, ['platformName', 'platform']))
+      const campainName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
+      )
+
+      if (shiftLinkAuditFilters.adsType && adsType !== shiftLinkAuditFilters.adsType) {
+        return false
+      }
+
+      if (
+        shiftLinkAuditFilters.platformName &&
+        platformName !== shiftLinkAuditFilters.platformName
+      ) {
+        return false
+      }
+
+      if (
+        shiftLinkAuditFilters.campainName &&
+        campainName !== shiftLinkAuditFilters.campainName
+      ) {
+        return false
+      }
+
+      return true
+    })
+  }, [auditBaseAdsUrls, shiftLinkAuditFilters])
+
+  const canCreateNormalAds = useMemo(() => {
+    if (normalAdsTotalCount == null) {
+      return true
+    }
+
+    return runningNormalAdsCount < normalAdsTotalCount
+  }, [normalAdsTotalCount, runningNormalAdsCount])
+
+  const canCreateMatrixAds = useMemo(() => {
+    if (matrixAdsTotalCount == null) {
+      return true
+    }
+
+    return runningMatrixAdsCount < matrixAdsTotalCount
+  }, [matrixAdsTotalCount, runningMatrixAdsCount])
+
+  const normalAdsQuotaMessage = useMemo(() => {
+    if (normalAdsTotalCount == null) {
+      return ''
+    }
+
+    return `Running/Total: ${runningNormalAdsCount} / ${normalAdsTotalCount}`
+  }, [normalAdsTotalCount, runningNormalAdsCount])
+
+  const matrixAdsQuotaMessage = useMemo(() => {
+    if (matrixAdsTotalCount == null) {
+      return ''
+    }
+
+    return `Running/Total: ${runningMatrixAdsCount} / ${matrixAdsTotalCount}`
+  }, [matrixAdsTotalCount, runningMatrixAdsCount])
+
+  function clearUserForm() {
+    setEditingUserId(null)
+    setUserName('')
+    setUserEmail('')
+    setUserPhoneNumber('')
+    setUserPassword('')
+    setUserRole('')
+    setExpireDate('')
+    setUserStatus('ENABLED')
+  }
+
+  function openCreateUser() {
+    clearUserForm()
+    setUsersError('')
+    setShowUserModal(true)
+  }
+
+  function clearAdsForm() {
+    setEditingAdsId(null)
+    setEditingAdsOriginal(null)
+    setCapMainName('')
+    setAdsType(adsTypeOptions.length === 1 ? adsTypeOptions[0].value : '')
+    setPlatform('')
+    setFullUrl('')
+    setDisplayNumber('')
+    setRemark('')
+  }
+
+  function openCreateAds() {
+    clearAdsForm()
+    setAdsError('')
+    setShowAdsModal(true)
+  }
+
+  function handleShiftLinkAuditAdsTypeChange(value) {
+    setShiftLinkAuditFilters({
+      adsType: value,
+      platformName: '',
+      campainName: '',
+    })
+  }
+
+  function handleShiftLinkAuditPlatformChange(value) {
+    setShiftLinkAuditFilters((current) => ({
+      ...current,
+      platformName: value,
+      campainName: '',
+    }))
+  }
+
+  function handleShiftLinkAuditCampainChange(value) {
+    setShiftLinkAuditFilters((current) => ({
+      ...current,
+      campainName: value,
+    }))
+  }
+
+  function handleUsersPageChange(page) {
+    void loadUsers({
+      page,
+      size: usersPaginationRef.current.size,
+    })
+  }
+
+  function handleUsersPageSizeChange(size) {
+    void loadUsers({
+      page: 0,
+      size,
+    })
+  }
+
+  function handleAdsUrlPageChange(page) {
+    void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {}, {
+      page,
+      size: adsUrlPaginationRef.current.size,
+    })
+  }
+
+  function handleAdsUrlPageSizeChange(size) {
+    void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  function handleNormalAdsPageChange(page) {
+    void loadNormalAds(normalAdsQueryApplied ? normalAdsFiltersRef.current : {}, {
+      page,
+      size: normalAdsPaginationRef.current.size,
+    })
+  }
+
+  function handleNormalAdsPageSizeChange(size) {
+    void loadNormalAds(normalAdsQueryApplied ? normalAdsFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  function handleMatrixAdsPageChange(page) {
+    void loadMatrixAds(matrixAdsQueryApplied ? matrixAdsFiltersRef.current : {}, {
+      page,
+      size: matrixAdsPaginationRef.current.size,
+    })
+  }
+
+  function handleMatrixAdsPageSizeChange(size) {
+    void loadMatrixAds(matrixAdsQueryApplied ? matrixAdsFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  async function updateAdsUrlStatus(item, status) {
+    setAdsError('')
+    setAdsMessage('')
+
+    try {
+      await requestApi(`/shift-links/${item.id}`, {
+        method: 'PUT',
+        token,
+        body: {
+          ...item,
+          adsName: firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
+          platformName: firstDefinedValue(item, ['platformName', 'platform']),
+          landingPageUrl: firstDefinedValue(item, ['landingPageUrl', 'landingUrl']),
+          remarks: firstDefinedValue(item, ['remarks', 'remark']),
+          status,
+        },
+      })
+      setAdsMessage(`Shift Link marked as ${formatAdsStatusLabel(status).toLowerCase()}.`)
+      await loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {}, adsUrlPaginationRef.current)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAdsError(message)
+    }
+  }
+
+  async function updateNormalAdsStatus(item, status) {
+    setNormalAdsError('')
+    setNormalAdsMessage('')
+
+    try {
+      await requestApi(`/normal-ads/${item.id}`, {
+        method: 'PUT',
+        token,
+        body: {
+          ...item,
+          status,
+        },
+      })
+      setNormalAdsMessage(`Normal ADs marked as ${formatAdsStatusLabel(status).toLowerCase()}.`)
+      await loadNormalAds(
+        normalAdsQueryApplied ? normalAdsFiltersRef.current : {},
+        normalAdsPaginationRef.current,
+      )
+      await loadRunningAdsCounts()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setNormalAdsError(message)
+    }
+  }
+
+  async function updateMatrixAdsStatus(item, status) {
+    setMatrixAdsError('')
+    setMatrixAdsMessage('')
+
+    try {
+      await requestApi(`/matrix-ads/${item.id}`, {
+        method: 'PUT',
+        token,
+        body: {
+          ...item,
+          status,
+        },
+      })
+      setMatrixAdsMessage(`Matrix ADs marked as ${formatAdsStatusLabel(status).toLowerCase()}.`)
+      await loadMatrixAds(
+        matrixAdsQueryApplied ? matrixAdsFiltersRef.current : {},
+        matrixAdsPaginationRef.current,
+      )
+      await loadRunningAdsCounts()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setMatrixAdsError(message)
+    }
+  }
+
+  function openBulkAdsUpload() {
+    setBulkAdsFile(null)
+    setBulkAdsSaving(false)
+    setBulkAdsError('')
+    setBulkAdsMessage('')
+    setShowBulkAdsModal(true)
+  }
+
+  function clearPlatformForm() {
+    setEditingPlatformId(null)
+    setPlatformName('')
+    setPaymentMethod('')
+    setPlatformRemarks('')
+  }
+
+  function openCreatePlatform() {
+    clearPlatformForm()
+    setPlatformsError('')
+    setShowPlatformModal(true)
+  }
+
+  function clearRoleForm() {
+    setEditingRoleId(null)
+    setRoleName('')
+  }
+
+  function openCreateRole() {
+    clearRoleForm()
+    setRolesError('')
+    setShowRoleModal(true)
+  }
+
+  function clearNormalAdsForm() {
+    setEditingNormalAdsId(null)
+    setNormalCampainName('')
+    setNormalCampainCountry('')
+    setNormalPlatformName('')
+    setNormalAffiliteUrl('')
+    setNormalLandingPageUrl('')
+    setNormalDynamicProxyInfo('')
+    setNormalDynamicProxyInfoBackup('')
+    setNormalIntervalTime('')
+    setNormalStatus('RUNNING')
+  }
+
+  function openCreateNormalAds() {
+    clearNormalAdsForm()
+    setNormalAdsError('')
+    setShowNormalAdsModal(true)
+  }
+
+  function clearMatrixAdsForm() {
+    setEditingMatrixAdsId(null)
+    setMatrixCampainName('')
+    setMatrixCampainCountry('')
+    setMatrixLandingPageUrl('')
+    setMatrixDynamicProxyInfo('')
+    setMatrixDynamicProxyInfoBackup('')
+    setMatrixIntervalTime('')
+    setMatrixStatus('RUNNING')
+    setMatrixAffiliateRows([createEmptyAffiliateRow()])
+  }
+
+  function addMatrixAffiliateRow() {
+    setMatrixAffiliateRows((current) => [...current, createEmptyAffiliateRow()])
+  }
+
+  function updateMatrixAffiliateRow(index, field, value) {
+    setMatrixAffiliateRows((current) =>
+      current.map((row, currentIndex) =>
+        currentIndex === index ? { ...row, [field]: value } : row,
+      ),
+    )
+  }
+
+  function removeMatrixAffiliateRow(index) {
+    setMatrixAffiliateRows((current) => {
+      if (current.length === 1) {
+        return [createEmptyAffiliateRow()]
+      }
+
+      return current.filter((_, currentIndex) => currentIndex !== index)
+    })
+  }
+
+  function openCreateMatrixAds() {
+    clearMatrixAdsForm()
+    setMatrixAdsError('')
+    setShowMatrixAdsModal(true)
+  }
+
+  const loadUsers = useCallback(async (pageConfig = usersPaginationRef.current) => {
+    setUsersLoading(true)
+    setUsersError('')
+
+    try {
+      const response = await requestApi(
+        `/users${buildQueryString({
+          page: pageConfig.page,
+          size: pageConfig.size,
+        })}`,
+        { token },
+      )
+      setUsers(extractItems(response))
+      setUsersPagination(buildPaginationState(response, pageConfig))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setUsersError(message)
+    } finally {
+      setUsersLoading(false)
+    }
+  }, [token])
+
+  const loadRoles = useCallback(async () => {
+    setRolesLoading(true)
+    setRolesError('')
+
+    try {
+      const response = await requestApi('/roles', { token })
+      setRoles(extractItems(response))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setRolesError(message)
+    } finally {
+      setRolesLoading(false)
+    }
+  }, [token])
+
+  const loadAdsUrls = useCallback(
+    async (filters = {}, pageConfig = adsUrlPaginationRef.current) => {
+    setAdsLoading(true)
+    setAdsError('')
+
+    try {
+      const path = `/shift-links${buildQueryString({
+        ...filters,
+        page: pageConfig.page,
+        size: pageConfig.size,
+      })}`
+      const response = await requestApi(path, { token })
+      setAdsUrls(extractItems(response))
+      setAdsUrlPagination(buildPaginationState(response, pageConfig))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAdsError(message)
+    } finally {
+      setAdsLoading(false)
+    }
+    },
+    [token],
+  )
+
+  const loadAuditAdsUrls = useCallback(async () => {
+    setAuditAdsLoading(true)
+    setAuditAdsError('')
+
+    try {
+      const response = await requestApi('/shift-links/all', { token })
+      setAuditAdsUrls(extractItems(response))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAuditAdsError(message)
+    } finally {
+      setAuditAdsLoading(false)
+    }
+  }, [token])
+
+  const loadPlatforms = useCallback(async () => {
+    setPlatformsLoading(true)
+    setPlatformsError('')
+
+    try {
+      const response = await requestApi('/platforms', { token })
+      setPlatforms(extractItems(response))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setPlatformsError(message)
+    } finally {
+      setPlatformsLoading(false)
+    }
+  }, [token])
+
+  const loadNormalAds = useCallback(
+    async (filters = {}, pageConfig = normalAdsPaginationRef.current) => {
+      setNormalAdsLoading(true)
+      setNormalAdsError('')
+
+      try {
+        const path = `/normal-ads${buildQueryString({
+          ...filters,
+          page: pageConfig.page,
+          size: pageConfig.size,
+        })}`
+        const response = await requestApi(path, { token })
+        setNormalAds(extractItems(response))
+        setNormalAdsPagination(buildPaginationState(response, pageConfig))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setNormalAdsError(message)
+      } finally {
+        setNormalAdsLoading(false)
+      }
+    },
+    [token],
+  )
+
+  const loadMatrixAds = useCallback(
+    async (filters = {}, pageConfig = matrixAdsPaginationRef.current) => {
+      setMatrixAdsLoading(true)
+      setMatrixAdsError('')
+
+      try {
+        const path = `/matrix-ads${buildQueryString({
+          ...filters,
+          page: pageConfig.page,
+          size: pageConfig.size,
+        })}`
+        const response = await requestApi(path, { token })
+        setMatrixAds(extractItems(response))
+        setMatrixAdsPagination(buildPaginationState(response, pageConfig))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setMatrixAdsError(message)
+      } finally {
+        setMatrixAdsLoading(false)
+      }
+    },
+    [token],
+  )
+
+  const loadCurrentUserProfile = useCallback(
+    async (userName) => {
+      const identifierValue = toOptionalTrimmedString(userName)
+      if (!identifierValue) {
+        return null
+      }
+
+      const queries = [
+        buildQueryString({ userName: identifierValue, page: 0, size: 1 }),
+        buildQueryString({ email: identifierValue, page: 0, size: 1 }),
+      ]
+
+      for (const query of queries) {
+        const response = await requestApi(`/users${query}`, { token })
+        const items = extractItems(response)
+        const matchedUser = items.find(
+          (item) =>
+            normalizeHeader(item?.userName) === normalizeHeader(identifierValue) ||
+            normalizeHeader(item?.userEmail) === normalizeHeader(identifierValue),
+        )
+
+        if (matchedUser) {
+          return matchedUser
+        }
+      }
+
+      return null
+    },
+    [token],
+  )
+
+  const loadCurrentUserRole = useCallback(
+    async (userName) => {
+      const userProfile = await loadCurrentUserProfile(userName)
+      return userProfile?.userRole || ''
+    },
+    [loadCurrentUserProfile],
+  )
+
+  const loadRunningAdsCounts = useCallback(async () => {
+    if (!token) {
+      setRunningNormalAdsCount(0)
+      setRunningMatrixAdsCount(0)
+      return
+    }
+
+    const requestSize = 1000
+
+    const [normalResponse, matrixResponse] = await Promise.all([
+      requestApi(
+        `/normal-ads${buildQueryString({
+          page: 0,
+          size: requestSize,
+        })}`,
+        { token },
+      ),
+      requestApi(
+        `/matrix-ads${buildQueryString({
+          page: 0,
+          size: requestSize,
+        })}`,
+        { token },
+      ),
+    ])
+
+    const normalItems = extractItems(normalResponse).filter(
+      (item) =>
+        isOwnedByCurrentUser(item, currentUserProfile, currentUser, identifier) &&
+        normalizeAdsStatusValue(item?.status) === 'RUNNING',
+    )
+    const matrixItems = extractItems(matrixResponse).filter(
+      (item) =>
+        isOwnedByCurrentUser(item, currentUserProfile, currentUser, identifier) &&
+        normalizeAdsStatusValue(item?.status) === 'RUNNING',
+    )
+
+    setRunningNormalAdsCount(normalItems.length)
+    setRunningMatrixAdsCount(matrixItems.length)
+  }, [currentUser, currentUserProfile, identifier, token])
+
+  useEffect(() => {
+    adsUrlFiltersRef.current = adsUrlFilters
+  }, [adsUrlFilters])
+
+  useEffect(() => {
+    usersPaginationRef.current = usersPagination
+  }, [usersPagination])
+
+  useEffect(() => {
+    adsUrlPaginationRef.current = adsUrlPagination
+  }, [adsUrlPagination])
+
+  useEffect(() => {
+    normalAdsFiltersRef.current = normalAdsFilters
+  }, [normalAdsFilters])
+
+  useEffect(() => {
+    normalAdsPaginationRef.current = normalAdsPagination
+  }, [normalAdsPagination])
+
+  useEffect(() => {
+    matrixAdsFiltersRef.current = matrixAdsFilters
+  }, [matrixAdsFilters])
+
+  useEffect(() => {
+    matrixAdsPaginationRef.current = matrixAdsPagination
+  }, [matrixAdsPagination])
+
+  const accessibleMenus = useMemo(() => {
+    if (isAdminRole(currentUserRole)) {
+      return [
+        'user-management',
+        'role-management',
+        'ads-platform-management',
+        'auto-script',
+        'test-shift-link',
+        'shift-link-audit',
+        'normal-ads-management',
+        'matrix-ads-management',
+        'ads-url-management',
+      ]
+    }
+
+    const menus = []
+
+    if (isNormalRole(currentUserRole)) {
+      menus.push('normal-ads-management')
+    }
+
+    if (isMatrixRole(currentUserRole)) {
+      menus.push('matrix-ads-management')
+    }
+
+    if (menus.length > 0) {
+      menus.push('auto-script')
+      menus.push('ads-url-management')
+      menus.push('test-shift-link')
+      menus.push('shift-link-audit')
+    }
+
+    return menus
+  }, [currentUserRole])
+
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser) {
+      setCurrentUserProfile(null)
+      return
+    }
+
+    let cancelled = false
+
+    async function hydrateCurrentUserProfile() {
+      try {
+        const userProfile = await loadCurrentUserProfile(currentUser)
+        if (cancelled) {
+          return
+        }
+
+        setCurrentUserProfile(userProfile)
+
+        if (!currentUserRole && userProfile?.userRole) {
+          setCurrentUserRole(userProfile.userRole)
+          localStorage.setItem(ROLE_STORAGE_KEY, userProfile.userRole)
+          const defaultMenu = getDefaultMenuForRole(userProfile.userRole)
+          if (defaultMenu) {
+            setActiveMenu(defaultMenu)
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setCurrentUserProfile(null)
+          if (!currentUserRole) {
+            setCurrentUserRole('')
+            localStorage.removeItem(ROLE_STORAGE_KEY)
+          }
+        }
+      }
+    }
+
+    void hydrateCurrentUserProfile()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAuthenticated, currentUser, currentUserRole, loadCurrentUserProfile])
+
+  useEffect(() => {
+    setTestShiftLinkApiKey(currentUserProfile?.apiKey || '')
+  }, [currentUserProfile?.apiKey])
+
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser) {
+      setRunningNormalAdsCount(0)
+      setRunningMatrixAdsCount(0)
+      return
+    }
+
+    void loadRunningAdsCounts()
+  }, [currentUser, currentUserProfile, isAuthenticated, loadRunningAdsCounts])
+
+  useEffect(() => {
+    setShiftLinkAuditFilters((current) => {
+      const nextAdsType =
+        current.adsType && allowedAuditAdsTypes.has(current.adsType)
+          ? current.adsType
+          : defaultAuditAdsType
+
+      if (
+        current.adsType === nextAdsType &&
+        current.platformName === '' &&
+        current.campainName === ''
+      ) {
+        return current
+      }
+
+      if (current.adsType === nextAdsType) {
+        return current
+      }
+
+      return {
+        adsType: nextAdsType,
+        platformName: '',
+        campainName: '',
+      }
+    })
+  }, [defaultAuditAdsType, allowedAuditAdsTypes])
+
+  useEffect(() => {
+    if (
+      shiftLinkAuditFilters.platformName &&
+      !auditPlatformOptions.includes(shiftLinkAuditFilters.platformName)
+    ) {
+      setShiftLinkAuditFilters((current) => ({
+        ...current,
+        platformName: '',
+        campainName: '',
+      }))
+      return
+    }
+
+    if (
+      shiftLinkAuditFilters.campainName &&
+      !auditCampainOptions.includes(shiftLinkAuditFilters.campainName)
+    ) {
+      setShiftLinkAuditFilters((current) => ({
+        ...current,
+        campainName: '',
+      }))
+    }
+  }, [
+    auditCampainOptions,
+    auditPlatformOptions,
+    shiftLinkAuditFilters.campainName,
+    shiftLinkAuditFilters.platformName,
+  ])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return
+    }
+
+    if (accessibleMenus.length === 0) {
+      return
+    }
+
+    const defaultMenu = getDefaultMenuForRole(currentUserRole) || accessibleMenus[0]
+    if (!accessibleMenus.includes(activeMenu)) {
+      setActiveMenu(defaultMenu)
+    }
+  }, [accessibleMenus, activeMenu, currentUserRole, isAuthenticated])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return
+    }
+
+    if (activeMenu === 'user-management') {
+      void loadUsers()
+      void loadRoles()
+      return
+    }
+
+    if (activeMenu === 'role-management') {
+      void loadRoles()
+      return
+    }
+
+    if (activeMenu === 'ads-url-management') {
+      void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {})
+      void loadPlatforms()
+      return
+    }
+
+    if (activeMenu === 'normal-ads-management') {
+      void loadNormalAds(normalAdsQueryApplied ? normalAdsFiltersRef.current : {})
+      void loadPlatforms()
+      return
+    }
+
+    if (activeMenu === 'matrix-ads-management') {
+      void loadMatrixAds(matrixAdsQueryApplied ? matrixAdsFiltersRef.current : {})
+      void loadPlatforms()
+      return
+    }
+
+    if (activeMenu === 'shift-link-audit') {
+      void loadAuditAdsUrls()
+      return
+    }
+
+    if (activeMenu === 'ads-platform-management') {
+      void loadPlatforms()
+    }
+  }, [
+    isAuthenticated,
+    activeMenu,
+    loadUsers,
+    loadRoles,
+    loadAdsUrls,
+    loadAuditAdsUrls,
+    loadNormalAds,
+    loadMatrixAds,
+    loadPlatforms,
+    adsUrlQueryApplied,
+    normalAdsQueryApplied,
+    matrixAdsQueryApplied,
+  ])
+
+  async function handleLoginSubmit(event) {
+    event.preventDefault()
+    setLoginError('')
+    setIsLoggingIn(true)
+
+    try {
+      const loginId = identifier.trim()
+      const responseBody = await requestApi('/auth/login', {
+        method: 'POST',
+        body: {
+          loginId,
+          username: loginId,
+          password,
+        },
+      })
+
+      const token =
+        responseBody?.amToken ||
+        responseBody?.token ||
+        responseBody?.accessToken ||
+        responseBody?.data?.token
+
+      if (!token) {
+        throw new Error('Logon succeeded but AMtoken is missing from response.')
+      }
+
+      localStorage.setItem(TOKEN_STORAGE_KEY, token)
+      setToken(token)
+      const nextCurrentUser =
+        responseBody?.userName || responseBody?.data?.userName || loginId
+      setCurrentUser(nextCurrentUser)
+      setPassword('')
+      const nextNormalAdsTotalCount = toOptionalCount(
+        responseBody?.normalAdsTotalCount ?? responseBody?.data?.normalAdsTotalCount,
+      )
+      const nextMatrixAdsTotalCount = toOptionalCount(
+        responseBody?.matrixAdsTotalCount ?? responseBody?.data?.matrixAdsTotalCount,
+      )
+      setNormalAdsTotalCount(nextNormalAdsTotalCount)
+      setMatrixAdsTotalCount(nextMatrixAdsTotalCount)
+      if (nextNormalAdsTotalCount == null) {
+        localStorage.removeItem(NORMAL_ADS_TOTAL_STORAGE_KEY)
+      } else {
+        localStorage.setItem(NORMAL_ADS_TOTAL_STORAGE_KEY, String(nextNormalAdsTotalCount))
+      }
+      if (nextMatrixAdsTotalCount == null) {
+        localStorage.removeItem(MATRIX_ADS_TOTAL_STORAGE_KEY)
+      } else {
+        localStorage.setItem(MATRIX_ADS_TOTAL_STORAGE_KEY, String(nextMatrixAdsTotalCount))
+      }
+
+      let role =
+        responseBody?.userRole ||
+        responseBody?.data?.userRole ||
+        (Array.isArray(responseBody?.roles) ? responseBody.roles.join(',') : '') ||
+        (Array.isArray(responseBody?.data?.roles) ? responseBody.data.roles.join(',') : '')
+
+      if (!role) {
+        try {
+          role = await loadCurrentUserRole(nextCurrentUser)
+        } catch {
+          role = ''
+        }
+      }
+
+      setCurrentUserRole(role)
+      const defaultMenu = getDefaultMenuForRole(role)
+      if (defaultMenu) {
+        setActiveMenu(defaultMenu)
+      }
+      localStorage.setItem(USER_STORAGE_KEY, nextCurrentUser)
+      localStorage.setItem(ROLE_STORAGE_KEY, role)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setLoginError(message)
+    } finally {
+      setIsLoggingIn(false)
+    }
+  }
+
+  const [userNormalAdsNumber, setUserNormalAdsNumber] = useState('')
+  const [userMatrixAdsNumber, setUserMatrixAdsNumber] = useState('')
+
+  function startEditUser(user) {
+    setEditingUserId(user.id)
+    setUserName(user.userName || '')
+    setUserEmail(user.userEmail || '')
+    setUserPhoneNumber(user.userPhoneNumber || '')
+    setUserPassword('')
+    setUserRole(user.userRole || '')
+    setExpireDate(toDateInputValue(getUserExpireDate(user)))
+    setUserStatus(user.status || 'ENABLED')
+    setUserNormalAdsNumber(user.normalAdsNumber ?? user.normalAds ?? user.normalAdsCount ?? '')
+    setUserMatrixAdsNumber(user.matrixAdsNumber ?? user.matrixAds ?? user.matrixAdsCount ?? '')
+    setShowUserModal(true)
+  }
+
+  function clearUserForm() {
+    setEditingUserId(null)
+    setUserName('')
+    setUserEmail('')
+    setUserPhoneNumber('')
+    setUserPassword('')
+    setUserRole('')
+    setUserStatus('ENABLED')
+    setUserNormalAdsNumber('')
+    setUserMatrixAdsNumber('')
+    setSavingUser(false)
+    setShowUserModal(false)
+    setUsersError('')
+    setUsersMessage('')
+  }
+
+  function clearChangePasswordForm() {
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setChangePasswordError('')
+    setChangePasswordMessage('')
+    setSavingChangePassword(false)
+  }
+
+  function openChangePasswordModal() {
+    clearChangePasswordForm()
+    setShowChangePasswordModal(true)
+  }
+
+  function closeChangePasswordModal() {
+    clearChangePasswordForm()
+    setShowChangePasswordModal(false)
+  }
+
+  async function handleSaveUser(event) {
+    event.preventDefault()
+    setSavingUser(true)
+    setUsersError('')
+    setUsersMessage('')
+
+    try {
+      const payload = {
+        userName: validateUserName(userName),
+        userEmail: validateUserEmail(userEmail),
+        userPhoneNumber: validateUserPhoneNumber(userPhoneNumber),
+        userRole,
+        expireDate: toApiDateValue(expireDate),
+        normalAdsNumber: userNormalAdsNumber ? Number(userNormalAdsNumber) : undefined,
+        matrixAdsNumber: userMatrixAdsNumber ? Number(userMatrixAdsNumber) : undefined,
+        status: userStatus,
+      }
+
+      if (userPassword) {
+        payload.userPassword = userPassword
+      }
+
+      if (editingUserId) {
+        await requestApi(`/users/${editingUserId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setUsersMessage('User updated successfully.')
+      } else {
+        if (!userPassword) {
+          throw new Error('Password is required when adding a user.')
+        }
+        await requestApi('/users/register', {
+          method: 'POST',
+          token,
+          body: {
+            ...payload,
+            userPassword,
+          },
+        })
+        setUsersMessage('User added successfully.')
+      }
+
+      clearUserForm()
+      setShowUserModal(false)
+      await loadUsers()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setUsersError(message)
+    } finally {
+      setSavingUser(false)
+    }
+  }
+
+  async function handleDeleteUser(userId) {
+    setUsersError('')
+    setUsersMessage('')
+
+    try {
+      await requestApi(`/users/${userId}`, {
+        method: 'DELETE',
+        token,
+      })
+      setUsersMessage('User deleted successfully.')
+      await loadUsers()
+      if (editingUserId === userId) {
+        clearUserForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setUsersError(message)
+    }
+  }
+
+  async function handleChangePasswordSubmit(event) {
+    event.preventDefault()
+    setSavingChangePassword(true)
+    setChangePasswordError('')
+    setChangePasswordMessage('')
+
+    try {
+      if (!currentPassword.trim()) {
+        throw new Error('Current Password is required.')
+      }
+
+      if (!newPassword.trim()) {
+        throw new Error('New Password is required.')
+      }
+
+      if (newPassword !== confirmPassword) {
+        throw new Error('New Password and Confirm New Password must match.')
+      }
+
+      await requestApi('/users/change-password', {
+        method: 'POST',
+        token,
+        body: {
+          oldPassword: currentPassword,
+          newPassword,
+        },
+      })
+
+      setChangePasswordMessage('Password changed successfully.')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setChangePasswordError(message)
+    } finally {
+      setSavingChangePassword(false)
+    }
+  }
+
+  async function handleToggleUser(userId, shouldEnable) {
+    setUsersError('')
+    setUsersMessage('')
+
+    try {
+      await requestApi(`/users/${userId}/${shouldEnable ? 'enable' : 'disable'}`, {
+        method: 'POST',
+        token,
+      })
+      setUsersMessage(`User ${shouldEnable ? 'enabled' : 'disabled'} successfully.`)
+      await loadUsers()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setUsersError(message)
+    }
+  }
+
+  function startEditRole(role) {
+    setEditingRoleId(role.id)
+    setRoleName(role.roleName || '')
+    setShowRoleModal(true)
+  }
+
+  async function handleSaveRole(event) {
+    event.preventDefault()
+    setSavingRole(true)
+    setRolesError('')
+    setRolesMessage('')
+
+    try {
+      const payload = {
+        roleName,
+      }
+
+      if (editingRoleId) {
+        await requestApi(`/roles/${editingRoleId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setRolesMessage('User role updated successfully.')
+      } else {
+        await requestApi('/roles', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setRolesMessage('User role created successfully.')
+      }
+
+      clearRoleForm()
+      setShowRoleModal(false)
+      await loadRoles()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setRolesError(message)
+    } finally {
+      setSavingRole(false)
+    }
+  }
+
+  async function handleDeleteRole(id) {
+    setRolesError('')
+    setRolesMessage('')
+
+    try {
+      await requestApi(`/roles/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setRolesMessage('User role deleted successfully.')
+      await loadRoles()
+      if (editingRoleId === id) {
+        clearRoleForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setRolesError(message)
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    localStorage.removeItem(USER_STORAGE_KEY)
+    localStorage.removeItem(ROLE_STORAGE_KEY)
+    localStorage.removeItem(NORMAL_ADS_TOTAL_STORAGE_KEY)
+    localStorage.removeItem(MATRIX_ADS_TOTAL_STORAGE_KEY)
+    setToken('')
+    setIdentifier('')
+    setPassword('')
+    setLoginError('')
+    setCurrentUser('')
+    setCurrentUserRole('')
+    setCurrentUserProfile(null)
+    setNormalAdsTotalCount(null)
+    setMatrixAdsTotalCount(null)
+    setRunningNormalAdsCount(0)
+    setRunningMatrixAdsCount(0)
+    setUsers([])
+    setUsersError('')
+    setUsersMessage('')
+    setUsersPagination(createInitialPagination())
+    setRoles([])
+    setRolesError('')
+    setRolesMessage('')
+    setAdsUrls([])
+    setAdsError('')
+    setAdsMessage('')
+    setAdsUrlPagination(createInitialPagination())
+    setAuditAdsUrls([])
+    setAuditAdsLoading(false)
+    setAuditAdsError('')
+    setShowBulkAdsModal(false)
+    setBulkAdsFile(null)
+    setBulkAdsSaving(false)
+    setBulkAdsError('')
+    setBulkAdsMessage('')
+    setAdsUrlFilters({ platformName: '', status: '' })
+    setAdsUrlQueryApplied(false)
+    setNormalAds([])
+    setNormalAdsError('')
+    setNormalAdsMessage('')
+    setNormalAdsPagination(createInitialPagination())
+    setNormalAdsFilters({ campainName: '', platformName: '', status: '' })
+    setNormalAdsQueryApplied(false)
+    setMatrixAds([])
+    setMatrixAdsError('')
+    setMatrixAdsMessage('')
+    setMatrixAdsPagination(createInitialPagination())
+    setMatrixAdsFilters({ campainName: '', platformName: '', status: '' })
+    setMatrixAdsQueryApplied(false)
+    setPlatforms([])
+    setPlatformsError('')
+    setPlatformsMessage('')
+    setTestShiftLinkCampainName('')
+    setTestShiftLinkApiKey('')
+    setTestShiftLinkError('')
+    setNormalAdsTestResponse(null)
+    setMatrixAdsTestResponse(null)
+    setNormalAdsTestLoading(false)
+    setMatrixAdsTestLoading(false)
+    setShiftLinkAuditFilters({
+      adsType: defaultAuditAdsType,
+      platformName: '',
+      campainName: '',
+    })
+    setShowUserModal(false)
+    setShowAdsModal(false)
+    setShowPlatformModal(false)
+    clearUserForm()
+    clearAdsForm()
+    clearPlatformForm()
+    clearRoleForm()
+    clearNormalAdsForm()
+    clearMatrixAdsForm()
+  }
+
+  async function runTestShiftLink(endpointType) {
+    const campainName = toOptionalTrimmedString(testShiftLinkCampainName)
+    const apiKey = toOptionalTrimmedString(testShiftLinkApiKey)
+    const isNormalAdsTest = endpointType === 'normal'
+    const setLoading = isNormalAdsTest ? setNormalAdsTestLoading : setMatrixAdsTestLoading
+    const setResponse = isNormalAdsTest ? setNormalAdsTestResponse : setMatrixAdsTestResponse
+    const path = isNormalAdsTest ? '/normal/ads' : '/matrix/ads'
+
+    if (!campainName) {
+      setTestShiftLinkError('Campaign Name is required.')
+      return
+    }
+
+    if (!apiKey) {
+      setTestShiftLinkError('API Key is not available for the current user.')
+      return
+    }
+
+    setTestShiftLinkError('')
+    setLoading(true)
+
+    try {
+      const response = await requestApi(
+        `${path}${buildQueryString({ campain_name: campainName, api_key: apiKey })}`,
+        { token },
+      )
+      setResponse(response)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setResponse(null)
+      setTestShiftLinkError(message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function startEditAds(item) {
+    setEditingAdsId(item.id)
+    setEditingAdsOriginal(item)
+    setCapMainName(item.adsName || item.capMainName || item.campainName || '')
+    setAdsType(item.adsType || item.ads_type || '')
+    setPlatform(item.platformName || item.platform || '')
+    setFullUrl(item.fullUrl || '')
+    setDisplayNumber(
+      firstDefinedValue(item, ['displayNumber']) != null
+        ? String(firstDefinedValue(item, ['displayNumber']))
+        : '',
+    )
+    setRemark(item.remarks || item.remark || '')
+    setShowAdsModal(true)
+  }
+
+  async function handleSaveAds(event) {
+    event.preventDefault()
+    setSavingAds(true)
+    setAdsError('')
+    setAdsMessage('')
+
+    try {
+      const parsedUrl = parseAdsUrl(fullUrl)
+      const normalizedDisplayNumber = toOptionalTrimmedString(displayNumber)
+      const payload = {
+        adsName: capMainName,
+        adsType: adsType || firstDefinedValue(editingAdsOriginal, ['adsType', 'ads_type']) || undefined,
+        platformName:
+          platform ||
+          firstDefinedValue(editingAdsOriginal, ['platformName', 'platform']) ||
+          undefined,
+        adsOwner:
+          firstDefinedValue(editingAdsOriginal, ['adsOwner']) ||
+          getLoggedInAdsOwner(identifier, currentUser) ||
+          undefined,
+        displayNumber:
+          normalizedDisplayNumber === undefined ? undefined : Number(normalizedDisplayNumber),
+        fullUrl,
+        landingPageUrl: parsedUrl.landingUrl,
+        urlSuffix: parsedUrl.urlSuffix,
+        remarks: remark || undefined,
+      }
+
+      if (
+        normalizedDisplayNumber !== undefined &&
+        !Number.isFinite(payload.displayNumber)
+      ) {
+        throw new Error('Display Number must be a valid number.')
+      }
+
+      if (editingAdsId && editingAdsOriginal) {
+        await requestApi(`/shift-links/${editingAdsId}`, {
+          method: 'PUT',
+          token,
+          body: {
+            ...editingAdsOriginal,
+            ...payload,
+            id: editingAdsId,
+          },
+        })
+        setAdsMessage('Shift Link updated successfully.')
+      } else {
+        await requestApi('/shift-links', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setAdsMessage('Shift Link created successfully.')
+      }
+
+      clearAdsForm()
+      setShowAdsModal(false)
+      await loadAdsUrls({}, { page: 0, size: adsUrlPaginationRef.current.size })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAdsError(message)
+    } finally {
+      setSavingAds(false)
+    }
+  }
+
+  async function handleDeleteAds(id) {
+    setAdsError('')
+    setAdsMessage('')
+
+    try {
+      await requestApi(`/shift-links/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setAdsMessage('Shift Link deleted successfully.')
+      await loadAdsUrls({}, { page: 0, size: adsUrlPaginationRef.current.size })
+      if (editingAdsId === id) {
+        clearAdsForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAdsError(message)
+    }
+  }
+
+  async function handleDownloadAdsTemplate() {
+    try {
+      downloadStaticFile(SHIFT_LINK_TEMPLATE_FILE_URL, 'Shift_Link_Temp.xlsx')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAdsError(message)
+    }
+  }
+
+  function startEditNormalAds(item) {
+    setEditingNormalAdsId(item.id)
+    setNormalCampainName(item.campainName || '')
+    setNormalCampainCountry(toCountryCode(item.campainCountry || ''))
+    setNormalPlatformName(item.platformName || '')
+    setNormalAffiliteUrl(item.affiliteUrl || '')
+    setNormalLandingPageUrl(item.landingPageUrl || '')
+    setNormalDynamicProxyInfo(item.dynamicProxyInfo || '')
+    setNormalDynamicProxyInfoBackup(item.dynamicProxyInfoBackup || '')
+    setNormalIntervalTime(item.intervalTime != null ? String(item.intervalTime) : '')
+    setNormalStatus(normalizeAdsStatusValue(item.status) || 'RUNNING')
+    setShowNormalAdsModal(true)
+  }
+
+  async function handleSaveNormalAds(event) {
+    event.preventDefault()
+    setSavingNormalAds(true)
+    setNormalAdsError('')
+    setNormalAdsMessage('')
+
+    try {
+      const payload = {
+        campainName: normalCampainName,
+        campainCountry: normalCampainCountry || undefined,
+        platformName: normalPlatformName || undefined,
+        affiliteUrl: normalAffiliteUrl || undefined,
+        landingPageUrl: normalLandingPageUrl || undefined,
+        dynamicProxyInfo: normalDynamicProxyInfo || undefined,
+        dynamicProxyInfoBackup: normalDynamicProxyInfoBackup || undefined,
+        intervalTime: normalIntervalTime ? Number(normalIntervalTime) : undefined,
+        status: normalStatus || undefined,
+        adsOwner: getLoggedInAdsOwner(identifier, currentUser) || undefined,
+      }
+
+      if (editingNormalAdsId) {
+        await requestApi(`/normal-ads/${editingNormalAdsId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setNormalAdsMessage('Normal ads updated successfully.')
+      } else {
+        await requestApi('/normal-ads', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setNormalAdsMessage('Normal ads created successfully.')
+      }
+
+      clearNormalAdsForm()
+      setShowNormalAdsModal(false)
+      await loadNormalAds(
+        normalAdsQueryApplied ? normalAdsFilters : {},
+        normalAdsPaginationRef.current,
+      )
+      await loadRunningAdsCounts()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setNormalAdsError(message)
+    } finally {
+      setSavingNormalAds(false)
+    }
+  }
+
+  async function handleDeleteNormalAds(id) {
+    setNormalAdsError('')
+    setNormalAdsMessage('')
+
+    try {
+      await requestApi(`/normal-ads/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setNormalAdsMessage('Normal ads deleted successfully.')
+      await loadNormalAds(
+        normalAdsQueryApplied ? normalAdsFilters : {},
+        normalAdsPaginationRef.current,
+      )
+      await loadRunningAdsCounts()
+      if (editingNormalAdsId === id) {
+        clearNormalAdsForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setNormalAdsError(message)
+    }
+  }
+
+  function startEditMatrixAds(item) {
+    setEditingMatrixAdsId(item.id)
+    setMatrixCampainName(item.campainName || '')
+    setMatrixCampainCountry(toCountryCode(item.campainCountry || ''))
+    setMatrixLandingPageUrl(item.landingPageUrl || '')
+    setMatrixDynamicProxyInfo(item.dynamicProxyInfo || '')
+    setMatrixDynamicProxyInfoBackup(item.dynamicProxyInfoBackup || '')
+    setMatrixIntervalTime(item.intervalTime != null ? String(item.intervalTime) : '')
+    setMatrixStatus(normalizeAdsStatusValue(item.status) || 'RUNNING')
+    setMatrixAffiliateRows(
+      Array.isArray(item.affiliateInfos) && item.affiliateInfos.length > 0
+        ? item.affiliateInfos.map((affiliate) => normalizeAffiliateRow(affiliate))
+        : [createEmptyAffiliateRow()],
+    )
+    setShowMatrixAdsModal(true)
+  }
+
+  async function handleSaveMatrixAds(event) {
+    event.preventDefault()
+    setSavingMatrixAds(true)
+    setMatrixAdsError('')
+    setMatrixAdsMessage('')
+
+    try {
+      const payload = {
+        campainName: matrixCampainName,
+        campainCountry: matrixCampainCountry || undefined,
+        landingPageUrl: matrixLandingPageUrl || undefined,
+        dynamicProxyInfo: matrixDynamicProxyInfo || undefined,
+        dynamicProxyInfoBackup: matrixDynamicProxyInfoBackup || undefined,
+        intervalTime: matrixIntervalTime ? Number(matrixIntervalTime) : undefined,
+        status: matrixStatus || undefined,
+        adsOwner: getLoggedInAdsOwner(identifier, currentUser) || undefined,
+        affiliateInfos: matrixAffiliateRows
+          .map((row) => normalizeAffiliateRow(row))
+          .filter(
+            (row) =>
+              row.platformName || row.affiliteUrl || row.displayNumber || row.remarks,
+          )
+          .map((row, index) => {
+            if (!row.platformName) {
+              throw new Error(`Affiliate row ${index + 1}: Platform Name is required.`)
+            }
+
+            if (!row.affiliteUrl) {
+              throw new Error(`Affiliate row ${index + 1}: Affiliate URL is required.`)
+            }
+
+            if (!row.displayNumber) {
+              throw new Error(`Affiliate row ${index + 1}: Display Number is required.`)
+            }
+
+            const displayNumber = Number(row.displayNumber)
+            if (!Number.isFinite(displayNumber)) {
+              throw new Error(`Affiliate row ${index + 1}: Display Number must be a number.`)
+            }
+
+            return {
+              platformName: row.platformName,
+              affiliteUrl: row.affiliteUrl,
+              displayNumber,
+              remarks: row.remarks || undefined,
+            }
+          }),
+      }
+
+      if (payload.affiliateInfos.length === 0) {
+        throw new Error('At least one affiliate row is required.')
+      }
+
+      if (editingMatrixAdsId) {
+        await requestApi(`/matrix-ads/${editingMatrixAdsId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setMatrixAdsMessage('Matrix ads updated successfully.')
+      } else {
+        await requestApi('/matrix-ads', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setMatrixAdsMessage('Matrix ads created successfully.')
+      }
+
+      clearMatrixAdsForm()
+      setShowMatrixAdsModal(false)
+      await loadMatrixAds(
+        matrixAdsQueryApplied ? matrixAdsFilters : {},
+        matrixAdsPaginationRef.current,
+      )
+      await loadRunningAdsCounts()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setMatrixAdsError(message)
+    } finally {
+      setSavingMatrixAds(false)
+    }
+  }
+
+  async function handleDeleteMatrixAds(id) {
+    setMatrixAdsError('')
+    setMatrixAdsMessage('')
+
+    try {
+      await requestApi(`/matrix-ads/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setMatrixAdsMessage('Matrix ads deleted successfully.')
+      await loadMatrixAds(
+        matrixAdsQueryApplied ? matrixAdsFilters : {},
+        matrixAdsPaginationRef.current,
+      )
+      await loadRunningAdsCounts()
+      if (editingMatrixAdsId === id) {
+        clearMatrixAdsForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setMatrixAdsError(message)
+    }
+  }
+
+  function applyAdsUrlFilters(event) {
+    event.preventDefault()
+    setAdsUrlQueryApplied(true)
+    void loadAdsUrls(adsUrlFilters, { page: 0, size: adsUrlPaginationRef.current.size })
+  }
+
+  function applyNormalAdsFilters(event) {
+    event.preventDefault()
+    setNormalAdsQueryApplied(true)
+    void loadNormalAds(normalAdsFilters, { page: 0, size: normalAdsPaginationRef.current.size })
+  }
+
+  function applyMatrixAdsFilters(event) {
+    event.preventDefault()
+    setMatrixAdsQueryApplied(true)
+    void loadMatrixAds(matrixAdsFilters, { page: 0, size: matrixAdsPaginationRef.current.size })
+  }
+
+  async function handleBulkUploadAds(event) {
+    event.preventDefault()
+    setBulkAdsSaving(true)
+    setBulkAdsError('')
+    setBulkAdsMessage('')
+
+    try {
+      if (!bulkAdsFile) {
+        throw new Error('Please choose an Excel file to upload.')
+      }
+
+      const uploadFile = await createShiftLinkUploadFile(
+        bulkAdsFile,
+        getLoggedInAdsOwner(identifier, currentUser),
+      )
+      await uploadApiFile('/shift-links/bulk-upload', token, uploadFile)
+      await loadAdsUrls(
+        adsUrlQueryApplied ? adsUrlFiltersRef.current : {},
+        adsUrlPaginationRef.current,
+      )
+
+      setAdsMessage('Bulk uploaded Shift Links successfully.')
+      setBulkAdsMessage('Uploaded Shift Links successfully.')
+      setShowBulkAdsModal(false)
+      setBulkAdsFile(null)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setBulkAdsError(message)
+    } finally {
+      setBulkAdsSaving(false)
+    }
+  }
+
+  function startEditPlatform(item) {
+    setEditingPlatformId(item.id)
+    setPlatformName(item.platformName || '')
+    setPaymentMethod(item.paymentMethod || '')
+    setPlatformRemarks(item.remarks || '')
+    setShowPlatformModal(true)
+  }
+
+  async function handleSavePlatform(event) {
+    event.preventDefault()
+    setSavingPlatform(true)
+    setPlatformsError('')
+    setPlatformsMessage('')
+
+    try {
+      const payload = {
+        platformName,
+        paymentMethod: paymentMethod || undefined,
+        remarks: platformRemarks || undefined,
+      }
+
+      if (editingPlatformId) {
+        await requestApi(`/platforms/${editingPlatformId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setPlatformsMessage('ADS platform updated successfully.')
+      } else {
+        await requestApi('/platforms', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setPlatformsMessage('ADS platform created successfully.')
+      }
+
+      clearPlatformForm()
+      setShowPlatformModal(false)
+      await loadPlatforms()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setPlatformsError(message)
+    } finally {
+      setSavingPlatform(false)
+    }
+  }
+
+  async function handleDeletePlatform(id) {
+    setPlatformsError('')
+    setPlatformsMessage('')
+
+    try {
+      await requestApi(`/platforms/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setPlatformsMessage('ADS platform deleted successfully.')
+      await loadPlatforms()
+      if (editingPlatformId === id) {
+        clearPlatformForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setPlatformsError(message)
+    }
+  }
+
+  const currentPageTitle =
+    activeMenu === 'user-management'
+      ? 'User'
+      : activeMenu === 'role-management'
+        ? 'User Role'
+        : activeMenu === 'auto-script'
+          ? 'Auto Script'
+        : activeMenu === 'ads-url-management'
+          ? 'Shift Link'
+          : activeMenu === 'test-shift-link'
+            ? 'Shift Link Testing'
+          : activeMenu === 'shift-link-audit'
+            ? 'Shift Link Audit'
+          : activeMenu === 'normal-ads-management'
+            ? 'Normal Ads Tasks'
+            : activeMenu === 'matrix-ads-management'
+              ? 'Matrix Ads Tasks'
+              : 'Platform'
+
+  const currentUserRecord = users.find(
+    (user) => user.userName === currentUser || user.userEmail === currentUser,
+  ) || currentUserProfile
+
+  if (!isAuthenticated) {
+    return (
+      <LoginForm
+        identifier={identifier}
+        password={password}
+        loginError={loginError}
+        isLoggingIn={isLoggingIn}
+        onIdentifierChange={setIdentifier}
+        onPasswordChange={setPassword}
+        onSubmit={handleLoginSubmit}
+      />
+    )
+  }
+
+  let activeSection = null
+
+  if (activeMenu === 'user-management') {
+    activeSection = (
+      <UserManagementSection
+        users={users}
+        usersLoading={usersLoading}
+        usersError={usersError}
+        usersMessage={usersMessage}
+        onCreateUser={openCreateUser}
+        onEditUser={startEditUser}
+        onDeleteUser={handleDeleteUser}
+        onToggleUser={handleToggleUser}
+        formatDateDisplayValue={formatDateDisplayValue}
+        getUserExpireDate={getUserExpireDate}
+        showUserModal={showUserModal}
+        editingUserId={editingUserId}
+        onCloseUserModal={() => setShowUserModal(false)}
+        onSaveUser={handleSaveUser}
+        userName={userName}
+        onUserNameChange={setUserName}
+        userEmail={userEmail}
+        onUserEmailChange={setUserEmail}
+        userPhoneNumber={userPhoneNumber}
+        onUserPhoneNumberChange={setUserPhoneNumber}
+        userRole={userRole}
+        onUserRoleChange={setUserRole}
+        rolesLoading={rolesLoading}
+        roleOptions={roleOptions}
+        expireDate={expireDate}
+        onExpireDateChange={setExpireDate}
+        userNormalAdsNumber={userNormalAdsNumber}
+        onUserNormalAdsNumberChange={setUserNormalAdsNumber}
+        userMatrixAdsNumber={userMatrixAdsNumber}
+        onUserMatrixAdsNumberChange={setUserMatrixAdsNumber}
+        userPassword={userPassword}
+        onUserPasswordChange={setUserPassword}
+        userStatus={userStatus}
+        onUserStatusChange={setUserStatus}
+        savingUser={savingUser}
+        pagination={usersPagination}
+        onPageChange={handleUsersPageChange}
+        onPageSizeChange={handleUsersPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'role-management') {
+    activeSection = (
+      <RoleManagementSection
+        roles={roles}
+        rolesLoading={rolesLoading}
+        rolesError={rolesError}
+        rolesMessage={rolesMessage}
+        onCreateRole={openCreateRole}
+        onEditRole={startEditRole}
+        onDeleteRole={handleDeleteRole}
+        showRoleModal={showRoleModal}
+        editingRoleId={editingRoleId}
+        roleName={roleName}
+        onRoleNameChange={setRoleName}
+        onSaveRole={handleSaveRole}
+        savingRole={savingRole}
+        onCloseRoleModal={() => setShowRoleModal(false)}
+      />
+    )
+  } else if (activeMenu === 'ads-url-management') {
+    activeSection = (
+      <ShiftLinkManagementSection
+        adsUrls={adsUrls}
+        adsLoading={adsLoading}
+        adsError={adsError}
+        adsMessage={adsMessage}
+        adsUrlColumns={adsUrlColumns}
+        adsUrlFilters={adsUrlFilters}
+        adsStatusOptions={adsStatusOptions}
+        adsTypeOptions={adsTypeOptions}
+        platformOptions={platformOptions}
+        platformsLoading={platformsLoading}
+        platformsError={platformsError}
+        onCreateAds={openCreateAds}
+        onOpenBulkAdsUpload={openBulkAdsUpload}
+        onDownloadAdsTemplate={handleDownloadAdsTemplate}
+        onAdsUrlFiltersChange={setAdsUrlFilters}
+        onApplyAdsUrlFilters={applyAdsUrlFilters}
+        onReloadAdsUrlFilters={() =>
+          void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {}, adsUrlPaginationRef.current)
+        }
+        onToggleAdsStatus={(item, status) => void updateAdsUrlStatus(item, status)}
+        onEditAds={startEditAds}
+        onDeleteAds={handleDeleteAds}
+        formatAdsStatusLabel={formatAdsStatusLabel}
+        getAdsStatusActionLabel={getAdsStatusActionLabel}
+        getNextAdsStatus={getNextAdsStatus}
+        showAdsModal={showAdsModal}
+        editingAdsId={editingAdsId}
+        capMainName={capMainName}
+        onCapMainNameChange={setCapMainName}
+        adsType={adsType}
+        onAdsTypeChange={setAdsType}
+        platform={platform}
+        onPlatformChange={setPlatform}
+        fullUrl={fullUrl}
+        onFullUrlChange={setFullUrl}
+        displayNumber={displayNumber}
+        onDisplayNumberChange={setDisplayNumber}
+        remark={remark}
+        onRemarkChange={setRemark}
+        onSaveAds={handleSaveAds}
+        savingAds={savingAds}
+        onCloseAdsModal={() => setShowAdsModal(false)}
+        showBulkAdsModal={showBulkAdsModal}
+        bulkAdsSaving={bulkAdsSaving}
+        bulkAdsError={bulkAdsError}
+        bulkAdsMessage={bulkAdsMessage}
+        onBulkAdsFileChange={setBulkAdsFile}
+        onBulkUploadAds={handleBulkUploadAds}
+        onCloseBulkAdsModal={() => setShowBulkAdsModal(false)}
+        pagination={adsUrlPagination}
+        onPageChange={handleAdsUrlPageChange}
+        onPageSizeChange={handleAdsUrlPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'test-shift-link') {
+    activeSection = (
+      <TestShiftLinkSection
+        campainName={testShiftLinkCampainName}
+        onCampainNameChange={setTestShiftLinkCampainName}
+        apiKey={testShiftLinkApiKey}
+        onApiKeyChange={setTestShiftLinkApiKey}
+        testError={testShiftLinkError}
+        normalAdsTestLoading={normalAdsTestLoading}
+        matrixAdsTestLoading={matrixAdsTestLoading}
+        normalAdsTestResponse={normalAdsTestResponse}
+        matrixAdsTestResponse={matrixAdsTestResponse}
+        onTestNormalAds={() => void runTestShiftLink('normal')}
+        onTestMatrixAds={() => void runTestShiftLink('matrix')}
+      />
+    )
+  } else if (activeMenu === 'shift-link-audit') {
+    activeSection = (
+      <ShiftLinkAuditSection
+        adsUrls={filteredAuditAdsUrls}
+        adsLoading={auditAdsLoading}
+        adsError={auditAdsError}
+        adsUrlColumns={adsUrlColumns}
+        auditFilters={shiftLinkAuditFilters}
+        adsTypeOptions={adsTypeOptions}
+        platformOptions={auditPlatformOptions}
+        campainOptions={auditCampainOptions}
+        onAuditAdsTypeChange={handleShiftLinkAuditAdsTypeChange}
+        onAuditPlatformChange={handleShiftLinkAuditPlatformChange}
+        onAuditCampainChange={handleShiftLinkAuditCampainChange}
+        formatAdsStatusLabel={formatAdsStatusLabel}
+      />
+    )
+  } else if (activeMenu === 'auto-script') {
+    activeSection = <GoogleAdsScriptPanel />
+  } else if (activeMenu === 'normal-ads-management') {
+    activeSection = (
+      <NormalAdsManagementSection
+        normalAds={normalAds}
+        normalAdsLoading={normalAdsLoading}
+        normalAdsError={normalAdsError}
+        normalAdsMessage={normalAdsMessage}
+        normalAdsColumns={normalAdsColumns}
+        normalAdsFilters={normalAdsFilters}
+        adsStatusOptions={adsStatusOptions}
+        countryOptions={COUNTRY_OPTIONS}
+        platformOptions={platformOptions}
+        platformsLoading={platformsLoading}
+        onCreateNormalAds={openCreateNormalAds}
+        canCreateNormalAds={canCreateNormalAds}
+        normalAdsQuotaMessage={normalAdsQuotaMessage}
+        onNormalAdsFiltersChange={setNormalAdsFilters}
+        onApplyNormalAdsFilters={applyNormalAdsFilters}
+        onToggleNormalAdsStatus={(item, status) => void updateNormalAdsStatus(item, status)}
+        onEditNormalAds={startEditNormalAds}
+        onDeleteNormalAds={handleDeleteNormalAds}
+        formatAdsStatusLabel={formatAdsStatusLabel}
+        getAdsStatusActionLabel={getAdsStatusActionLabel}
+        getNextAdsStatus={getNextAdsStatus}
+        showNormalAdsModal={showNormalAdsModal}
+        editingNormalAdsId={editingNormalAdsId}
+        normalCampainName={normalCampainName}
+        onNormalCampainNameChange={setNormalCampainName}
+        normalCampainCountry={normalCampainCountry}
+        onNormalCampainCountryChange={setNormalCampainCountry}
+        normalPlatformName={normalPlatformName}
+        onNormalPlatformNameChange={setNormalPlatformName}
+        normalAffiliteUrl={normalAffiliteUrl}
+        onNormalAffiliteUrlChange={setNormalAffiliteUrl}
+        normalLandingPageUrl={normalLandingPageUrl}
+        onNormalLandingPageUrlChange={setNormalLandingPageUrl}
+        normalDynamicProxyInfo={normalDynamicProxyInfo}
+        onNormalDynamicProxyInfoChange={setNormalDynamicProxyInfo}
+        normalDynamicProxyInfoBackup={normalDynamicProxyInfoBackup}
+        onNormalDynamicProxyInfoBackupChange={setNormalDynamicProxyInfoBackup}
+        normalIntervalTime={normalIntervalTime}
+        onNormalIntervalTimeChange={setNormalIntervalTime}
+        normalStatus={normalStatus}
+        onNormalStatusChange={setNormalStatus}
+        onSaveNormalAds={handleSaveNormalAds}
+        savingNormalAds={savingNormalAds}
+        onCloseNormalAdsModal={() => setShowNormalAdsModal(false)}
+        pagination={normalAdsPagination}
+        onPageChange={handleNormalAdsPageChange}
+        onPageSizeChange={handleNormalAdsPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'matrix-ads-management') {
+    activeSection = (
+      <MatrixAdsManagementSection
+        matrixAds={matrixAds}
+        matrixAdsLoading={matrixAdsLoading}
+        matrixAdsError={matrixAdsError}
+        matrixAdsMessage={matrixAdsMessage}
+        matrixAdsColumns={matrixAdsColumns}
+        matrixAdsFilters={matrixAdsFilters}
+        adsStatusOptions={adsStatusOptions}
+        countryOptions={COUNTRY_OPTIONS}
+        platformOptions={platformOptions}
+        platformsLoading={platformsLoading}
+        onCreateMatrixAds={openCreateMatrixAds}
+        canCreateMatrixAds={canCreateMatrixAds}
+        matrixAdsQuotaMessage={matrixAdsQuotaMessage}
+        onMatrixAdsFiltersChange={setMatrixAdsFilters}
+        onApplyMatrixAdsFilters={applyMatrixAdsFilters}
+        onToggleMatrixAdsStatus={(item, status) => void updateMatrixAdsStatus(item, status)}
+        onEditMatrixAds={startEditMatrixAds}
+        onDeleteMatrixAds={handleDeleteMatrixAds}
+        formatAdsStatusLabel={formatAdsStatusLabel}
+        getAdsStatusActionLabel={getAdsStatusActionLabel}
+        getNextAdsStatus={getNextAdsStatus}
+        showMatrixAdsModal={showMatrixAdsModal}
+        editingMatrixAdsId={editingMatrixAdsId}
+        matrixCampainName={matrixCampainName}
+        onMatrixCampainNameChange={setMatrixCampainName}
+        matrixCampainCountry={matrixCampainCountry}
+        onMatrixCampainCountryChange={setMatrixCampainCountry}
+        matrixLandingPageUrl={matrixLandingPageUrl}
+        onMatrixLandingPageUrlChange={setMatrixLandingPageUrl}
+        matrixDynamicProxyInfo={matrixDynamicProxyInfo}
+        onMatrixDynamicProxyInfoChange={setMatrixDynamicProxyInfo}
+        matrixDynamicProxyInfoBackup={matrixDynamicProxyInfoBackup}
+        onMatrixDynamicProxyInfoBackupChange={setMatrixDynamicProxyInfoBackup}
+        matrixIntervalTime={matrixIntervalTime}
+        onMatrixIntervalTimeChange={setMatrixIntervalTime}
+        matrixStatus={matrixStatus}
+        onMatrixStatusChange={setMatrixStatus}
+        matrixAffiliateRows={matrixAffiliateRows}
+        onAddMatrixAffiliateRow={addMatrixAffiliateRow}
+        onUpdateMatrixAffiliateRow={updateMatrixAffiliateRow}
+        onRemoveMatrixAffiliateRow={removeMatrixAffiliateRow}
+        onSaveMatrixAds={handleSaveMatrixAds}
+        savingMatrixAds={savingMatrixAds}
+        onCloseMatrixAdsModal={() => setShowMatrixAdsModal(false)}
+        pagination={matrixAdsPagination}
+        onPageChange={handleMatrixAdsPageChange}
+        onPageSizeChange={handleMatrixAdsPageSizeChange}
+      />
+    )
+  } else {
+    activeSection = (
+      <PlatformManagementSection
+        platforms={platforms}
+        platformsLoading={platformsLoading}
+        platformsError={platformsError}
+        platformsMessage={platformsMessage}
+        onCreatePlatform={openCreatePlatform}
+        onEditPlatform={startEditPlatform}
+        onDeletePlatform={handleDeletePlatform}
+        showPlatformModal={showPlatformModal}
+        editingPlatformId={editingPlatformId}
+        platformName={platformName}
+        onPlatformNameChange={setPlatformName}
+        paymentMethod={paymentMethod}
+        paymentMethodOptions={paymentMethodOptions}
+        onPaymentMethodChange={setPaymentMethod}
+        platformRemarks={platformRemarks}
+        onPlatformRemarksChange={setPlatformRemarks}
+        onSavePlatform={handleSavePlatform}
+        savingPlatform={savingPlatform}
+        onClosePlatformModal={() => setShowPlatformModal(false)}
+      />
+    )
+  }
+
+  return (
+    <main className="main-page">
+      <Sidebar
+        activeMenu={activeMenu}
+        accessibleMenus={accessibleMenus}
+        currentRole={currentUserRole}
+        currentUserName={currentUser}
+        menuGroups={MENU_GROUPS}
+        onOpenChangePassword={openChangePasswordModal}
+        onLogout={handleLogout}
+        onSelectMenu={setActiveMenu}
+      />
+
+      <section className="content">
+        <PageHeader
+          title={currentPageTitle}
+          currentUser={currentUser}
+          currentUserRole={currentUserRole}
+          currentUserApiKey={currentUserRecord?.apiKey}
+          currentUserExpireDate={formatDateDisplayValue(getUserExpireDate(currentUserRecord))}
+          runningNormalAdsCount={runningNormalAdsCount}
+          normalAdsTotalCount={normalAdsTotalCount}
+          runningMatrixAdsCount={runningMatrixAdsCount}
+          matrixAdsTotalCount={matrixAdsTotalCount}
+        />
+
+        {activeSection}
+        <ChangePasswordModal
+          show={showChangePasswordModal}
+          currentPassword={currentPassword}
+          onCurrentPasswordChange={setCurrentPassword}
+          newPassword={newPassword}
+          onNewPasswordChange={setNewPassword}
+          confirmPassword={confirmPassword}
+          onConfirmPasswordChange={setConfirmPassword}
+          onSubmit={handleChangePasswordSubmit}
+          onClose={closeChangePasswordModal}
+          saving={savingChangePassword}
+          error={changePasswordError}
+          message={changePasswordMessage}
+        />
+      </section>
+    </main>
+  )
+}
+
+export default App

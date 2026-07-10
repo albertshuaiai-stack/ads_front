@@ -1,0 +1,106 @@
+.google-ads-script-panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  background: color-mix(in srgb, var(--bg), #ffffff 18%);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+}
+
+.google-ads-script-panel__header {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.google-ads-script-panel__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.google-ads-script-panel__tab {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(108, 99, 255, 0.08);
+  color: var(--text-h);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.google-ads-script-panel__tab--active {
+  border-color: rgba(108, 99, 255, 0.3);
+  background: linear-gradient(90deg, rgba(108, 99, 255, 0.16), rgba(143, 123, 255, 0.2));
+  color: var(--accent);
+}
+
+.google-ads-script-panel__templates {
+  display: grid;
+  gap: 16px;
+}
+
+.google-ads-script-panel__template {
+  display: grid;
+  gap: 10px;
+}
+
+.google-ads-script-panel__template-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.google-ads-script-panel__template-header h4 {
+  margin: 0;
+}
+
+.google-ads-script-panel__template-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.google-ads-script-panel__code {
+  margin: 0;
+  max-height: 260px;
+  padding: 14px;
+  border-radius: 10px;
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.5;
+  background: #1f2430;
+  color: #f3f4f6;
+}
+
+.google-ads-script-panel__code--expanded {
+  max-height: 520px;
+}
+
+@media (max-width: 768px) {
+  .google-ads-script-panel__template-header {
+    flex-direction: column;
+  }
+
+  .google-ads-script-panel__template-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .google-ads-script-panel__code {
+    max-height: 220px;
+  }
+
+  .google-ads-script-panel__code--expanded {
+    max-height: 440px;
+  }
+}

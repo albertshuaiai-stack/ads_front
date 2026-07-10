@@ -1,0 +1,95 @@
+.sidebar {
+  border-right: 1px solid var(--border);
+  padding: 20px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  background: color-mix(in srgb, var(--bg), #f6f0ff 12%);
+}
+
+.sidebar__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.sidebar__title {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--text-h);
+}
+
+.sidebar__meta {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-group__title {
+  margin: 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+.sidebar-group__items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 8px;
+}
+
+.sidebar-item {
+  background: transparent;
+  border: 1px solid transparent;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.sidebar-item--active {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+
+.sidebar-item__icon {
+  margin-right: 8px;
+  font-size: 16px;
+  opacity: 0.95;
+}
+
+.sidebar-item--active .sidebar-item__icon {
+  color: var(--accent);
+}
+
+.sidebar__account-actions {
+  margin-top: auto;
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar__account-button,
+.sidebar__logout {
+  border: 1px solid var(--border);
+  background: transparent;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+}

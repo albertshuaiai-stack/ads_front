@@ -1,0 +1,41 @@
+.affiliate-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.affiliate-row {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.form-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-field span {
+  min-width: 120px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.form-field input,
+.form-field select {
+  flex: 1 1 auto;
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  color: var(--text-h);
+  background: var(--bg);
+}
+
+.affiliate-row__actions {
+  display: flex;
+  justify-content: flex-end;
+}

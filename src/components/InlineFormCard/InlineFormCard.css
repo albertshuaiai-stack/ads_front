@@ -1,0 +1,38 @@
+.inline-form-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg), #ffffff 14%);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+}
+
+.inline-form-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.inline-form-card__header h3 {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.inline-form-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
