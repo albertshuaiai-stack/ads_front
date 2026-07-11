@@ -30,6 +30,21 @@ function getIconFor(id) {
           <path d="M14 10a4 4 0 00-5.657 0L6.93 11.414a4 4 0 105.657 5.657L14 15.656" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
+    case 'email-management':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M4 7l8 6 8-6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'cash-bach-account':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M7 12h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M9 9h6M9 15h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
     case 'shift-link-log':
       return (
         <svg {...common} aria-hidden focusable="false">

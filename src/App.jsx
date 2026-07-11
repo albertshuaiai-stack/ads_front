@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import LoginForm from './components/LoginForm/LoginForm'
+import CashBachAccountManagementSection from './components/CashBachAccountManagementSection/CashBachAccountManagementSection'
 import ChangePasswordModal from './components/ChangePasswordModal/ChangePasswordModal'
+import EmailManagementSection from './components/EmailManagementSection/EmailManagementSection'
 import GoogleAdsScriptPanel from './components/GoogleAdsScriptPanel/GoogleAdsScriptPanel'
 import MatrixAdsManagementSection from './components/MatrixAdsManagementSection/MatrixAdsManagementSection'
 import NormalAdsManagementSection from './components/NormalAdsManagementSection/NormalAdsManagementSection'
@@ -62,9 +64,17 @@ const MENU_GROUPS = [
       { id: 'test-shift-link', label: 'Shift Link Testing' },
     ],
   },
+  {
+    id: 'tool',
+    title: 'Tool',
+    items: [
+      { id: 'email-management', label: 'Email Management' },
+      { id: 'cash-bach-account', label: 'Cash Bach Account' },
+    ],
+  },
 ]
 
-const SHIFT_LINK_TEMPLATE_FILE_URL = '/templates/Shift_Link_Temp.xlsx'
+const SHIFT_LINK_TEMPLATE_FILE_URL = `${import.meta.env.BASE_URL}templates/Shift_Link_Temp.xlsx`
 
 function toDateInputValue(value) {
   const text = toOptionalTrimmedString(value)
@@ -413,6 +423,56 @@ function App() {
   const [savingPlatform, setSavingPlatform] = useState(false)
   const [showPlatformModal, setShowPlatformModal] = useState(false)
 
+  const [emails, setEmails] = useState([])
+  const [emailsLoading, setEmailsLoading] = useState(false)
+  const [emailsError, setEmailsError] = useState('')
+  const [emailsMessage, setEmailsMessage] = useState('')
+  const [emailPagination, setEmailPagination] = useState(() => createInitialPagination())
+  const emailPaginationRef = useRef(emailPagination)
+  const [emailFilters, setEmailFilters] = useState({
+    userName: '',
+    emailAddress: '',
+  })
+  const [emailQueryApplied, setEmailQueryApplied] = useState(false)
+  const emailFiltersRef = useRef(emailFilters)
+  const [editingEmailId, setEditingEmailId] = useState(null)
+  const [emailUserName, setEmailUserName] = useState('')
+  const [emailBirthdayDate, setEmailBirthdayDate] = useState('')
+  const [emailAddress, setEmailAddress] = useState('')
+  const [emailPassword, setEmailPassword] = useState('')
+  const [emailParentEmail, setEmailParentEmail] = useState('')
+  const [emailHomeAddress, setEmailHomeAddress] = useState('')
+  const [emailRemarks, setEmailRemarks] = useState('')
+  const [savingEmail, setSavingEmail] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+
+  const [accounts, setAccounts] = useState([])
+  const [accountsLoading, setAccountsLoading] = useState(false)
+  const [accountsError, setAccountsError] = useState('')
+  const [accountsMessage, setAccountsMessage] = useState('')
+  const [accountPagination, setAccountPagination] = useState(() => createInitialPagination())
+  const accountPaginationRef = useRef(accountPagination)
+  const [accountEmailOptionsSource, setAccountEmailOptionsSource] = useState([])
+  const [accountEmailOptionsLoading, setAccountEmailOptionsLoading] = useState(false)
+  const [accountFilters, setAccountFilters] = useState({
+    userName: '',
+    status: '',
+  })
+  const [accountQueryApplied, setAccountQueryApplied] = useState(false)
+  const accountFiltersRef = useRef(accountFilters)
+  const [editingAccountId, setEditingAccountId] = useState(null)
+  const [accountEmailAddress, setAccountEmailAddress] = useState('')
+  const [accountUserName, setAccountUserName] = useState('')
+  const [accountPlatformName, setAccountPlatformName] = useState('')
+  const [accountPaymentStatus, setAccountPaymentStatus] = useState('')
+  const [accountStatus, setAccountStatus] = useState('')
+  const [accountRegisterDate, setAccountRegisterDate] = useState('')
+  const [accountBalance, setAccountBalance] = useState('')
+  const [accountCurrency, setAccountCurrency] = useState('')
+  const [accountRemarks, setAccountRemarks] = useState('')
+  const [savingAccount, setSavingAccount] = useState(false)
+  const [showAccountModal, setShowAccountModal] = useState(false)
+
   const isAuthenticated = useMemo(() => Boolean(token), [token])
 
   const platformOptions = useMemo(() => {
@@ -512,6 +572,33 @@ function App() {
     [],
   )
 
+  const accountStatusOptions = useMemo(
+    () => [
+      { value: 'RUNNING', label: 'RUNNING' },
+      { value: 'PAUSED', label: 'PAUSED' },
+      { value: 'LOCKED', label: 'LOCKED' },
+      { value: 'OTHER', label: 'OTHER' },
+    ],
+    [],
+  )
+
+  const accountPaymentStatusOptions = useMemo(
+    () => [
+      { value: 'TODO', label: 'TODO' },
+      { value: 'ADDED', label: 'ADDED' },
+      { value: 'OTHER', label: 'OTHER' },
+    ],
+    [],
+  )
+
+  const accountCurrencyOptions = useMemo(
+    () => [
+      { value: 'USD', label: 'USD' },
+      { value: 'CNY', label: 'CNY' },
+    ],
+    [],
+  )
+
   const adsTypeOptions = useMemo(() => {
     if (isAdminRole(currentUserRole)) {
       return [
@@ -600,6 +687,33 @@ function App() {
 
     return Array.from(names).sort((left, right) => left.localeCompare(right))
   }, [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsName, shiftLinkLogFilters.adsType])
+
+  const accountEmailOptions = useMemo(() => {
+    const emailsByAddress = new Map()
+
+    accountEmailOptionsSource.forEach((item) => {
+      const email = toOptionalTrimmedString(item?.emailAddress)
+      if (!email) {
+        return
+      }
+
+      if (!emailsByAddress.has(email)) {
+        emailsByAddress.set(email, item)
+      }
+    })
+
+    const currentEmailAddress = toOptionalTrimmedString(accountEmailAddress)
+    if (currentEmailAddress && !emailsByAddress.has(currentEmailAddress)) {
+      emailsByAddress.set(currentEmailAddress, {
+        emailAddress: currentEmailAddress,
+        userName: toOptionalTrimmedString(accountUserName) || '',
+      })
+    }
+
+    return Array.from(emailsByAddress.values()).sort((left, right) =>
+      String(left.emailAddress).localeCompare(String(right.emailAddress)),
+    )
+  }, [accountEmailAddress, accountEmailOptionsSource, accountUserName])
 
   const normalAdsColumns = useMemo(() => {
     const preferredOrder = [
@@ -797,6 +911,34 @@ function App() {
     })
   }
 
+  function handleEmailPageChange(page) {
+    void loadToolEmails(emailQueryApplied ? emailFiltersRef.current : {}, {
+      page,
+      size: emailPaginationRef.current.size,
+    })
+  }
+
+  function handleEmailPageSizeChange(size) {
+    void loadToolEmails(emailQueryApplied ? emailFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  function handleAccountPageChange(page) {
+    void loadToolAccounts(accountQueryApplied ? accountFiltersRef.current : {}, {
+      page,
+      size: accountPaginationRef.current.size,
+    })
+  }
+
+  function handleAccountPageSizeChange(size) {
+    void loadToolAccounts(accountQueryApplied ? accountFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
   async function updateAdsUrlStatus(item, status) {
     setAdsError('')
     setAdsMessage('')
@@ -893,6 +1035,53 @@ function App() {
     setShowPlatformModal(true)
   }
 
+  function clearEmailForm() {
+    setEditingEmailId(null)
+    setEmailUserName('')
+    setEmailBirthdayDate('')
+    setEmailAddress('')
+    setEmailPassword('')
+    setEmailParentEmail('')
+    setEmailHomeAddress('')
+    setEmailRemarks('')
+  }
+
+  function openCreateEmail() {
+    clearEmailForm()
+    setEmailsError('')
+    setShowEmailModal(true)
+  }
+
+  function clearAccountForm() {
+    setEditingAccountId(null)
+    setAccountEmailAddress('')
+    setAccountUserName('')
+    setAccountPlatformName('')
+    setAccountPaymentStatus('')
+    setAccountStatus('')
+    setAccountRegisterDate('')
+    setAccountBalance('')
+    setAccountCurrency('')
+    setAccountRemarks('')
+  }
+
+  function openCreateAccount() {
+    clearAccountForm()
+    setAccountsError('')
+    setShowAccountModal(true)
+  }
+
+  function handleAccountEmailSelection(value) {
+    setAccountEmailAddress(value)
+
+    const matchedEmail = accountEmailOptions.find((item) => item.emailAddress === value)
+    if (matchedEmail) {
+      setAccountUserName(matchedEmail.userName || '')
+    } else if (!value) {
+      setAccountUserName('')
+    }
+  }
+
   function clearRoleForm() {
     setEditingRoleId(null)
     setRoleName('')
@@ -982,6 +1171,80 @@ function App() {
       setUsersError(message)
     } finally {
       setUsersLoading(false)
+    }
+  }, [token])
+
+  const loadToolEmails = useCallback(
+    async (filters = emailFiltersRef.current, pageConfig = emailPaginationRef.current) => {
+      setEmailsLoading(true)
+      setEmailsError('')
+
+      try {
+        const response = await requestApi(
+          `/tool-emails${buildQueryString({
+            userName: filters.userName,
+            emailAddress: filters.emailAddress,
+            page: pageConfig.page,
+            size: pageConfig.size,
+          })}`,
+          { token },
+        )
+        setEmails(extractItems(response))
+        setEmailPagination(buildPaginationState(response, pageConfig))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setEmailsError(message)
+      } finally {
+        setEmailsLoading(false)
+      }
+    },
+    [token],
+  )
+
+  const loadToolAccounts = useCallback(
+    async (filters = accountFiltersRef.current, pageConfig = accountPaginationRef.current) => {
+      setAccountsLoading(true)
+      setAccountsError('')
+
+      try {
+        const response = await requestApi(
+          `/tool-accounts${buildQueryString({
+            userName: filters.userName,
+            status: filters.status,
+            page: pageConfig.page,
+            size: pageConfig.size,
+          })}`,
+          { token },
+        )
+        setAccounts(extractItems(response))
+        setAccountPagination(buildPaginationState(response, pageConfig))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setAccountsError(message)
+      } finally {
+        setAccountsLoading(false)
+      }
+    },
+    [token],
+  )
+
+  const loadAccountEmailOptions = useCallback(async () => {
+    setAccountEmailOptionsLoading(true)
+
+    try {
+      const response = await requestApi(
+        `/tool-emails${buildQueryString({
+          page: 0,
+          size: 1000,
+        })}`,
+        { token },
+      )
+      setAccountEmailOptionsSource(extractItems(response))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAccountsError(message)
+    } finally {
+      setAccountEmailOptionsLoading(false)
     }
   }, [token])
 
@@ -1250,12 +1513,30 @@ function App() {
     matrixAdsPaginationRef.current = matrixAdsPagination
   }, [matrixAdsPagination])
 
+  useEffect(() => {
+    emailFiltersRef.current = emailFilters
+  }, [emailFilters])
+
+  useEffect(() => {
+    emailPaginationRef.current = emailPagination
+  }, [emailPagination])
+
+  useEffect(() => {
+    accountFiltersRef.current = accountFilters
+  }, [accountFilters])
+
+  useEffect(() => {
+    accountPaginationRef.current = accountPagination
+  }, [accountPagination])
+
   const accessibleMenus = useMemo(() => {
     if (isAdminRole(currentUserRole)) {
       return [
         'user-management',
         'role-management',
         'ads-platform-management',
+        'email-management',
+        'cash-bach-account',
         'auto-script',
         'test-shift-link',
         'shift-link-log',
@@ -1265,7 +1546,7 @@ function App() {
       ]
     }
 
-    const menus = []
+    const menus = ['email-management', 'cash-bach-account']
 
     if (isNormalRole(currentUserRole)) {
       menus.push('normal-ads-management')
@@ -1450,6 +1731,18 @@ function App() {
 
     if (activeMenu === 'ads-platform-management') {
       void loadPlatforms()
+      return
+    }
+
+    if (activeMenu === 'email-management') {
+      void loadToolEmails(emailQueryApplied ? emailFiltersRef.current : {})
+      return
+    }
+
+    if (activeMenu === 'cash-bach-account') {
+      void loadToolAccounts(accountQueryApplied ? accountFiltersRef.current : {})
+      void loadPlatforms()
+      void loadAccountEmailOptions()
     }
   }, [
     isAuthenticated,
@@ -1463,6 +1756,11 @@ function App() {
     loadNormalAds,
     loadMatrixAds,
     loadPlatforms,
+    loadToolEmails,
+    loadToolAccounts,
+    loadAccountEmailOptions,
+    emailQueryApplied,
+    accountQueryApplied,
     adsUrlQueryApplied,
     normalAdsQueryApplied,
     matrixAdsQueryApplied,
@@ -1846,6 +2144,20 @@ function App() {
     setPlatforms([])
     setPlatformsError('')
     setPlatformsMessage('')
+    setEmails([])
+    setEmailsError('')
+    setEmailsMessage('')
+    setEmailPagination(createInitialPagination())
+    setEmailFilters({ userName: '', emailAddress: '' })
+    setEmailQueryApplied(false)
+    setAccounts([])
+    setAccountsError('')
+    setAccountsMessage('')
+    setAccountPagination(createInitialPagination())
+    setAccountEmailOptionsSource([])
+    setAccountEmailOptionsLoading(false)
+    setAccountFilters({ userName: '', status: '' })
+    setAccountQueryApplied(false)
     setTestShiftLinkCampainName('')
     setTestShiftLinkApiKey('')
     setTestShiftLinkError('')
@@ -1867,6 +2179,8 @@ function App() {
     setShiftLinkLogsLoaded(false)
     setShiftLinkLogPagination(createInitialPagination())
     setShiftLinkLogQueryApplied(false)
+    setShowEmailModal(false)
+    setShowAccountModal(false)
     setShowUserModal(false)
     setShowAdsModal(false)
     setShowPlatformModal(false)
@@ -1874,6 +2188,8 @@ function App() {
     clearAdsForm()
     clearPlatformForm()
     clearRoleForm()
+    clearEmailForm()
+    clearAccountForm()
     clearNormalAdsForm()
     clearMatrixAdsForm()
   }
@@ -2257,6 +2573,30 @@ function App() {
     void loadMatrixAds(matrixAdsFilters, { page: 0, size: matrixAdsPaginationRef.current.size })
   }
 
+  function applyEmailFilters(event) {
+    event.preventDefault()
+    setEmailQueryApplied(true)
+    void loadToolEmails(emailFilters, { page: 0, size: emailPaginationRef.current.size })
+  }
+
+  function reloadEmailFilters() {
+    setEmailFilters({ userName: '', emailAddress: '' })
+    setEmailQueryApplied(false)
+    void loadToolEmails({}, { page: 0, size: emailPaginationRef.current.size })
+  }
+
+  function applyAccountFilters(event) {
+    event.preventDefault()
+    setAccountQueryApplied(true)
+    void loadToolAccounts(accountFilters, { page: 0, size: accountPaginationRef.current.size })
+  }
+
+  function reloadAccountFilters() {
+    setAccountFilters({ userName: '', status: '' })
+    setAccountQueryApplied(false)
+    void loadToolAccounts({}, { page: 0, size: accountPaginationRef.current.size })
+  }
+
   async function handleBulkUploadAds(event) {
     event.preventDefault()
     setBulkAdsSaving(true)
@@ -2410,6 +2750,179 @@ function App() {
     }
   }
 
+  function startEditEmail(item) {
+    setEditingEmailId(item.id)
+    setEmailUserName(item.userName || '')
+    setEmailBirthdayDate(toDateInputValue(item.birthdayDate))
+    setEmailAddress(item.emailAddress || '')
+    setEmailPassword(item.emailPwd || '')
+    setEmailParentEmail(item.parentEmail || '')
+    setEmailHomeAddress(item.address || '')
+    setEmailRemarks(item.remarks || '')
+    setShowEmailModal(true)
+  }
+
+  async function handleSaveEmail(event) {
+    event.preventDefault()
+    setSavingEmail(true)
+    setEmailsError('')
+    setEmailsMessage('')
+
+    try {
+      const userName = toOptionalTrimmedString(emailUserName)
+      if (!userName) {
+        throw new Error('User Name is required.')
+      }
+
+      const payload = {
+        userName,
+        birthdayDate: toApiDateValue(emailBirthdayDate),
+        emailAddress: toOptionalTrimmedString(emailAddress),
+        emailPwd: toOptionalTrimmedString(emailPassword),
+        parentEmail: toOptionalTrimmedString(emailParentEmail),
+        address: toOptionalTrimmedString(emailHomeAddress),
+        remarks: toOptionalTrimmedString(emailRemarks),
+      }
+
+      if (editingEmailId) {
+        await requestApi(`/tool-emails/${editingEmailId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setEmailsMessage('Email updated successfully.')
+      } else {
+        await requestApi('/tool-emails', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setEmailsMessage('Email created successfully.')
+      }
+
+      clearEmailForm()
+      setShowEmailModal(false)
+      await loadToolEmails(emailQueryApplied ? emailFiltersRef.current : {}, emailPaginationRef.current)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setEmailsError(message)
+    } finally {
+      setSavingEmail(false)
+    }
+  }
+
+  async function handleDeleteEmail(id) {
+    setEmailsError('')
+    setEmailsMessage('')
+
+    try {
+      await requestApi(`/tool-emails/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setEmailsMessage('Email deleted successfully.')
+      await loadToolEmails(emailQueryApplied ? emailFiltersRef.current : {}, emailPaginationRef.current)
+      if (editingEmailId === id) {
+        clearEmailForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setEmailsError(message)
+    }
+  }
+
+  function startEditAccount(item) {
+    setEditingAccountId(item.id)
+    setAccountEmailAddress(item.emailAddress || '')
+    setAccountUserName(item.userName || '')
+    setAccountPlatformName(item.platformName || '')
+    setAccountPaymentStatus(item.paymentStatus || '')
+    setAccountStatus(item.status || '')
+    setAccountRegisterDate(toDateInputValue(item.registerDate))
+    setAccountBalance(item.balance != null ? String(item.balance) : '')
+    setAccountCurrency(item.currency || '')
+    setAccountRemarks(item.remarks || '')
+    setShowAccountModal(true)
+  }
+
+  async function handleSaveAccount(event) {
+    event.preventDefault()
+    setSavingAccount(true)
+    setAccountsError('')
+    setAccountsMessage('')
+
+    try {
+      const userName = toOptionalTrimmedString(accountUserName)
+      if (!userName) {
+        throw new Error('User Name is required.')
+      }
+
+      const normalizedBalance = toOptionalTrimmedString(accountBalance)
+      const balance = normalizedBalance === undefined ? undefined : Number(normalizedBalance)
+
+      if (normalizedBalance !== undefined && !Number.isFinite(balance)) {
+        throw new Error('Balance must be a valid number.')
+      }
+
+      const payload = {
+        emailAddress: toOptionalTrimmedString(accountEmailAddress),
+        userName,
+        platformName: toOptionalTrimmedString(accountPlatformName),
+        paymentStatus: toOptionalTrimmedString(accountPaymentStatus),
+        status: toOptionalTrimmedString(accountStatus),
+        registerDate: toApiDateValue(accountRegisterDate),
+        balance,
+        currency: toOptionalTrimmedString(accountCurrency),
+        remarks: toOptionalTrimmedString(accountRemarks),
+      }
+
+      if (editingAccountId) {
+        await requestApi(`/tool-accounts/${editingAccountId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setAccountsMessage('Cash Bach Account updated successfully.')
+      } else {
+        await requestApi('/tool-accounts', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setAccountsMessage('Cash Bach Account created successfully.')
+      }
+
+      clearAccountForm()
+      setShowAccountModal(false)
+      await loadToolAccounts(accountQueryApplied ? accountFiltersRef.current : {}, accountPaginationRef.current)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAccountsError(message)
+    } finally {
+      setSavingAccount(false)
+    }
+  }
+
+  async function handleDeleteAccount(id) {
+    setAccountsError('')
+    setAccountsMessage('')
+
+    try {
+      await requestApi(`/tool-accounts/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setAccountsMessage('Cash Bach Account deleted successfully.')
+      await loadToolAccounts(accountQueryApplied ? accountFiltersRef.current : {}, accountPaginationRef.current)
+      if (editingAccountId === id) {
+        clearAccountForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAccountsError(message)
+    }
+  }
+
   const currentPageTitle =
     activeMenu === 'user-management'
       ? 'User'
@@ -2417,6 +2930,10 @@ function App() {
         ? 'User Role'
         : activeMenu === 'auto-script'
           ? 'Auto Script'
+        : activeMenu === 'email-management'
+          ? 'Email Management'
+        : activeMenu === 'cash-bach-account'
+          ? 'Cash Bach Account'
         : activeMenu === 'ads-url-management'
           ? 'Shift Link'
           : activeMenu === 'shift-link-log'
@@ -2710,6 +3227,95 @@ function App() {
         pagination={matrixAdsPagination}
         onPageChange={handleMatrixAdsPageChange}
         onPageSizeChange={handleMatrixAdsPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'email-management') {
+    activeSection = (
+      <EmailManagementSection
+        emails={emails}
+        emailsLoading={emailsLoading}
+        emailsError={emailsError}
+        emailsMessage={emailsMessage}
+        emailFilters={emailFilters}
+        onEmailFiltersChange={setEmailFilters}
+        onApplyEmailFilters={applyEmailFilters}
+        onReloadEmailFilters={reloadEmailFilters}
+        onCreateEmail={openCreateEmail}
+        onEditEmail={startEditEmail}
+        onDeleteEmail={handleDeleteEmail}
+        showEmailModal={showEmailModal}
+        editingEmailId={editingEmailId}
+        emailUserName={emailUserName}
+        onEmailUserNameChange={setEmailUserName}
+        emailBirthdayDate={emailBirthdayDate}
+        onEmailBirthdayDateChange={setEmailBirthdayDate}
+        emailAddress={emailAddress}
+        onEmailAddressChange={setEmailAddress}
+        emailPassword={emailPassword}
+        onEmailPasswordChange={setEmailPassword}
+        emailParentEmail={emailParentEmail}
+        onEmailParentEmailChange={setEmailParentEmail}
+        emailHomeAddress={emailHomeAddress}
+        onEmailHomeAddressChange={setEmailHomeAddress}
+        emailRemarks={emailRemarks}
+        onEmailRemarksChange={setEmailRemarks}
+        onSaveEmail={handleSaveEmail}
+        savingEmail={savingEmail}
+        onCloseEmailModal={() => setShowEmailModal(false)}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={emailPagination}
+        onPageChange={handleEmailPageChange}
+        onPageSizeChange={handleEmailPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'cash-bach-account') {
+    activeSection = (
+      <CashBachAccountManagementSection
+        accounts={accounts}
+        accountsLoading={accountsLoading}
+        accountsError={accountsError}
+        accountsMessage={accountsMessage}
+        accountFilters={accountFilters}
+        onAccountFiltersChange={setAccountFilters}
+        onApplyAccountFilters={applyAccountFilters}
+        onReloadAccountFilters={reloadAccountFilters}
+        onCreateAccount={openCreateAccount}
+        onEditAccount={startEditAccount}
+        onDeleteAccount={handleDeleteAccount}
+        showAccountModal={showAccountModal}
+        editingAccountId={editingAccountId}
+        accountEmailAddress={accountEmailAddress}
+        onAccountEmailAddressChange={handleAccountEmailSelection}
+        accountUserName={accountUserName}
+        onAccountUserNameChange={setAccountUserName}
+        accountPlatformName={accountPlatformName}
+        onAccountPlatformNameChange={setAccountPlatformName}
+        accountPaymentStatus={accountPaymentStatus}
+        onAccountPaymentStatusChange={setAccountPaymentStatus}
+        accountStatus={accountStatus}
+        onAccountStatusChange={setAccountStatus}
+        accountRegisterDate={accountRegisterDate}
+        onAccountRegisterDateChange={setAccountRegisterDate}
+        accountBalance={accountBalance}
+        onAccountBalanceChange={setAccountBalance}
+        accountCurrency={accountCurrency}
+        onAccountCurrencyChange={setAccountCurrency}
+        accountRemarks={accountRemarks}
+        onAccountRemarksChange={setAccountRemarks}
+        onSaveAccount={handleSaveAccount}
+        savingAccount={savingAccount}
+        onCloseAccountModal={() => setShowAccountModal(false)}
+        accountEmailOptions={accountEmailOptions}
+        accountEmailOptionsLoading={accountEmailOptionsLoading}
+        accountStatusOptions={accountStatusOptions}
+        accountPaymentStatusOptions={accountPaymentStatusOptions}
+        accountCurrencyOptions={accountCurrencyOptions}
+        platformOptions={platformOptions}
+        platformsLoading={platformsLoading}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={accountPagination}
+        onPageChange={handleAccountPageChange}
+        onPageSizeChange={handleAccountPageSizeChange}
       />
     )
   } else {

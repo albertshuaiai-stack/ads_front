@@ -393,11 +393,21 @@ async function downloadApiFile(path, token, fileName) {
   URL.revokeObjectURL(objectUrl)
 }
 
-function downloadStaticFile(fileUrl, fileName) {
+async function downloadStaticFile(fileUrl, fileName) {
+  const response = await fetch(fileUrl)
+  if (!response.ok) {
+    throw new Error(`Failed to download file (${response.status})`)
+  }
+
+  const blob = await response.blob()
+  const objectUrl = URL.createObjectURL(blob)
   const link = document.createElement('a')
-  link.href = fileUrl
+  link.href = objectUrl
   link.download = fileName
+  document.body.appendChild(link)
   link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(objectUrl)
 }
 
 async function uploadApiFile(path, token, file, fieldName = 'file') {
