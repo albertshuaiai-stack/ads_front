@@ -4,9 +4,12 @@ import CashBachAccountManagementSection from './components/CashBachAccountManage
 import ChangePasswordModal from './components/ChangePasswordModal/ChangePasswordModal'
 import EmailManagementSection from './components/EmailManagementSection/EmailManagementSection'
 import GoogleAdsScriptPanel from './components/GoogleAdsScriptPanel/GoogleAdsScriptPanel'
+import IncomeManagementSection from './components/IncomeManagementSection/IncomeManagementSection'
 import MatrixAdsManagementSection from './components/MatrixAdsManagementSection/MatrixAdsManagementSection'
 import NormalAdsManagementSection from './components/NormalAdsManagementSection/NormalAdsManagementSection'
+import OutcomeManagementSection from './components/OutcomeManagementSection/OutcomeManagementSection'
 import PageHeader from './components/PageHeader/PageHeader'
+import PaypalManagementSection from './components/PaypalManagementSection/PaypalManagementSection'
 import PlatformManagementSection from './components/PlatformManagementSection/PlatformManagementSection'
 import RoleManagementSection from './components/RoleManagementSection/RoleManagementSection'
 import ShiftLinkLogSection from './components/ShiftLinkLogSection/ShiftLinkLogSection'
@@ -70,6 +73,9 @@ const MENU_GROUPS = [
     items: [
       { id: 'email-management', label: 'Email Management' },
       { id: 'cash-bach-account', label: 'Cash Bach Account' },
+      { id: 'paypal-management', label: 'PayPal Management' },
+      { id: 'income-management', label: 'Income Management' },
+      { id: 'outcome-management', label: 'Outcome Management' },
     ],
   },
 ]
@@ -355,8 +361,9 @@ function App() {
   const [bulkAdsMessage, setBulkAdsMessage] = useState('')
 
   const [adsUrlFilters, setAdsUrlFilters] = useState({
+    adsType: '',
+    adsName: '',
     platformName: '',
-    status: '',
   })
   const [adsUrlQueryApplied, setAdsUrlQueryApplied] = useState(false)
   const adsUrlFiltersRef = useRef(adsUrlFilters)
@@ -473,6 +480,76 @@ function App() {
   const [savingAccount, setSavingAccount] = useState(false)
   const [showAccountModal, setShowAccountModal] = useState(false)
 
+  const [paypals, setPaypals] = useState([])
+  const [paypalsLoading, setPaypalsLoading] = useState(false)
+  const [paypalsError, setPaypalsError] = useState('')
+  const [paypalsMessage, setPaypalsMessage] = useState('')
+  const [paypalPagination, setPaypalPagination] = useState(() => createInitialPagination())
+  const paypalPaginationRef = useRef(paypalPagination)
+  const [paypalFilters, setPaypalFilters] = useState({
+    paypalEmail: '',
+    primaryEmail: '',
+  })
+  const [paypalQueryApplied, setPaypalQueryApplied] = useState(false)
+  const paypalFiltersRef = useRef(paypalFilters)
+  const [editingPaypalId, setEditingPaypalId] = useState(null)
+  const [paypalEmail, setPaypalEmail] = useState('')
+  const [paypalPrimaryEmail, setPaypalPrimaryEmail] = useState('')
+  const [paypalIdValue, setPaypalIdValue] = useState('')
+  const [savingPaypal, setSavingPaypal] = useState(false)
+  const [showPaypalModal, setShowPaypalModal] = useState(false)
+
+  const [incomes, setIncomes] = useState([])
+  const [incomesLoading, setIncomesLoading] = useState(false)
+  const [incomesError, setIncomesError] = useState('')
+  const [incomesMessage, setIncomesMessage] = useState('')
+  const [incomePagination, setIncomePagination] = useState(() => createInitialPagination())
+  const incomePaginationRef = useRef(incomePagination)
+  const [paypalAccountOptionsSource, setPaypalAccountOptionsSource] = useState([])
+  const [paypalAccountOptionsLoading, setPaypalAccountOptionsLoading] = useState(false)
+  const [incomeFilters, setIncomeFilters] = useState({
+    platformName: '',
+    userName: '',
+    paypalAccount: '',
+    payoutDateBegin: '',
+    payoutDateEnd: '',
+  })
+  const [incomeQueryApplied, setIncomeQueryApplied] = useState(false)
+  const incomeFiltersRef = useRef(incomeFilters)
+  const [editingIncomeId, setEditingIncomeId] = useState(null)
+  const [incomePlatformName, setIncomePlatformName] = useState('')
+  const [incomeUserName, setIncomeUserName] = useState('')
+  const [incomeAmount, setIncomeAmount] = useState('')
+  const [incomeCurrency, setIncomeCurrency] = useState('')
+  const [incomePaymentMethod, setIncomePaymentMethod] = useState('')
+  const [incomePaypalAccount, setIncomePaypalAccount] = useState('')
+  const [incomePayoutDate, setIncomePayoutDate] = useState('')
+  const [incomeRemarks, setIncomeRemarks] = useState('')
+  const [savingIncome, setSavingIncome] = useState(false)
+  const [showIncomeModal, setShowIncomeModal] = useState(false)
+
+  const [outcomes, setOutcomes] = useState([])
+  const [outcomesLoading, setOutcomesLoading] = useState(false)
+  const [outcomesError, setOutcomesError] = useState('')
+  const [outcomesMessage, setOutcomesMessage] = useState('')
+  const [outcomePagination, setOutcomePagination] = useState(() => createInitialPagination())
+  const outcomePaginationRef = useRef(outcomePagination)
+  const [outcomeFilters, setOutcomeFilters] = useState({
+    outcomeType: '',
+    payDateBegin: '',
+    payDateEnd: '',
+  })
+  const [outcomeQueryApplied, setOutcomeQueryApplied] = useState(false)
+  const outcomeFiltersRef = useRef(outcomeFilters)
+  const [editingOutcomeId, setEditingOutcomeId] = useState(null)
+  const [outcomeType, setOutcomeType] = useState('')
+  const [outcomeAmount, setOutcomeAmount] = useState('')
+  const [outcomeCurrency, setOutcomeCurrency] = useState('')
+  const [outcomePayDate, setOutcomePayDate] = useState('')
+  const [outcomeRemarks, setOutcomeRemarks] = useState('')
+  const [savingOutcome, setSavingOutcome] = useState(false)
+  const [showOutcomeModal, setShowOutcomeModal] = useState(false)
+
   const isAuthenticated = useMemo(() => Boolean(token), [token])
 
   const platformOptions = useMemo(() => {
@@ -519,7 +596,6 @@ function App() {
       },
       { key: 'adsType', label: 'Ads Type', fields: ['adsType', 'ads_type'] },
       { key: 'platformName', label: 'Platform Name', fields: ['platformName', 'platform'] },
-      { key: 'adsOwner', label: 'Ads Owner', fields: ['adsOwner'] },
       { key: 'seqNumber', label: 'Seq Number', fields: ['seqNumber'] },
       { key: 'displayNumber', label: 'Display Number', fields: ['displayNumber'] },
       {
@@ -549,7 +625,6 @@ function App() {
       { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
       { key: 'displayTimes', label: 'Display Time', fields: ['displayTimes'] },
       { key: 'remarks', label: 'Remarks', fields: ['remarks', 'remark'] },
-      { key: 'adsOwner', label: 'Ads Owner', fields: ['adsOwner'] },
       { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
     ]
   }, [])
@@ -688,6 +763,53 @@ function App() {
     return Array.from(names).sort((left, right) => left.localeCompare(right))
   }, [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsName, shiftLinkLogFilters.adsType])
 
+  const adsUrlAdsNameOptions = useMemo(() => {
+    const names = new Set()
+
+    availableShiftLinkLogCatalog.forEach((item) => {
+      const itemAdsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
+      if (adsUrlFilters.adsType && itemAdsType !== adsUrlFilters.adsType) {
+        return
+      }
+
+      const adsName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
+      )
+      if (adsName) {
+        names.add(adsName)
+      }
+    })
+
+    return Array.from(names).sort((left, right) => left.localeCompare(right))
+  }, [adsUrlFilters.adsType, availableShiftLinkLogCatalog])
+
+  const adsUrlPlatformOptions = useMemo(() => {
+    const names = new Set()
+
+    availableShiftLinkLogCatalog.forEach((item) => {
+      const itemAdsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
+      if (adsUrlFilters.adsType && itemAdsType !== adsUrlFilters.adsType) {
+        return
+      }
+
+      const adsName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
+      )
+      if (adsUrlFilters.adsName && adsName !== adsUrlFilters.adsName) {
+        return
+      }
+
+      const filterPlatformName = toOptionalTrimmedString(
+        firstDefinedValue(item, ['platformName', 'platform']),
+      )
+      if (filterPlatformName) {
+        names.add(filterPlatformName)
+      }
+    })
+
+    return Array.from(names).sort((left, right) => left.localeCompare(right))
+  }, [adsUrlFilters.adsName, adsUrlFilters.adsType, availableShiftLinkLogCatalog])
+
   const accountEmailOptions = useMemo(() => {
     const emailsByAddress = new Map()
 
@@ -714,6 +836,33 @@ function App() {
       String(left.emailAddress).localeCompare(String(right.emailAddress)),
     )
   }, [accountEmailAddress, accountEmailOptionsSource, accountUserName])
+
+  const paypalAccountOptions = useMemo(() => {
+    const accountsByEmail = new Map()
+
+    paypalAccountOptionsSource.forEach((item) => {
+      const account = toOptionalTrimmedString(item?.paypalEmail)
+      if (!account) {
+        return
+      }
+
+      if (!accountsByEmail.has(account)) {
+        accountsByEmail.set(account, item)
+      }
+    })
+
+    const currentPaypalAccount = toOptionalTrimmedString(incomePaypalAccount)
+    if (currentPaypalAccount && !accountsByEmail.has(currentPaypalAccount)) {
+      accountsByEmail.set(currentPaypalAccount, {
+        paypalEmail: currentPaypalAccount,
+        primaryEmail: toOptionalTrimmedString(paypalPrimaryEmail) || '',
+      })
+    }
+
+    return Array.from(accountsByEmail.values()).sort((left, right) =>
+      String(left.paypalEmail).localeCompare(String(right.paypalEmail)),
+    )
+  }, [incomePaypalAccount, paypalPrimaryEmail, paypalAccountOptionsSource])
 
   const normalAdsColumns = useMemo(() => {
     const preferredOrder = [
@@ -846,6 +995,11 @@ function App() {
     setShowAdsModal(true)
   }
 
+  function handleAdsUrlFiltersChange(nextFilters) {
+    setAdsUrlFilters(nextFilters)
+    setAdsUrlQueryApplied(false)
+  }
+
   function handleShiftLinkLogFiltersChange(nextFilters) {
     setShiftLinkLogFilters(nextFilters)
     setShiftLinkLogQueryApplied(false)
@@ -934,6 +1088,48 @@ function App() {
 
   function handleAccountPageSizeChange(size) {
     void loadToolAccounts(accountQueryApplied ? accountFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  function handlePaypalPageChange(page) {
+    void loadToolPaypals(paypalQueryApplied ? paypalFiltersRef.current : {}, {
+      page,
+      size: paypalPaginationRef.current.size,
+    })
+  }
+
+  function handlePaypalPageSizeChange(size) {
+    void loadToolPaypals(paypalQueryApplied ? paypalFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  function handleIncomePageChange(page) {
+    void loadToolIncomes(incomeQueryApplied ? incomeFiltersRef.current : {}, {
+      page,
+      size: incomePaginationRef.current.size,
+    })
+  }
+
+  function handleIncomePageSizeChange(size) {
+    void loadToolIncomes(incomeQueryApplied ? incomeFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  function handleOutcomePageChange(page) {
+    void loadToolOutcomes(outcomeQueryApplied ? outcomeFiltersRef.current : {}, {
+      page,
+      size: outcomePaginationRef.current.size,
+    })
+  }
+
+  function handleOutcomePageSizeChange(size) {
+    void loadToolOutcomes(outcomeQueryApplied ? outcomeFiltersRef.current : {}, {
       page: 0,
       size,
     })
@@ -1069,6 +1265,52 @@ function App() {
     clearAccountForm()
     setAccountsError('')
     setShowAccountModal(true)
+  }
+
+  function clearPaypalForm() {
+    setEditingPaypalId(null)
+    setPaypalEmail('')
+    setPaypalPrimaryEmail('')
+    setPaypalIdValue('')
+  }
+
+  function openCreatePaypal() {
+    clearPaypalForm()
+    setPaypalsError('')
+    setShowPaypalModal(true)
+  }
+
+  function clearIncomeForm() {
+    setEditingIncomeId(null)
+    setIncomePlatformName('')
+    setIncomeUserName('')
+    setIncomeAmount('')
+    setIncomeCurrency('')
+    setIncomePaymentMethod('')
+    setIncomePaypalAccount('')
+    setIncomePayoutDate('')
+    setIncomeRemarks('')
+  }
+
+  function openCreateIncome() {
+    clearIncomeForm()
+    setIncomesError('')
+    setShowIncomeModal(true)
+  }
+
+  function clearOutcomeForm() {
+    setEditingOutcomeId(null)
+    setOutcomeType('')
+    setOutcomeAmount('')
+    setOutcomeCurrency('')
+    setOutcomePayDate('')
+    setOutcomeRemarks('')
+  }
+
+  function openCreateOutcome() {
+    clearOutcomeForm()
+    setOutcomesError('')
+    setShowOutcomeModal(true)
   }
 
   function handleAccountEmailSelection(value) {
@@ -1247,6 +1489,111 @@ function App() {
       setAccountEmailOptionsLoading(false)
     }
   }, [token])
+
+  const loadToolPaypals = useCallback(
+    async (filters = paypalFiltersRef.current, pageConfig = paypalPaginationRef.current) => {
+      setPaypalsLoading(true)
+      setPaypalsError('')
+
+      try {
+        const response = await requestApi(
+          `/tool-paypals${buildQueryString({
+            paypalEmail: filters.paypalEmail,
+            primaryEmail: filters.primaryEmail,
+            page: pageConfig.page,
+            size: pageConfig.size,
+          })}`,
+          { token },
+        )
+        setPaypals(extractItems(response))
+        setPaypalPagination(buildPaginationState(response, pageConfig))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setPaypalsError(message)
+      } finally {
+        setPaypalsLoading(false)
+      }
+    },
+    [token],
+  )
+
+  const loadPaypalAccountOptions = useCallback(async () => {
+    setPaypalAccountOptionsLoading(true)
+
+    try {
+      const response = await requestApi(
+        `/tool-paypals${buildQueryString({
+          page: 0,
+          size: 1000,
+        })}`,
+        { token },
+      )
+      setPaypalAccountOptionsSource(extractItems(response))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setIncomesError(message)
+    } finally {
+      setPaypalAccountOptionsLoading(false)
+    }
+  }, [token])
+
+  const loadToolIncomes = useCallback(
+    async (filters = incomeFiltersRef.current, pageConfig = incomePaginationRef.current) => {
+      setIncomesLoading(true)
+      setIncomesError('')
+
+      try {
+        const response = await requestApi(
+          `/tool-incomes${buildQueryString({
+            platformName: filters.platformName,
+            userName: filters.userName,
+            paypalAccount: filters.paypalAccount,
+            payoutDateBegin: toApiDateValue(filters.payoutDateBegin),
+            payoutDateEnd: toApiDateValue(filters.payoutDateEnd),
+            page: pageConfig.page,
+            size: pageConfig.size,
+          })}`,
+          { token },
+        )
+        setIncomes(extractItems(response))
+        setIncomePagination(buildPaginationState(response, pageConfig))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setIncomesError(message)
+      } finally {
+        setIncomesLoading(false)
+      }
+    },
+    [token],
+  )
+
+  const loadToolOutcomes = useCallback(
+    async (filters = outcomeFiltersRef.current, pageConfig = outcomePaginationRef.current) => {
+      setOutcomesLoading(true)
+      setOutcomesError('')
+
+      try {
+        const response = await requestApi(
+          `/tool-outcomes${buildQueryString({
+            outcomeType: filters.outcomeType,
+            payDateBegin: toApiDateValue(filters.payDateBegin),
+            payDateEnd: toApiDateValue(filters.payDateEnd),
+            page: pageConfig.page,
+            size: pageConfig.size,
+          })}`,
+          { token },
+        )
+        setOutcomes(extractItems(response))
+        setOutcomePagination(buildPaginationState(response, pageConfig))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setOutcomesError(message)
+      } finally {
+        setOutcomesLoading(false)
+      }
+    },
+    [token],
+  )
 
   const loadRoles = useCallback(async () => {
     setRolesLoading(true)
@@ -1529,6 +1876,30 @@ function App() {
     accountPaginationRef.current = accountPagination
   }, [accountPagination])
 
+  useEffect(() => {
+    paypalFiltersRef.current = paypalFilters
+  }, [paypalFilters])
+
+  useEffect(() => {
+    paypalPaginationRef.current = paypalPagination
+  }, [paypalPagination])
+
+  useEffect(() => {
+    incomeFiltersRef.current = incomeFilters
+  }, [incomeFilters])
+
+  useEffect(() => {
+    incomePaginationRef.current = incomePagination
+  }, [incomePagination])
+
+  useEffect(() => {
+    outcomeFiltersRef.current = outcomeFilters
+  }, [outcomeFilters])
+
+  useEffect(() => {
+    outcomePaginationRef.current = outcomePagination
+  }, [outcomePagination])
+
   const accessibleMenus = useMemo(() => {
     if (isAdminRole(currentUserRole)) {
       return [
@@ -1537,6 +1908,9 @@ function App() {
         'ads-platform-management',
         'email-management',
         'cash-bach-account',
+        'paypal-management',
+        'income-management',
+        'outcome-management',
         'auto-script',
         'test-shift-link',
         'shift-link-log',
@@ -1546,7 +1920,13 @@ function App() {
       ]
     }
 
-    const menus = ['email-management', 'cash-bach-account']
+    const menus = [
+      'email-management',
+      'cash-bach-account',
+      'paypal-management',
+      'income-management',
+      'outcome-management',
+    ]
 
     if (isNormalRole(currentUserRole)) {
       menus.push('normal-ads-management')
@@ -1584,6 +1964,51 @@ function App() {
       }
     })
   }, [defaultShiftLinkLogAdsType, allowedShiftLinkLogAdsTypes])
+
+  useEffect(() => {
+    setAdsUrlFilters((current) => {
+      const nextAdsType =
+        current.adsType && allowedShiftLinkLogAdsTypes.has(current.adsType)
+          ? current.adsType
+          : defaultShiftLinkLogAdsType
+
+      if (current.adsType === nextAdsType) {
+        return current
+      }
+
+      return {
+        adsType: nextAdsType,
+        adsName: '',
+        platformName: '',
+      }
+    })
+  }, [defaultShiftLinkLogAdsType, allowedShiftLinkLogAdsTypes])
+
+  useEffect(() => {
+    if (adsUrlFilters.adsName && !adsUrlAdsNameOptions.includes(adsUrlFilters.adsName)) {
+      setAdsUrlFilters((current) => ({
+        ...current,
+        adsName: '',
+        platformName: '',
+      }))
+      return
+    }
+
+    if (
+      adsUrlFilters.platformName &&
+      !adsUrlPlatformOptions.includes(adsUrlFilters.platformName)
+    ) {
+      setAdsUrlFilters((current) => ({
+        ...current,
+        platformName: '',
+      }))
+    }
+  }, [
+    adsUrlAdsNameOptions,
+    adsUrlFilters.adsName,
+    adsUrlFilters.platformName,
+    adsUrlPlatformOptions,
+  ])
 
   useEffect(() => {
     if (
@@ -1704,6 +2129,7 @@ function App() {
 
     if (activeMenu === 'ads-url-management') {
       void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {})
+      void loadShiftLinkLogCatalog()
       void loadPlatforms()
       return
     }
@@ -1743,6 +2169,23 @@ function App() {
       void loadToolAccounts(accountQueryApplied ? accountFiltersRef.current : {})
       void loadPlatforms()
       void loadAccountEmailOptions()
+      return
+    }
+
+    if (activeMenu === 'paypal-management') {
+      void loadToolPaypals(paypalQueryApplied ? paypalFiltersRef.current : {})
+      return
+    }
+
+    if (activeMenu === 'income-management') {
+      void loadToolIncomes(incomeQueryApplied ? incomeFiltersRef.current : {})
+      void loadPlatforms()
+      void loadPaypalAccountOptions()
+      return
+    }
+
+    if (activeMenu === 'outcome-management') {
+      void loadToolOutcomes(outcomeQueryApplied ? outcomeFiltersRef.current : {})
     }
   }, [
     isAuthenticated,
@@ -1758,9 +2201,16 @@ function App() {
     loadPlatforms,
     loadToolEmails,
     loadToolAccounts,
+    loadToolPaypals,
+    loadToolIncomes,
+    loadToolOutcomes,
     loadAccountEmailOptions,
+    loadPaypalAccountOptions,
     emailQueryApplied,
     accountQueryApplied,
+    paypalQueryApplied,
+    incomeQueryApplied,
+    outcomeQueryApplied,
     adsUrlQueryApplied,
     normalAdsQueryApplied,
     matrixAdsQueryApplied,
@@ -2127,7 +2577,7 @@ function App() {
     setBulkAdsSaving(false)
     setBulkAdsError('')
     setBulkAdsMessage('')
-    setAdsUrlFilters({ platformName: '', status: '' })
+    setAdsUrlFilters({ adsType: defaultShiftLinkLogAdsType, adsName: '', platformName: '' })
     setAdsUrlQueryApplied(false)
     setNormalAds([])
     setNormalAdsError('')
@@ -2158,6 +2608,32 @@ function App() {
     setAccountEmailOptionsLoading(false)
     setAccountFilters({ userName: '', status: '' })
     setAccountQueryApplied(false)
+    setPaypals([])
+    setPaypalsError('')
+    setPaypalsMessage('')
+    setPaypalPagination(createInitialPagination())
+    setPaypalFilters({ paypalEmail: '', primaryEmail: '' })
+    setPaypalQueryApplied(false)
+    setIncomes([])
+    setIncomesError('')
+    setIncomesMessage('')
+    setIncomePagination(createInitialPagination())
+    setPaypalAccountOptionsSource([])
+    setPaypalAccountOptionsLoading(false)
+    setIncomeFilters({
+      platformName: '',
+      userName: '',
+      paypalAccount: '',
+      payoutDateBegin: '',
+      payoutDateEnd: '',
+    })
+    setIncomeQueryApplied(false)
+    setOutcomes([])
+    setOutcomesError('')
+    setOutcomesMessage('')
+    setOutcomePagination(createInitialPagination())
+    setOutcomeFilters({ outcomeType: '', payDateBegin: '', payDateEnd: '' })
+    setOutcomeQueryApplied(false)
     setTestShiftLinkCampainName('')
     setTestShiftLinkApiKey('')
     setTestShiftLinkError('')
@@ -2181,6 +2657,9 @@ function App() {
     setShiftLinkLogQueryApplied(false)
     setShowEmailModal(false)
     setShowAccountModal(false)
+    setShowPaypalModal(false)
+    setShowIncomeModal(false)
+    setShowOutcomeModal(false)
     setShowUserModal(false)
     setShowAdsModal(false)
     setShowPlatformModal(false)
@@ -2190,6 +2669,9 @@ function App() {
     clearRoleForm()
     clearEmailForm()
     clearAccountForm()
+    clearPaypalForm()
+    clearIncomeForm()
+    clearOutcomeForm()
     clearNormalAdsForm()
     clearMatrixAdsForm()
   }
@@ -2561,6 +3043,17 @@ function App() {
     void loadAdsUrls(adsUrlFilters, { page: 0, size: adsUrlPaginationRef.current.size })
   }
 
+  function reloadAdsUrlFilters() {
+    setAdsUrlFilters({
+      adsType: defaultShiftLinkLogAdsType,
+      adsName: '',
+      platformName: '',
+    })
+    setAdsUrlQueryApplied(false)
+    void loadShiftLinkLogCatalog()
+    void loadAdsUrls({}, { page: 0, size: adsUrlPaginationRef.current.size })
+  }
+
   function applyNormalAdsFilters(event) {
     event.preventDefault()
     setNormalAdsQueryApplied(true)
@@ -2595,6 +3088,48 @@ function App() {
     setAccountFilters({ userName: '', status: '' })
     setAccountQueryApplied(false)
     void loadToolAccounts({}, { page: 0, size: accountPaginationRef.current.size })
+  }
+
+  function applyPaypalFilters(event) {
+    event.preventDefault()
+    setPaypalQueryApplied(true)
+    void loadToolPaypals(paypalFilters, { page: 0, size: paypalPaginationRef.current.size })
+  }
+
+  function reloadPaypalFilters() {
+    setPaypalFilters({ paypalEmail: '', primaryEmail: '' })
+    setPaypalQueryApplied(false)
+    void loadToolPaypals({}, { page: 0, size: paypalPaginationRef.current.size })
+  }
+
+  function applyIncomeFilters(event) {
+    event.preventDefault()
+    setIncomeQueryApplied(true)
+    void loadToolIncomes(incomeFilters, { page: 0, size: incomePaginationRef.current.size })
+  }
+
+  function reloadIncomeFilters() {
+    setIncomeFilters({
+      platformName: '',
+      userName: '',
+      paypalAccount: '',
+      payoutDateBegin: '',
+      payoutDateEnd: '',
+    })
+    setIncomeQueryApplied(false)
+    void loadToolIncomes({}, { page: 0, size: incomePaginationRef.current.size })
+  }
+
+  function applyOutcomeFilters(event) {
+    event.preventDefault()
+    setOutcomeQueryApplied(true)
+    void loadToolOutcomes(outcomeFilters, { page: 0, size: outcomePaginationRef.current.size })
+  }
+
+  function reloadOutcomeFilters() {
+    setOutcomeFilters({ outcomeType: '', payDateBegin: '', payDateEnd: '' })
+    setOutcomeQueryApplied(false)
+    void loadToolOutcomes({}, { page: 0, size: outcomePaginationRef.current.size })
   }
 
   async function handleBulkUploadAds(event) {
@@ -2923,6 +3458,258 @@ function App() {
     }
   }
 
+  function startEditPaypal(item) {
+    setEditingPaypalId(item.id)
+    setPaypalEmail(item.paypalEmail || '')
+    setPaypalPrimaryEmail(item.primaryEmail || '')
+    setPaypalIdValue(item.paypalId || '')
+    setShowPaypalModal(true)
+  }
+
+  async function handleSavePaypal(event) {
+    event.preventDefault()
+    setSavingPaypal(true)
+    setPaypalsError('')
+    setPaypalsMessage('')
+
+    try {
+      const normalizedPaypalEmail = toOptionalTrimmedString(paypalEmail)
+      if (!normalizedPaypalEmail) {
+        throw new Error('PayPal Email is required.')
+      }
+
+      const payload = {
+        paypalEmail: normalizedPaypalEmail,
+        primaryEmail: toOptionalTrimmedString(paypalPrimaryEmail),
+        paypalId: toOptionalTrimmedString(paypalIdValue),
+      }
+
+      if (editingPaypalId) {
+        await requestApi(`/tool-paypals/${editingPaypalId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setPaypalsMessage('PayPal account updated successfully.')
+      } else {
+        await requestApi('/tool-paypals', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setPaypalsMessage('PayPal account created successfully.')
+      }
+
+      clearPaypalForm()
+      setShowPaypalModal(false)
+      await loadToolPaypals(paypalQueryApplied ? paypalFiltersRef.current : {}, paypalPaginationRef.current)
+      await loadPaypalAccountOptions()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setPaypalsError(message)
+    } finally {
+      setSavingPaypal(false)
+    }
+  }
+
+  async function handleDeletePaypal(id) {
+    setPaypalsError('')
+    setPaypalsMessage('')
+
+    try {
+      await requestApi(`/tool-paypals/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setPaypalsMessage('PayPal account deleted successfully.')
+      await loadToolPaypals(paypalQueryApplied ? paypalFiltersRef.current : {}, paypalPaginationRef.current)
+      await loadPaypalAccountOptions()
+      if (editingPaypalId === id) {
+        clearPaypalForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setPaypalsError(message)
+    }
+  }
+
+  function startEditIncome(item) {
+    setEditingIncomeId(item.id)
+    setIncomePlatformName(item.platformName || '')
+    setIncomeUserName(item.userName || '')
+    setIncomeAmount(item.incomeAmount != null ? String(item.incomeAmount) : '')
+    setIncomeCurrency(item.currency || '')
+    setIncomePaymentMethod(item.paymentMethod || '')
+    setIncomePaypalAccount(item.paypalAccount || '')
+    setIncomePayoutDate(toDateInputValue(item.payoutDate))
+    setIncomeRemarks(item.remarks || '')
+    setShowIncomeModal(true)
+  }
+
+  async function handleSaveIncome(event) {
+    event.preventDefault()
+    setSavingIncome(true)
+    setIncomesError('')
+    setIncomesMessage('')
+
+    try {
+      const platformName = toOptionalTrimmedString(incomePlatformName)
+      if (!platformName) {
+        throw new Error('Platform Name is required.')
+      }
+
+      const userName = toOptionalTrimmedString(incomeUserName)
+      if (!userName) {
+        throw new Error('User Name is required.')
+      }
+
+      const normalizedAmount = toOptionalTrimmedString(incomeAmount)
+      const parsedAmount = normalizedAmount === undefined ? Number.NaN : Number(normalizedAmount)
+      if (!Number.isFinite(parsedAmount)) {
+        throw new Error('Income Amount must be a valid number.')
+      }
+
+      const payload = {
+        platformName,
+        userName,
+        incomeAmount: parsedAmount,
+        currency: toOptionalTrimmedString(incomeCurrency),
+        paymentMethod: toOptionalTrimmedString(incomePaymentMethod),
+        paypalAccount: toOptionalTrimmedString(incomePaypalAccount),
+        payoutDate: toApiDateValue(incomePayoutDate),
+        remarks: toOptionalTrimmedString(incomeRemarks),
+      }
+
+      if (editingIncomeId) {
+        await requestApi(`/tool-incomes/${editingIncomeId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setIncomesMessage('Income record updated successfully.')
+      } else {
+        await requestApi('/tool-incomes', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setIncomesMessage('Income record created successfully.')
+      }
+
+      clearIncomeForm()
+      setShowIncomeModal(false)
+      await loadToolIncomes(incomeQueryApplied ? incomeFiltersRef.current : {}, incomePaginationRef.current)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setIncomesError(message)
+    } finally {
+      setSavingIncome(false)
+    }
+  }
+
+  async function handleDeleteIncome(id) {
+    setIncomesError('')
+    setIncomesMessage('')
+
+    try {
+      await requestApi(`/tool-incomes/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setIncomesMessage('Income record deleted successfully.')
+      await loadToolIncomes(incomeQueryApplied ? incomeFiltersRef.current : {}, incomePaginationRef.current)
+      if (editingIncomeId === id) {
+        clearIncomeForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setIncomesError(message)
+    }
+  }
+
+  function startEditOutcome(item) {
+    setEditingOutcomeId(item.id)
+    setOutcomeType(item.outcomeType || '')
+    setOutcomeAmount(item.outcomeAmount != null ? String(item.outcomeAmount) : '')
+    setOutcomeCurrency(item.currency || '')
+    setOutcomePayDate(toDateInputValue(item.payDate))
+    setOutcomeRemarks(item.remarks || '')
+    setShowOutcomeModal(true)
+  }
+
+  async function handleSaveOutcome(event) {
+    event.preventDefault()
+    setSavingOutcome(true)
+    setOutcomesError('')
+    setOutcomesMessage('')
+
+    try {
+      const normalizedOutcomeType = toOptionalTrimmedString(outcomeType)
+      if (!normalizedOutcomeType) {
+        throw new Error('Outcome Type is required.')
+      }
+
+      const normalizedAmount = toOptionalTrimmedString(outcomeAmount)
+      const parsedAmount = normalizedAmount === undefined ? Number.NaN : Number(normalizedAmount)
+      if (!Number.isFinite(parsedAmount)) {
+        throw new Error('Outcome Amount must be a valid number.')
+      }
+
+      const payload = {
+        outcomeType: normalizedOutcomeType,
+        outcomeAmount: parsedAmount,
+        currency: toOptionalTrimmedString(outcomeCurrency),
+        payDate: toApiDateValue(outcomePayDate),
+        remarks: toOptionalTrimmedString(outcomeRemarks),
+      }
+
+      if (editingOutcomeId) {
+        await requestApi(`/tool-outcomes/${editingOutcomeId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setOutcomesMessage('Outcome record updated successfully.')
+      } else {
+        await requestApi('/tool-outcomes', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setOutcomesMessage('Outcome record created successfully.')
+      }
+
+      clearOutcomeForm()
+      setShowOutcomeModal(false)
+      await loadToolOutcomes(outcomeQueryApplied ? outcomeFiltersRef.current : {}, outcomePaginationRef.current)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setOutcomesError(message)
+    } finally {
+      setSavingOutcome(false)
+    }
+  }
+
+  async function handleDeleteOutcome(id) {
+    setOutcomesError('')
+    setOutcomesMessage('')
+
+    try {
+      await requestApi(`/tool-outcomes/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setOutcomesMessage('Outcome record deleted successfully.')
+      await loadToolOutcomes(outcomeQueryApplied ? outcomeFiltersRef.current : {}, outcomePaginationRef.current)
+      if (editingOutcomeId === id) {
+        clearOutcomeForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setOutcomesError(message)
+    }
+  }
+
   const currentPageTitle =
     activeMenu === 'user-management'
       ? 'User'
@@ -2934,6 +3721,12 @@ function App() {
           ? 'Email Management'
         : activeMenu === 'cash-bach-account'
           ? 'Cash Bach Account'
+        : activeMenu === 'paypal-management'
+          ? 'PayPal Management'
+        : activeMenu === 'income-management'
+          ? 'Income Management'
+        : activeMenu === 'outcome-management'
+          ? 'Outcome Management'
         : activeMenu === 'ads-url-management'
           ? 'Shift Link'
           : activeMenu === 'shift-link-log'
@@ -3037,19 +3830,20 @@ function App() {
         adsMessage={adsMessage}
         adsUrlColumns={adsUrlColumns}
         adsUrlFilters={adsUrlFilters}
-        adsStatusOptions={adsStatusOptions}
         adsTypeOptions={adsTypeOptions}
+        adsNameOptions={adsUrlAdsNameOptions}
+        filterPlatformOptions={adsUrlPlatformOptions}
+        catalogLoading={shiftLinkLogCatalogLoading}
+        catalogError={shiftLinkLogCatalogError}
         platformOptions={platformOptions}
         platformsLoading={platformsLoading}
         platformsError={platformsError}
         onCreateAds={openCreateAds}
         onOpenBulkAdsUpload={openBulkAdsUpload}
         onDownloadAdsTemplate={handleDownloadAdsTemplate}
-        onAdsUrlFiltersChange={setAdsUrlFilters}
+        onAdsUrlFiltersChange={handleAdsUrlFiltersChange}
         onApplyAdsUrlFilters={applyAdsUrlFilters}
-        onReloadAdsUrlFilters={() =>
-          void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {}, adsUrlPaginationRef.current)
-        }
+        onReloadAdsUrlFilters={reloadAdsUrlFilters}
         onToggleAdsStatus={(item, status) => void updateAdsUrlStatus(item, status)}
         onEditAds={startEditAds}
         onDeleteAds={handleDeleteAds}
@@ -3124,7 +3918,7 @@ function App() {
       />
     )
   } else if (activeMenu === 'auto-script') {
-    activeSection = <GoogleAdsScriptPanel />
+    activeSection = <GoogleAdsScriptPanel currentUserApiKey={currentUserRecord?.apiKey || ''} />
   } else if (activeMenu === 'normal-ads-management') {
     activeSection = (
       <NormalAdsManagementSection
@@ -3316,6 +4110,119 @@ function App() {
         pagination={accountPagination}
         onPageChange={handleAccountPageChange}
         onPageSizeChange={handleAccountPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'paypal-management') {
+    activeSection = (
+      <PaypalManagementSection
+        paypals={paypals}
+        paypalsLoading={paypalsLoading}
+        paypalsError={paypalsError}
+        paypalsMessage={paypalsMessage}
+        paypalFilters={paypalFilters}
+        onPaypalFiltersChange={setPaypalFilters}
+        onApplyPaypalFilters={applyPaypalFilters}
+        onReloadPaypalFilters={reloadPaypalFilters}
+        onCreatePaypal={openCreatePaypal}
+        onEditPaypal={startEditPaypal}
+        onDeletePaypal={handleDeletePaypal}
+        showPaypalModal={showPaypalModal}
+        editingPaypalId={editingPaypalId}
+        paypalEmail={paypalEmail}
+        onPaypalEmailChange={setPaypalEmail}
+        paypalPrimaryEmail={paypalPrimaryEmail}
+        onPaypalPrimaryEmailChange={setPaypalPrimaryEmail}
+        paypalIdValue={paypalIdValue}
+        onPaypalIdValueChange={setPaypalIdValue}
+        onSavePaypal={handleSavePaypal}
+        savingPaypal={savingPaypal}
+        onClosePaypalModal={() => setShowPaypalModal(false)}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={paypalPagination}
+        onPageChange={handlePaypalPageChange}
+        onPageSizeChange={handlePaypalPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'income-management') {
+    activeSection = (
+      <IncomeManagementSection
+        incomes={incomes}
+        incomesLoading={incomesLoading}
+        incomesError={incomesError}
+        incomesMessage={incomesMessage}
+        incomeFilters={incomeFilters}
+        onIncomeFiltersChange={setIncomeFilters}
+        onApplyIncomeFilters={applyIncomeFilters}
+        onReloadIncomeFilters={reloadIncomeFilters}
+        onCreateIncome={openCreateIncome}
+        onEditIncome={startEditIncome}
+        onDeleteIncome={handleDeleteIncome}
+        showIncomeModal={showIncomeModal}
+        editingIncomeId={editingIncomeId}
+        incomePlatformName={incomePlatformName}
+        onIncomePlatformNameChange={setIncomePlatformName}
+        incomeUserName={incomeUserName}
+        onIncomeUserNameChange={setIncomeUserName}
+        incomeAmount={incomeAmount}
+        onIncomeAmountChange={setIncomeAmount}
+        incomeCurrency={incomeCurrency}
+        onIncomeCurrencyChange={setIncomeCurrency}
+        incomePaymentMethod={incomePaymentMethod}
+        onIncomePaymentMethodChange={setIncomePaymentMethod}
+        incomePaypalAccount={incomePaypalAccount}
+        onIncomePaypalAccountChange={setIncomePaypalAccount}
+        incomePayoutDate={incomePayoutDate}
+        onIncomePayoutDateChange={setIncomePayoutDate}
+        incomeRemarks={incomeRemarks}
+        onIncomeRemarksChange={setIncomeRemarks}
+        onSaveIncome={handleSaveIncome}
+        savingIncome={savingIncome}
+        onCloseIncomeModal={() => setShowIncomeModal(false)}
+        platformOptions={platformOptions}
+        paymentMethodOptions={paymentMethodOptions}
+        accountCurrencyOptions={accountCurrencyOptions}
+        paypalAccountOptions={paypalAccountOptions}
+        paypalAccountOptionsLoading={paypalAccountOptionsLoading}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={incomePagination}
+        onPageChange={handleIncomePageChange}
+        onPageSizeChange={handleIncomePageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'outcome-management') {
+    activeSection = (
+      <OutcomeManagementSection
+        outcomes={outcomes}
+        outcomesLoading={outcomesLoading}
+        outcomesError={outcomesError}
+        outcomesMessage={outcomesMessage}
+        outcomeFilters={outcomeFilters}
+        onOutcomeFiltersChange={setOutcomeFilters}
+        onApplyOutcomeFilters={applyOutcomeFilters}
+        onReloadOutcomeFilters={reloadOutcomeFilters}
+        onCreateOutcome={openCreateOutcome}
+        onEditOutcome={startEditOutcome}
+        onDeleteOutcome={handleDeleteOutcome}
+        showOutcomeModal={showOutcomeModal}
+        editingOutcomeId={editingOutcomeId}
+        outcomeType={outcomeType}
+        onOutcomeTypeChange={setOutcomeType}
+        outcomeAmount={outcomeAmount}
+        onOutcomeAmountChange={setOutcomeAmount}
+        outcomeCurrency={outcomeCurrency}
+        onOutcomeCurrencyChange={setOutcomeCurrency}
+        outcomePayDate={outcomePayDate}
+        onOutcomePayDateChange={setOutcomePayDate}
+        outcomeRemarks={outcomeRemarks}
+        onOutcomeRemarksChange={setOutcomeRemarks}
+        onSaveOutcome={handleSaveOutcome}
+        savingOutcome={savingOutcome}
+        onCloseOutcomeModal={() => setShowOutcomeModal(false)}
+        accountCurrencyOptions={accountCurrencyOptions}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={outcomePagination}
+        onPageChange={handleOutcomePageChange}
+        onPageSizeChange={handleOutcomePageSizeChange}
       />
     )
   } else {

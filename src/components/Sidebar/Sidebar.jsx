@@ -45,6 +45,30 @@ function getIconFor(id) {
           <path d="M9 9h6M9 15h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       )
+    case 'paypal-management':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M9 16l1.2-8h3.4a2.2 2.2 0 0 1 .4 4.36l-2.8.04" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M11 12.4h2.2a2 2 0 0 1 0 4H9.6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'income-management':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <path d="M12 20V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M7 11l5-5 5 5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M5 20h14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
+    case 'outcome-management':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <path d="M12 4v14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M17 13l-5 5-5-5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M5 4h14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
     case 'shift-link-log':
       return (
         <svg {...common} aria-hidden focusable="false">

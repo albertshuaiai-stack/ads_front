@@ -133,7 +133,6 @@ function CashBachAccountManagementSection({
                     <th>Balance</th>
                     <th>Currency</th>
                     <th>Remarks</th>
-                    <th>Ads Owner</th>
                     <th>Create Date</th>
                     <th>Update Date</th>
                     <th>Actions</th>
@@ -152,7 +151,6 @@ function CashBachAccountManagementSection({
                       <td>{formatTableValue(item.balance)}</td>
                       <td>{formatTableValue(item.currency)}</td>
                       <td>{formatTableValue(item.remarks)}</td>
-                      <td>{formatTableValue(item.adsOwner)}</td>
                       <td>{formatDateDisplayValue(item.createDate)}</td>
                       <td>{formatDateDisplayValue(item.updateDate)}</td>
                       <td className="actions">

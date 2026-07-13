@@ -10,8 +10,11 @@ function ShiftLinkManagementSection({
   adsMessage,
   adsUrlColumns,
   adsUrlFilters,
-  adsStatusOptions,
   adsTypeOptions,
+  adsNameOptions,
+  filterPlatformOptions,
+  catalogLoading,
+  catalogError,
   platformOptions,
   platformsLoading,
   platformsError,
@@ -76,7 +79,53 @@ function ShiftLinkManagementSection({
 
           <form className="filter-form" onSubmit={onApplyAdsUrlFilters}>
             <div className="filter-item">
-              <label htmlFor="adsUrlPlatformFilter">Platform</label>
+              <label htmlFor="adsUrlAdsTypeFilter">Ads Type</label>
+              <select
+                id="adsUrlAdsTypeFilter"
+                value={adsUrlFilters.adsType}
+                onChange={(event) =>
+                  onAdsUrlFiltersChange({
+                    adsType: event.target.value,
+                    adsName: '',
+                    platformName: '',
+                  })
+                }
+                disabled={catalogLoading || adsTypeOptions.length === 0}
+              >
+                <option value="">All ads types</option>
+                {adsTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <label htmlFor="adsUrlAdsNameFilter">Ads Name</label>
+              <select
+                id="adsUrlAdsNameFilter"
+                value={adsUrlFilters.adsName}
+                onChange={(event) =>
+                  onAdsUrlFiltersChange({
+                    ...adsUrlFilters,
+                    adsName: event.target.value,
+                    platformName: '',
+                  })
+                }
+                disabled={catalogLoading || !adsUrlFilters.adsType || adsNameOptions.length === 0}
+              >
+                <option value="">All ads names</option>
+                {adsNameOptions.map((adsName) => (
+                  <option key={adsName} value={adsName}>
+                    {adsName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <label htmlFor="adsUrlPlatformFilter">Platform Name</label>
               <select
                 id="adsUrlPlatformFilter"
                 value={adsUrlFilters.platformName}
@@ -86,33 +135,17 @@ function ShiftLinkManagementSection({
                     platformName: event.target.value,
                   })
                 }
-                disabled={platformsLoading || platformOptions.length === 0}
-              >
-                <option value="">All platforms</option>
-                {platformOptions.map((platformName) => (
-                  <option key={platformName} value={platformName}>
-                    {platformName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-item">
-              <label htmlFor="adsUrlStatusFilter">Status</label>
-              <select
-                id="adsUrlStatusFilter"
-                value={adsUrlFilters.status}
-                onChange={(event) =>
-                  onAdsUrlFiltersChange({
-                    ...adsUrlFilters,
-                    status: event.target.value,
-                  })
+                disabled={
+                  catalogLoading ||
+                  !adsUrlFilters.adsType ||
+                  !adsUrlFilters.adsName ||
+                  filterPlatformOptions.length === 0
                 }
               >
-                <option value="">All statuses</option>
-                {adsStatusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
+                <option value="">All platforms</option>
+                {filterPlatformOptions.map((platformName) => (
+                  <option key={platformName} value={platformName}>
+                    {platformName}
                   </option>
                 ))}
               </select>
@@ -128,12 +161,23 @@ function ShiftLinkManagementSection({
             </div>
           </form>
 
+          <p className="field-help">
+            Use <code>adsType</code>, <code>adsName</code>, and <code>platformName</code> to
+            narrow Shift Links with cascading filters.
+          </p>
+
+          {catalogError ? (
+            <p className="status error" role="alert">
+              {catalogError}
+            </p>
+          ) : null}
           {adsError ? (
             <p className="status error" role="alert">
               {adsError}
             </p>
           ) : null}
           {adsMessage ? <p className="status success">{adsMessage}</p> : null}
+          {catalogLoading ? <p>Loading Shift Link filters...</p> : null}
           {adsLoading ? <p>Loading Shift Links...</p> : null}
 
           {!adsLoading && adsUrls.length === 0 ? (

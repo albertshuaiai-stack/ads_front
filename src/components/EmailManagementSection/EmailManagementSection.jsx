@@ -113,7 +113,6 @@ function EmailManagementSection({
                     <th>Parent Email</th>
                     <th>Address</th>
                     <th>Remarks</th>
-                    <th>Ads Owner</th>
                     <th>Create Date</th>
                     <th>Update Date</th>
                     <th>Actions</th>
@@ -130,7 +129,6 @@ function EmailManagementSection({
                       <td>{formatTableValue(item.parentEmail)}</td>
                       <td>{formatTableValue(item.address)}</td>
                       <td>{formatTableValue(item.remarks)}</td>
-                      <td>{formatTableValue(item.adsOwner)}</td>
                       <td>{formatDateDisplayValue(item.createDate)}</td>
                       <td>{formatDateDisplayValue(item.updateDate)}</td>
                       <td className="actions">
