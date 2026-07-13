@@ -170,7 +170,9 @@ function Sidebar({
             </section>
           )
         })}
-        {!currentRole ? <p className="field-help">Loading your access rights...</p> : null}
+        {!currentRole && accessibleMenus.length === 0 ? (
+          <p className="field-help">Loading your access rights...</p>
+        ) : null}
         {currentRole && accessibleMenus.length === 0 ? (
           <p className="field-help">No accessible menus for this role.</p>
         ) : null}

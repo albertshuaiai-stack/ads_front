@@ -81,6 +81,13 @@ const MENU_GROUPS = [
 ]
 
 const SHIFT_LINK_TEMPLATE_FILE_URL = `${import.meta.env.BASE_URL}templates/Shift_Link_Temp.xlsx`
+const TOOL_MENU_IDS = [
+  'email-management',
+  'cash-bach-account',
+  'paypal-management',
+  'income-management',
+  'outcome-management',
+]
 
 function toDateInputValue(value) {
   const text = toOptionalTrimmedString(value)
@@ -1901,16 +1908,16 @@ function App() {
   }, [outcomePagination])
 
   const accessibleMenus = useMemo(() => {
+    if (!isAuthenticated) {
+      return []
+    }
+
     if (isAdminRole(currentUserRole)) {
       return [
         'user-management',
         'role-management',
         'ads-platform-management',
-        'email-management',
-        'cash-bach-account',
-        'paypal-management',
-        'income-management',
-        'outcome-management',
+        ...TOOL_MENU_IDS,
         'auto-script',
         'test-shift-link',
         'shift-link-log',
@@ -1920,13 +1927,7 @@ function App() {
       ]
     }
 
-    const menus = [
-      'email-management',
-      'cash-bach-account',
-      'paypal-management',
-      'income-management',
-      'outcome-management',
-    ]
+    const menus = [...TOOL_MENU_IDS]
 
     if (isNormalRole(currentUserRole)) {
       menus.push('normal-ads-management')
@@ -1944,7 +1945,7 @@ function App() {
     }
 
     return menus
-  }, [currentUserRole])
+  }, [currentUserRole, isAuthenticated])
 
   useEffect(() => {
     setShiftLinkLogFilters((current) => {
