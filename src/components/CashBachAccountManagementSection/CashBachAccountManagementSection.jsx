@@ -13,8 +13,6 @@ function CashBachAccountManagementSection({
   onReloadAccountFilters,
   platformOptions,
   platformsLoading,
-  accountEmailOptions,
-  accountEmailOptionsLoading,
   accountStatusOptions,
   accountPaymentStatusOptions,
   accountCurrencyOptions,
@@ -24,7 +22,6 @@ function CashBachAccountManagementSection({
   showAccountModal,
   editingAccountId,
   accountEmailAddress,
-  onAccountEmailAddressChange,
   accountUserName,
   onAccountUserNameChange,
   accountPlatformName,
@@ -48,6 +45,8 @@ function CashBachAccountManagementSection({
   pagination,
   onPageChange,
   onPageSizeChange,
+  userNameOptions,
+  userNameOptionsLoading,
 }) {
   return (
     <>
@@ -65,7 +64,7 @@ function CashBachAccountManagementSection({
           <form className="filter-form" onSubmit={onApplyAccountFilters}>
             <div className="filter-item">
               <label htmlFor="cashBachAccountUserNameFilter">User Name</label>
-              <input
+              <select
                 id="cashBachAccountUserNameFilter"
                 value={accountFilters.userName}
                 onChange={(event) =>
@@ -74,7 +73,35 @@ function CashBachAccountManagementSection({
                     userName: event.target.value,
                   })
                 }
-              />
+              >
+                <option value="">All users</option>
+                {userNameOptions.map((option) => (
+                  <option key={option.userName} value={option.userName}>
+                    {option.userName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <label htmlFor="cashBachAccountPlatformNameFilter">Platform Name</label>
+              <select
+                id="cashBachAccountPlatformNameFilter"
+                value={accountFilters.platformName}
+                onChange={(event) =>
+                  onAccountFiltersChange({
+                    ...accountFilters,
+                    platformName: event.target.value,
+                  })
+                }
+              >
+                <option value="">All platforms</option>
+                {platformOptions.map((platformName) => (
+                  <option key={platformName} value={platformName}>
+                    {platformName}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="filter-item">
@@ -187,28 +214,27 @@ function CashBachAccountManagementSection({
           onClose={onCloseAccountModal}
         >
           <form className="modal-form" onSubmit={onSaveAccount}>
-            <label htmlFor="cashBachAccountEmailAddress">Email Address</label>
-            <select
-              id="cashBachAccountEmailAddress"
-              value={accountEmailAddress}
-              onChange={(event) => onAccountEmailAddressChange(event.target.value)}
-              disabled={accountEmailOptionsLoading || accountEmailOptions.length === 0}
-            >
-              <option value="">Select email address</option>
-              {accountEmailOptions.map((option) => (
-                <option key={option.emailAddress} value={option.emailAddress}>
-                  {option.emailAddress}
-                </option>
-              ))}
-            </select>
-            {accountEmailOptionsLoading ? <p className="field-help">Loading email addresses...</p> : null}
-
             <label htmlFor="cashBachAccountUserName">User Name</label>
-            <input
+            <select
               id="cashBachAccountUserName"
               value={accountUserName}
               onChange={(event) => onAccountUserNameChange(event.target.value)}
               required
+            >
+              <option value="">Select user name</option>
+              {userNameOptions.map((option) => (
+                <option key={option.userName} value={option.userName}>
+                  {option.userName}
+                </option>
+              ))}
+            </select>
+            {userNameOptionsLoading ? <p className="field-help">Loading user names...</p> : null}
+
+            <label htmlFor="cashBachAccountEmailAddress">Email Address</label>
+            <input
+              id="cashBachAccountEmailAddress"
+              value={accountEmailAddress}
+              readOnly
             />
 
             <label htmlFor="cashBachAccountPlatformName">Platform Name</label>

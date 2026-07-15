@@ -30,6 +30,7 @@ function OutcomeManagementSection({
   savingOutcome,
   onCloseOutcomeModal,
   accountCurrencyOptions,
+  outcomeTypeOptions,
   formatDateDisplayValue,
   pagination,
   onPageChange,
@@ -51,7 +52,7 @@ function OutcomeManagementSection({
           <form className="filter-form" onSubmit={onApplyOutcomeFilters}>
             <div className="filter-item">
               <label htmlFor="outcomeManagementOutcomeTypeFilter">Outcome Type</label>
-              <input
+              <select
                 id="outcomeManagementOutcomeTypeFilter"
                 value={outcomeFilters.outcomeType}
                 onChange={(event) =>
@@ -60,7 +61,14 @@ function OutcomeManagementSection({
                     outcomeType: event.target.value,
                   })
                 }
-              />
+              >
+                <option value="">All outcome types</option>
+                {outcomeTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="filter-item">
@@ -175,12 +183,19 @@ function OutcomeManagementSection({
         >
           <form className="modal-form" onSubmit={onSaveOutcome}>
             <label htmlFor="outcomeManagementOutcomeType">Outcome Type</label>
-            <input
+            <select
               id="outcomeManagementOutcomeType"
               value={outcomeType}
               onChange={(event) => onOutcomeTypeChange(event.target.value)}
               required
-            />
+            >
+              <option value="">Select outcome type</option>
+              {outcomeTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
 
             <label htmlFor="outcomeManagementOutcomeAmount">Outcome Amount</label>
             <input

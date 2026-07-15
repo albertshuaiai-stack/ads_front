@@ -1,4 +1,5 @@
 import InlineFormCard from '../InlineFormCard/InlineFormCard'
+import PaginationControls from '../PaginationControls/PaginationControls'
 import './PlatformManagementSection.css'
 
 function PlatformManagementSection({
@@ -21,6 +22,9 @@ function PlatformManagementSection({
   onSavePlatform,
   savingPlatform,
   onClosePlatformModal,
+  pagination,
+  onPageChange,
+  onPageSizeChange,
 }) {
   return (
     <>
@@ -86,6 +90,12 @@ function PlatformManagementSection({
               </table>
             </div>
           )}
+          <PaginationControls
+            pagination={pagination}
+            isLoading={platformsLoading}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+          />
         </div>
       </div>
 

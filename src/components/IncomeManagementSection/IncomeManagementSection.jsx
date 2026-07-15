@@ -38,6 +38,8 @@ function IncomeManagementSection({
   platformOptions,
   paymentMethodOptions,
   accountCurrencyOptions,
+  userNameOptions,
+  userNameOptionsLoading,
   paypalAccountOptions,
   paypalAccountOptionsLoading,
   formatDateDisplayValue,
@@ -81,7 +83,7 @@ function IncomeManagementSection({
 
             <div className="filter-item">
               <label htmlFor="incomeManagementUserNameFilter">User Name</label>
-              <input
+              <select
                 id="incomeManagementUserNameFilter"
                 value={incomeFilters.userName}
                 onChange={(event) =>
@@ -90,7 +92,14 @@ function IncomeManagementSection({
                     userName: event.target.value,
                   })
                 }
-              />
+              >
+                <option value="">All users</option>
+                {userNameOptions.map((option) => (
+                  <option key={option.userName} value={option.userName}>
+                    {option.userName}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="filter-item">
@@ -245,12 +254,20 @@ function IncomeManagementSection({
             </datalist>
 
             <label htmlFor="incomeManagementUserName">User Name</label>
-            <input
+            <select
               id="incomeManagementUserName"
               value={incomeUserName}
               onChange={(event) => onIncomeUserNameChange(event.target.value)}
               required
-            />
+            >
+              <option value="">Select user name</option>
+              {userNameOptions.map((option) => (
+                <option key={option.userName} value={option.userName}>
+                  {option.userName}
+                </option>
+              ))}
+            </select>
+            {userNameOptionsLoading ? <p className="field-help">Loading user names...</p> : null}
 
             <label htmlFor="incomeManagementIncomeAmount">Income Amount</label>
             <input

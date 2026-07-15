@@ -21,6 +21,7 @@ import './App.css'
 import { COUNTRY_OPTIONS, toCountryCode } from './lib/countryOptions'
 import {
   TOKEN_STORAGE_KEY,
+  UNAUTHORIZED_EVENT_NAME,
   USER_STORAGE_KEY,
   ROLE_STORAGE_KEY,
   NORMAL_ADS_TOTAL_STORAGE_KEY,
@@ -430,6 +431,10 @@ function App() {
   const [platformsLoading, setPlatformsLoading] = useState(false)
   const [platformsError, setPlatformsError] = useState('')
   const [platformsMessage, setPlatformsMessage] = useState('')
+  const [platformList, setPlatformList] = useState([])
+  const [platformListLoading, setPlatformListLoading] = useState(false)
+  const [platformPagination, setPlatformPagination] = useState(() => createInitialPagination())
+  const platformPaginationRef = useRef(platformPagination)
   const [editingPlatformId, setEditingPlatformId] = useState(null)
   const [platformName, setPlatformName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
@@ -470,6 +475,7 @@ function App() {
   const [accountEmailOptionsLoading, setAccountEmailOptionsLoading] = useState(false)
   const [accountFilters, setAccountFilters] = useState({
     userName: '',
+    platformName: '',
     status: '',
   })
   const [accountQueryApplied, setAccountQueryApplied] = useState(false)
@@ -562,6 +568,12 @@ function App() {
   const platformOptions = useMemo(() => {
     const names = new Set()
 
+    platformList.forEach((item) => {
+      if (item?.platformName) {
+        names.add(item.platformName)
+      }
+    })
+
     platforms.forEach((item) => {
       if (item?.platformName) {
         names.add(item.platformName)
@@ -575,7 +587,7 @@ function App() {
     }
 
     return Array.from(names).sort((left, right) => left.localeCompare(right))
-  }, [editingAdsOriginal, platforms])
+  }, [editingAdsOriginal, platformList, platforms])
 
   const roleOptions = useMemo(() => {
     const names = new Set()
@@ -649,6 +661,18 @@ function App() {
       { value: 'PayPal', label: 'PayPal' },
       { value: 'Gift Card', label: 'Gift Card' },
       { value: 'Bank Trans', label: 'Bank Trans' },
+      { value: 'Others', label: 'Others' },
+    ],
+    [],
+  )
+
+  const outcomeTypeOptions = useMemo(
+    () => [
+      { value: 'MediaBy', label: 'MediaBy' },
+      { value: 'IP Proxy', label: 'IP Proxy' },
+      { value: 'VPN', label: 'VPN' },
+      { value: 'AdsPower Browser', label: 'AdsPower Browser' },
+      { value: 'SEMRUSH', label: 'SEMRUSH' },
       { value: 'Others', label: 'Others' },
     ],
     [],
@@ -817,32 +841,41 @@ function App() {
     return Array.from(names).sort((left, right) => left.localeCompare(right))
   }, [adsUrlFilters.adsName, adsUrlFilters.adsType, availableShiftLinkLogCatalog])
 
-  const accountEmailOptions = useMemo(() => {
-    const emailsByAddress = new Map()
+  const toolEmailUserOptions = useMemo(() => {
+    const usersByName = new Map()
 
-    accountEmailOptionsSource.forEach((item) => {
-      const email = toOptionalTrimmedString(item?.emailAddress)
-      if (!email) {
+    const addUserOption = (rawUserName, rawEmailAddress = '') => {
+      const userName = toOptionalTrimmedString(rawUserName)
+      if (!userName || usersByName.has(userName)) {
         return
       }
 
-      if (!emailsByAddress.has(email)) {
-        emailsByAddress.set(email, item)
-      }
-    })
-
-    const currentEmailAddress = toOptionalTrimmedString(accountEmailAddress)
-    if (currentEmailAddress && !emailsByAddress.has(currentEmailAddress)) {
-      emailsByAddress.set(currentEmailAddress, {
-        emailAddress: currentEmailAddress,
-        userName: toOptionalTrimmedString(accountUserName) || '',
+      usersByName.set(userName, {
+        userName,
+        emailAddress: toOptionalTrimmedString(rawEmailAddress) || '',
       })
     }
 
-    return Array.from(emailsByAddress.values()).sort((left, right) =>
-      String(left.emailAddress).localeCompare(String(right.emailAddress)),
+    accountEmailOptionsSource.forEach((item) => {
+      addUserOption(item?.userName, item?.emailAddress)
+    })
+
+    addUserOption(accountUserName, accountEmailAddress)
+    addUserOption(incomeUserName)
+    addUserOption(accountFilters.userName)
+    addUserOption(incomeFilters.userName)
+
+    return Array.from(usersByName.values()).sort((left, right) =>
+      String(left.userName).localeCompare(String(right.userName)),
     )
-  }, [accountEmailAddress, accountEmailOptionsSource, accountUserName])
+  }, [
+    accountEmailAddress,
+    accountEmailOptionsSource,
+    accountFilters.userName,
+    accountUserName,
+    incomeFilters.userName,
+    incomeUserName,
+  ])
 
   const paypalAccountOptions = useMemo(() => {
     const accountsByEmail = new Map()
@@ -1142,6 +1175,20 @@ function App() {
     })
   }
 
+  function handlePlatformPageChange(page) {
+    void loadPlatformList({
+      page,
+      size: platformPaginationRef.current.size,
+    })
+  }
+
+  function handlePlatformPageSizeChange(size) {
+    void loadPlatformList({
+      page: 0,
+      size,
+    })
+  }
+
   async function updateAdsUrlStatus(item, status) {
     setAdsError('')
     setAdsMessage('')
@@ -1320,14 +1367,14 @@ function App() {
     setShowOutcomeModal(true)
   }
 
-  function handleAccountEmailSelection(value) {
-    setAccountEmailAddress(value)
+  function handleAccountUserNameSelection(value) {
+    setAccountUserName(value)
 
-    const matchedEmail = accountEmailOptions.find((item) => item.emailAddress === value)
-    if (matchedEmail) {
-      setAccountUserName(matchedEmail.userName || '')
+    const matchedUser = toolEmailUserOptions.find((item) => item.userName === value)
+    if (matchedUser) {
+      setAccountEmailAddress(matchedUser.emailAddress || '')
     } else if (!value) {
-      setAccountUserName('')
+      setAccountEmailAddress('')
     }
   }
 
@@ -1459,6 +1506,7 @@ function App() {
         const response = await requestApi(
           `/tool-accounts${buildQueryString({
             userName: filters.userName,
+            platformName: filters.platformName,
             status: filters.status,
             page: pageConfig.page,
             size: pageConfig.size,
@@ -1491,11 +1539,15 @@ function App() {
       setAccountEmailOptionsSource(extractItems(response))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
-      setAccountsError(message)
+      if (activeMenu === 'income-management') {
+        setIncomesError(message)
+      } else {
+        setAccountsError(message)
+      }
     } finally {
       setAccountEmailOptionsLoading(false)
     }
-  }, [token])
+  }, [activeMenu, token])
 
   const loadToolPaypals = useCallback(
     async (filters = paypalFiltersRef.current, pageConfig = paypalPaginationRef.current) => {
@@ -1688,20 +1740,47 @@ function App() {
     [token],
   )
 
-  const loadPlatforms = useCallback(async () => {
+  const loadPlatformOptions = useCallback(async () => {
     setPlatformsLoading(true)
     setPlatformsError('')
 
     try {
-      const response = await requestApi('/platforms', { token })
+      const response = await requestApi('/platforms/all', { token })
       setPlatforms(extractItems(response))
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       setPlatformsError(message)
+      setPlatforms([])
     } finally {
       setPlatformsLoading(false)
     }
   }, [token])
+
+  const loadPlatformList = useCallback(
+    async (pageConfig = platformPaginationRef.current) => {
+      setPlatformListLoading(true)
+      setPlatformsError('')
+
+      try {
+        const response = await requestApi(
+          `/platforms${buildQueryString({
+            page: pageConfig.page,
+            size: pageConfig.size,
+          })}`,
+          { token },
+        )
+        setPlatformList(extractItems(response))
+        setPlatformPagination(buildPaginationState(response, pageConfig))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setPlatformsError(message)
+        setPlatformList([])
+      } finally {
+        setPlatformListLoading(false)
+      }
+    },
+    [token],
+  )
 
   const loadNormalAds = useCallback(
     async (filters = {}, pageConfig = normalAdsPaginationRef.current) => {
@@ -1906,6 +1985,10 @@ function App() {
   useEffect(() => {
     outcomePaginationRef.current = outcomePagination
   }, [outcomePagination])
+
+  useEffect(() => {
+    platformPaginationRef.current = platformPagination
+  }, [platformPagination])
 
   const accessibleMenus = useMemo(() => {
     if (!isAuthenticated) {
@@ -2131,7 +2214,7 @@ function App() {
     if (activeMenu === 'ads-url-management') {
       void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {})
       void loadShiftLinkLogCatalog()
-      void loadPlatforms()
+      void loadPlatformOptions()
       return
     }
 
@@ -2146,18 +2229,19 @@ function App() {
 
     if (activeMenu === 'normal-ads-management') {
       void loadNormalAds(normalAdsQueryApplied ? normalAdsFiltersRef.current : {})
-      void loadPlatforms()
+      void loadPlatformOptions()
       return
     }
 
     if (activeMenu === 'matrix-ads-management') {
       void loadMatrixAds(matrixAdsQueryApplied ? matrixAdsFiltersRef.current : {})
-      void loadPlatforms()
+      void loadPlatformOptions()
       return
     }
 
     if (activeMenu === 'ads-platform-management') {
-      void loadPlatforms()
+      void loadPlatformOptions()
+      void loadPlatformList(platformPaginationRef.current)
       return
     }
 
@@ -2168,7 +2252,7 @@ function App() {
 
     if (activeMenu === 'cash-bach-account') {
       void loadToolAccounts(accountQueryApplied ? accountFiltersRef.current : {})
-      void loadPlatforms()
+      void loadPlatformOptions()
       void loadAccountEmailOptions()
       return
     }
@@ -2180,7 +2264,8 @@ function App() {
 
     if (activeMenu === 'income-management') {
       void loadToolIncomes(incomeQueryApplied ? incomeFiltersRef.current : {})
-      void loadPlatforms()
+      void loadPlatformOptions()
+      void loadAccountEmailOptions()
       void loadPaypalAccountOptions()
       return
     }
@@ -2199,7 +2284,8 @@ function App() {
     shiftLinkLogQueryApplied,
     loadNormalAds,
     loadMatrixAds,
-    loadPlatforms,
+    loadPlatformList,
+    loadPlatformOptions,
     loadToolEmails,
     loadToolAccounts,
     loadToolPaypals,
@@ -2593,6 +2679,8 @@ function App() {
     setMatrixAdsFilters({ campainName: '', platformName: '', status: '' })
     setMatrixAdsQueryApplied(false)
     setPlatforms([])
+    setPlatformList([])
+    setPlatformPagination(createInitialPagination())
     setPlatformsError('')
     setPlatformsMessage('')
     setEmails([])
@@ -2607,7 +2695,7 @@ function App() {
     setAccountPagination(createInitialPagination())
     setAccountEmailOptionsSource([])
     setAccountEmailOptionsLoading(false)
-    setAccountFilters({ userName: '', status: '' })
+    setAccountFilters({ userName: '', platformName: '', status: '' })
     setAccountQueryApplied(false)
     setPaypals([])
     setPaypalsError('')
@@ -2676,6 +2764,18 @@ function App() {
     clearNormalAdsForm()
     clearMatrixAdsForm()
   }
+
+  const logoutHandlerRef = useRef(handleLogout)
+  logoutHandlerRef.current = handleLogout
+
+  useEffect(() => {
+    function handleUnauthorized() {
+      logoutHandlerRef.current()
+    }
+
+    window.addEventListener(UNAUTHORIZED_EVENT_NAME, handleUnauthorized)
+    return () => window.removeEventListener(UNAUTHORIZED_EVENT_NAME, handleUnauthorized)
+  }, [])
 
   async function runTestShiftLink(endpointType) {
     const campainName = toOptionalTrimmedString(testShiftLinkCampainName)
@@ -3086,7 +3186,7 @@ function App() {
   }
 
   function reloadAccountFilters() {
-    setAccountFilters({ userName: '', status: '' })
+    setAccountFilters({ userName: '', platformName: '', status: '' })
     setAccountQueryApplied(false)
     void loadToolAccounts({}, { page: 0, size: accountPaginationRef.current.size })
   }
@@ -3257,7 +3357,7 @@ function App() {
 
       clearPlatformForm()
       setShowPlatformModal(false)
-      await loadPlatforms()
+      await Promise.all([loadPlatformOptions(), loadPlatformList(platformPaginationRef.current)])
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       setPlatformsError(message)
@@ -3276,7 +3376,7 @@ function App() {
         token,
       })
       setPlatformsMessage('ADS platform deleted successfully.')
-      await loadPlatforms()
+      await Promise.all([loadPlatformOptions(), loadPlatformList(platformPaginationRef.current)])
       if (editingPlatformId === id) {
         clearPlatformForm()
       }
@@ -4080,9 +4180,8 @@ function App() {
         showAccountModal={showAccountModal}
         editingAccountId={editingAccountId}
         accountEmailAddress={accountEmailAddress}
-        onAccountEmailAddressChange={handleAccountEmailSelection}
         accountUserName={accountUserName}
-        onAccountUserNameChange={setAccountUserName}
+        onAccountUserNameChange={handleAccountUserNameSelection}
         accountPlatformName={accountPlatformName}
         onAccountPlatformNameChange={setAccountPlatformName}
         accountPaymentStatus={accountPaymentStatus}
@@ -4100,8 +4199,8 @@ function App() {
         onSaveAccount={handleSaveAccount}
         savingAccount={savingAccount}
         onCloseAccountModal={() => setShowAccountModal(false)}
-        accountEmailOptions={accountEmailOptions}
-        accountEmailOptionsLoading={accountEmailOptionsLoading}
+        userNameOptions={toolEmailUserOptions}
+        userNameOptionsLoading={accountEmailOptionsLoading}
         accountStatusOptions={accountStatusOptions}
         accountPaymentStatusOptions={accountPaymentStatusOptions}
         accountCurrencyOptions={accountCurrencyOptions}
@@ -4182,6 +4281,8 @@ function App() {
         platformOptions={platformOptions}
         paymentMethodOptions={paymentMethodOptions}
         accountCurrencyOptions={accountCurrencyOptions}
+        userNameOptions={toolEmailUserOptions}
+        userNameOptionsLoading={accountEmailOptionsLoading}
         paypalAccountOptions={paypalAccountOptions}
         paypalAccountOptionsLoading={paypalAccountOptionsLoading}
         formatDateDisplayValue={formatDateDisplayValue}
@@ -4220,6 +4321,7 @@ function App() {
         savingOutcome={savingOutcome}
         onCloseOutcomeModal={() => setShowOutcomeModal(false)}
         accountCurrencyOptions={accountCurrencyOptions}
+        outcomeTypeOptions={outcomeTypeOptions}
         formatDateDisplayValue={formatDateDisplayValue}
         pagination={outcomePagination}
         onPageChange={handleOutcomePageChange}
@@ -4229,8 +4331,8 @@ function App() {
   } else {
     activeSection = (
       <PlatformManagementSection
-        platforms={platforms}
-        platformsLoading={platformsLoading}
+        platforms={platformList}
+        platformsLoading={platformListLoading}
         platformsError={platformsError}
         platformsMessage={platformsMessage}
         onCreatePlatform={openCreatePlatform}
@@ -4248,6 +4350,9 @@ function App() {
         onSavePlatform={handleSavePlatform}
         savingPlatform={savingPlatform}
         onClosePlatformModal={() => setShowPlatformModal(false)}
+        pagination={platformPagination}
+        onPageChange={handlePlatformPageChange}
+        onPageSizeChange={handlePlatformPageSizeChange}
       />
     )
   }

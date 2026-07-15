@@ -6,6 +6,7 @@ const USER_STORAGE_KEY = 'ads_current_user'
 const ROLE_STORAGE_KEY = 'ads_current_role'
 const NORMAL_ADS_TOTAL_STORAGE_KEY = 'ads_normal_total_count'
 const MATRIX_ADS_TOTAL_STORAGE_KEY = 'ads_matrix_total_count'
+const UNAUTHORIZED_EVENT_NAME = 'ads:unauthorized'
 
 function getApiUrl(path) {
   const normalizedBase = API_BASE_URL.replace(/\/+$/, '')
@@ -48,6 +49,10 @@ async function requestApi(path, { method = 'GET', token, body } = {}) {
 
   const responseData = await parseResponse(response)
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT_NAME))
+    }
+
     const message =
       responseData?.message ||
       responseData?.error ||
@@ -378,6 +383,10 @@ async function downloadApiFile(path, token, fileName) {
 
   const response = await fetch(getApiUrl(path), { headers })
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT_NAME))
+    }
+
     const responseData = await parseResponse(response)
     const message =
       responseData?.message || responseData?.error || `Request failed (${response.status})`
@@ -427,6 +436,7 @@ export {
   ROLE_STORAGE_KEY,
   NORMAL_ADS_TOTAL_STORAGE_KEY,
   MATRIX_ADS_TOTAL_STORAGE_KEY,
+  UNAUTHORIZED_EVENT_NAME,
   getApiUrl,
   parseResponse,
   requestApi,
