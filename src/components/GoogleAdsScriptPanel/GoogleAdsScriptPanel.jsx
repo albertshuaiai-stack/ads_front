@@ -178,6 +178,42 @@ function injectApiKey(scriptTemplate, currentUserApiKey) {
   return scriptTemplate.replaceAll('{API_KEY}', currentUserApiKey || '{API_KEY}')
 }
 
+async function copyTextToClipboard(text) {
+  if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return
+    } catch {
+      // Fall back for browsers or contexts that block the async Clipboard API.
+    }
+  }
+
+  if (typeof document === 'undefined') {
+    throw new Error('Clipboard is unavailable.')
+  }
+
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.setAttribute('readonly', '')
+  textArea.style.position = 'fixed'
+  textArea.style.top = '0'
+  textArea.style.left = '0'
+  textArea.style.opacity = '0'
+  document.body.appendChild(textArea)
+  textArea.focus()
+  textArea.select()
+  textArea.setSelectionRange(0, text.length)
+
+  try {
+    const copied = document.execCommand('copy')
+    if (!copied) {
+      throw new Error('Copy command failed.')
+    }
+  } finally {
+    document.body.removeChild(textArea)
+  }
+}
+
 function GoogleAdsScriptPanel({ currentUserApiKey = '' }) {
   const [copyMessage, setCopyMessage] = useState('')
   const [copyError, setCopyError] = useState('')
@@ -204,7 +240,7 @@ function GoogleAdsScriptPanel({ currentUserApiKey = '' }) {
     setCopyError('')
 
     try {
-      await navigator.clipboard.writeText(scriptContent)
+      await copyTextToClipboard(scriptContent)
       setCopyMessage(`${templateTitle} copied.`)
     } catch {
       setCopyError('Unable to copy script.')
