@@ -20,6 +20,7 @@ function ShiftLinkManagementSection({
   platformsError,
   onCreateAds,
   onOpenBulkAdsUpload,
+  onOpenFolderImport,
   onDownloadAdsTemplate,
   onAdsUrlFiltersChange,
   onApplyAdsUrlFilters,
@@ -54,6 +55,15 @@ function ShiftLinkManagementSection({
   onBulkAdsFileChange,
   onBulkUploadAds,
   onCloseBulkAdsModal,
+  showFolderImportModal,
+  folderImportAdsType,
+  onFolderImportAdsTypeChange,
+  folderImportSaving,
+  folderImportError,
+  folderImportMessage,
+  onFolderImportFilesChange,
+  onFolderImportShiftLinks,
+  onCloseFolderImportModal,
   pagination,
   onPageChange,
   onPageSizeChange,
@@ -70,6 +80,9 @@ function ShiftLinkManagementSection({
               </button>
               <button type="button" className="secondary" onClick={onOpenBulkAdsUpload}>
                 Bulk Upload Excel
+              </button>
+              <button type="button" className="secondary" onClick={onOpenFolderImport}>
+                Import from Folder
               </button>
               <button type="button" className="secondary" onClick={onDownloadAdsTemplate}>
                 Download Template
@@ -366,6 +379,61 @@ function ShiftLinkManagementSection({
                 {bulkAdsSaving ? 'Uploading...' : 'Upload Shift Links'}
               </button>
               <button type="button" className="secondary" onClick={onCloseBulkAdsModal}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </InlineFormCard>
+      ) : null}
+
+      {showFolderImportModal ? (
+        <InlineFormCard title="Import Shift Links from Folder" onClose={onCloseFolderImportModal}>
+          <form className="modal-form" onSubmit={onFolderImportShiftLinks}>
+            <label htmlFor="folderImportAdsType">Ads Type</label>
+            <select
+              id="folderImportAdsType"
+              value={folderImportAdsType}
+              onChange={(event) => onFolderImportAdsTypeChange(event.target.value)}
+              required
+            >
+              <option value="">Select ads type</option>
+              {adsTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+
+            <label htmlFor="folderImportInput">Folder</label>
+            <input
+              id="folderImportInput"
+              type="file"
+              webkitdirectory=""
+              directory=""
+              multiple
+              onChange={(event) => onFolderImportFilesChange(event.target.files || null)}
+              required
+            />
+
+            <p className="field-help">
+              Folder structure: <code>root / platform / campaign-file</code>. First-level folders
+              are platform names, file names (without extension) are Campaign Names, and each line
+              inside a file is one Full URL. Display Number defaults to 100. Missing platforms are
+              created automatically.
+            </p>
+
+            {folderImportError ? (
+              <p className="status error" role="alert" style={{ whiteSpace: 'pre-line' }}>
+                {folderImportError}
+              </p>
+            ) : null}
+            {folderImportMessage ? <p className="status success">{folderImportMessage}</p> : null}
+
+            <div className="form-actions">
+              <button type="submit" className="primary" disabled={folderImportSaving}>
+                {folderImportSaving ? 'Importing...' : 'Import Shift Links'}
+              </button>
+              <button type="button" className="secondary" onClick={onCloseFolderImportModal}>
                 Cancel
               </button>
             </div>

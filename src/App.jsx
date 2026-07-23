@@ -32,7 +32,6 @@ import {
   downloadStaticFile,
   extractItems,
   firstDefinedValue,
-  formatTableValue,
   getDefaultMenuForRole,
   getLoggedInAdsOwner,
   isAdminRole,
@@ -41,234 +40,69 @@ import {
   normalizeAffiliateRow,
   normalizeHeader,
   parseAdsUrl,
+  parseFolderShiftLinks,
   requestApi,
   toOptionalTrimmedString,
   uploadApiFile,
 } from './lib/adsPortal'
 
-const MENU_GROUPS = [
-  {
-    id: 'system',
-    title: 'System Management',
-    items: [
-      { id: 'user-management', label: 'User' },
-      { id: 'role-management', label: 'User Role' },
-      { id: 'ads-platform-management', label: 'Platform' },
-    ],
-  },
-  {
-    id: 'ads',
-    title: 'Advertisement',
-    items: [
-      { id: 'auto-script', label: 'Auto Script' },
-      { id: 'normal-ads-management', label: 'Normal Ads Tasks' },
-      { id: 'matrix-ads-management', label: 'Matrix Ads Tasks' },
-      { id: 'ads-url-management', label: 'Shift Link' },
-      { id: 'shift-link-log', label: 'Shift Link Log' },
-      { id: 'test-shift-link', label: 'Shift Link Testing' },
-    ],
-  },
-  {
-    id: 'tool',
-    title: 'Tool',
-    items: [
-      { id: 'email-management', label: 'Email Management' },
-      { id: 'cash-bach-account', label: 'Cash Bach Account' },
-      { id: 'paypal-management', label: 'PayPal Management' },
-      { id: 'income-management', label: 'Income Management' },
-      { id: 'outcome-management', label: 'Outcome Management' },
-    ],
-  },
-]
-
-const SHIFT_LINK_TEMPLATE_FILE_URL = `${import.meta.env.BASE_URL}templates/Shift_Link_Temp.xlsx`
-const TOOL_MENU_IDS = [
-  'email-management',
-  'cash-bach-account',
-  'paypal-management',
-  'income-management',
-  'outcome-management',
-]
-
-function toDateInputValue(value) {
-  const text = toOptionalTrimmedString(value)
-  if (!text) {
-    return ''
-  }
-
-  const match = text.match(/^\d{4}[-/]\d{2}[-/]\d{2}/)
-  return match ? match[0].replace(/\//g, '-') : ''
-}
-
-function toApiDateValue(value) {
-  const text = toOptionalTrimmedString(value)
-  if (!text) {
-    return undefined
-  }
-
-  if (/^\d{4}\/\d{2}\/\d{2}$/.test(text)) {
-    return text.replace(/\//g, '-')
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
-    return text
-  }
-
-  return text
-}
-
-function formatDateDisplayValue(value) {
-  const dateValue = toDateInputValue(value)
-  return dateValue ? dateValue.replace(/-/g, '/') : formatTableValue(value)
-}
-
-function getUserExpireDate(user) {
-  return firstDefinedValue(user, ['expireDate', 'expireAt', 'expiry', 'expire'])
-}
-
-function validateUserName(value) {
-  const text = toOptionalTrimmedString(value)
-  if (!text) {
-    throw new Error('User Name is required.')
-  }
-
-  if (text.length < 2) {
-    throw new Error('User Name must be at least 2 characters.')
-  }
-
-  if (text.length > 50) {
-    throw new Error('User Name must be 50 characters or fewer.')
-  }
-
-  return text
-}
-
-function validateUserEmail(value) {
-  const text = toOptionalTrimmedString(value)
-  if (!text) {
-    throw new Error('Email is required.')
-  }
-
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) {
-    throw new Error('Please enter a valid email address.')
-  }
-
-  return text
-}
-
-function validateUserPhoneNumber(value) {
-  const text = toOptionalTrimmedString(value)
-  if (!text) {
-    throw new Error('Phone Number is required.')
-  }
-
-  if (!/^[0-9+\-()\s]{7,20}$/.test(text)) {
-    throw new Error('Please enter a valid phone number using 7-20 digits and common symbols.')
-  }
-
-  return text
-}
-
-function normalizeAdsStatusValue(value) {
-  const text = String(value ?? '').trim().toUpperCase()
-
-  if (text === 'ACTIVE') {
-    return 'RUNNING'
-  }
-
-  return text
-}
-
-function formatAdsStatusLabel(value) {
-  const status = normalizeAdsStatusValue(value)
-
-  if (status === 'RUNNING') {
-    return 'Running'
-  }
-
-  if (status === 'PAUSED') {
-    return 'Paused'
-  }
-
-  return formatTableValue(value)
-}
-
-function getAdsStatusActionLabel(value) {
-  return normalizeAdsStatusValue(value) === 'RUNNING' ? 'Pause' : 'Active'
-}
-
-function getNextAdsStatus(value) {
-  return normalizeAdsStatusValue(value) === 'RUNNING' ? 'PAUSED' : 'RUNNING'
-}
-
-function normalizeShiftLinkAdsType(value) {
-  const normalized = String(value ?? '').trim().toLowerCase()
-
-  if (normalized === 'normal') {
-    return 'Normal'
-  }
-
-  if (normalized === 'matrix') {
-    return 'Matrix'
-  }
-
-  return ''
-}
-
-function toOptionalCount(value) {
-  if (value == null || value === '') {
-    return null
-  }
-
-  const numberValue = Number(value)
-  return Number.isFinite(numberValue) ? numberValue : null
-}
-
-function getUserIdentityCandidates(currentUserProfile, currentUser, identifier) {
-  return [
-    currentUserProfile?.userName,
-    currentUserProfile?.userEmail,
-    currentUserProfile?.userPhoneNumber,
-    currentUser,
-    identifier,
-  ]
-    .map((value) => normalizeHeader(value))
-    .filter(Boolean)
-}
-
-function isOwnedByCurrentUser(item, currentUserProfile, currentUser, identifier) {
-  const owner = normalizeHeader(item?.adsOwner)
-  if (!owner) {
-    return false
-  }
-
-  return getUserIdentityCandidates(currentUserProfile, currentUser, identifier).includes(owner)
-}
-
-function createInitialPagination(size = 10) {
-  return {
-    page: 0,
-    size,
-    totalElements: 0,
-    totalPages: 0,
-  }
-}
-
-function buildPaginationState(response, fallback) {
-  const page = toOptionalCount(response?.number) ?? fallback.page
-  const size = toOptionalCount(response?.size) ?? fallback.size
-  const totalElements = toOptionalCount(response?.totalElements) ?? extractItems(response).length
-  const totalPages =
-    toOptionalCount(response?.totalPages) ??
-    (size > 0 ? Math.ceil(totalElements / size) : 0)
-
-  return {
-    page,
-    size,
-    totalElements,
-    totalPages,
-  }
-}
+import { MENU_GROUPS, TOOL_MENU_IDS, SHIFT_LINK_TEMPLATE_FILE_URL } from './constants/menu'
+import {
+  ADS_STATUS_OPTIONS,
+  PAYMENT_METHOD_OPTIONS,
+  OUTCOME_TYPE_OPTIONS,
+  ACCOUNT_STATUS_OPTIONS,
+  ACCOUNT_PAYMENT_STATUS_OPTIONS,
+  ACCOUNT_CURRENCY_OPTIONS,
+} from './constants/options'
+import {
+  ADS_URL_COLUMNS,
+  SHIFT_LINK_LOG_COLUMNS,
+  NORMAL_ADS_PREFERRED_COLUMNS,
+  NORMAL_ADS_EXCLUDED_COLUMNS,
+  MATRIX_ADS_PREFERRED_COLUMNS,
+  MATRIX_ADS_EXCLUDED_COLUMNS,
+} from './constants/columns'
+import {
+  sortNamesAscending,
+  buildAdsTypeOptions,
+  buildDynamicColumns,
+  collectCatalogFieldNames,
+  CATALOG_ADS_NAME_FIELDS,
+  CATALOG_PLATFORM_NAME_FIELDS,
+} from './utils/options'
+import {
+  toDateInputValue,
+  toApiDateValue,
+  formatDateDisplayValue,
+  normalizeAdsStatusValue,
+  formatAdsStatusLabel,
+  getAdsStatusActionLabel,
+  getNextAdsStatus,
+  normalizeShiftLinkAdsType,
+  toOptionalCount,
+} from './utils/formatters'
+import {
+  getUserExpireDate,
+  validateUserName,
+  validateUserEmail,
+  validateUserPhoneNumber,
+} from './utils/validators'
+import { createInitialPagination } from './utils/pagination'
+import { isOwnedByCurrentUser } from './utils/ownership'
+import { useUsers } from './hooks/useUsers'
+import { useRoles } from './hooks/useRoles'
+import { usePlatforms } from './hooks/usePlatforms'
+import { useNormalAds } from './hooks/useNormalAds'
+import { useMatrixAds } from './hooks/useMatrixAds'
+import { useShiftLinks } from './hooks/useShiftLinks'
+import { useShiftLinkLogs } from './hooks/useShiftLinkLogs'
+import { useTestShiftLink } from './hooks/useTestShiftLink'
+import { useEmails } from './hooks/useEmails'
+import { useAccounts } from './hooks/useAccounts'
+import { usePaypals } from './hooks/usePaypals'
+import { useIncomes } from './hooks/useIncomes'
+import { useOutcomes } from './hooks/useOutcomes'
 
 function App() {
   const [identifier, setIdentifier] = useState('')
@@ -289,55 +123,64 @@ function App() {
   const [runningMatrixAdsCount, setRunningMatrixAdsCount] = useState(0)
 
   const [activeMenu, setActiveMenu] = useState('user-management')
-  const [testShiftLinkCampainName, setTestShiftLinkCampainName] = useState('')
-  const [testShiftLinkApiKey, setTestShiftLinkApiKey] = useState('')
-  const [testShiftLinkError, setTestShiftLinkError] = useState('')
-  const [normalAdsTestResponse, setNormalAdsTestResponse] = useState(null)
-  const [matrixAdsTestResponse, setMatrixAdsTestResponse] = useState(null)
-  const [normalAdsTestLoading, setNormalAdsTestLoading] = useState(false)
-  const [matrixAdsTestLoading, setMatrixAdsTestLoading] = useState(false)
-  const [shiftLinkLogFilters, setShiftLinkLogFilters] = useState({
-    adsType: '',
-    adsName: '',
-    platformName: '',
-  })
-  const [shiftLinkLogCatalog, setShiftLinkLogCatalog] = useState([])
-  const [shiftLinkLogCatalogLoading, setShiftLinkLogCatalogLoading] = useState(false)
-  const [shiftLinkLogCatalogError, setShiftLinkLogCatalogError] = useState('')
-  const [shiftLinkLogs, setShiftLinkLogs] = useState([])
-  const [shiftLinkLogsLoading, setShiftLinkLogsLoading] = useState(false)
-  const [shiftLinkLogsError, setShiftLinkLogsError] = useState('')
-  const [shiftLinkLogsLoaded, setShiftLinkLogsLoaded] = useState(false)
-  const [shiftLinkLogPagination, setShiftLinkLogPagination] = useState(() => createInitialPagination())
-  const shiftLinkLogPaginationRef = useRef(shiftLinkLogPagination)
-  const [shiftLinkLogQueryApplied, setShiftLinkLogQueryApplied] = useState(false)
-  const shiftLinkLogFiltersRef = useRef(shiftLinkLogFilters)
+  const {
+    testShiftLinkCampainName, setTestShiftLinkCampainName,
+    testShiftLinkApiKey, setTestShiftLinkApiKey,
+    testShiftLinkError, setTestShiftLinkError,
+    normalAdsTestResponse, setNormalAdsTestResponse,
+    matrixAdsTestResponse, setMatrixAdsTestResponse,
+    normalAdsTestLoading, setNormalAdsTestLoading,
+    matrixAdsTestLoading, setMatrixAdsTestLoading,
+  } = useTestShiftLink()
 
-  const [users, setUsers] = useState([])
-  const [usersLoading, setUsersLoading] = useState(false)
-  const [usersError, setUsersError] = useState('')
-  const [usersMessage, setUsersMessage] = useState('')
-  const [usersPagination, setUsersPagination] = useState(() => createInitialPagination())
-  const usersPaginationRef = useRef(usersPagination)
-  const [editingUserId, setEditingUserId] = useState(null)
-  const [userName, setUserName] = useState('')
-  const [userEmail, setUserEmail] = useState('')
-  const [userPhoneNumber, setUserPhoneNumber] = useState('')
-  const [userPassword, setUserPassword] = useState('')
-  const [userRole, setUserRole] = useState('')
-  const [expireDate, setExpireDate] = useState('')
-  const [userStatus, setUserStatus] = useState('ENABLED')
-  const [savingUser, setSavingUser] = useState(false)
-  const [showUserModal, setShowUserModal] = useState(false)
+  const {
+    shiftLinkLogFilters, setShiftLinkLogFilters,
+    shiftLinkLogCatalog, setShiftLinkLogCatalog,
+    shiftLinkLogCatalogLoading, setShiftLinkLogCatalogLoading,
+    shiftLinkLogCatalogError, setShiftLinkLogCatalogError,
+    shiftLinkLogs, setShiftLinkLogs,
+    shiftLinkLogsLoading, setShiftLinkLogsLoading,
+    shiftLinkLogsError, setShiftLinkLogsError,
+    shiftLinkLogsLoaded, setShiftLinkLogsLoaded,
+    shiftLinkLogPagination, setShiftLinkLogPagination,
+    shiftLinkLogPaginationRef,
+    shiftLinkLogQueryApplied, setShiftLinkLogQueryApplied,
+    shiftLinkLogFiltersRef,
+    loadShiftLinkLogCatalog,
+    loadShiftLinkLogs,
+  } = useShiftLinkLogs(token)
 
-  const [roles, setRoles] = useState([])
-  const [rolesLoading, setRolesLoading] = useState(false)
-  const [rolesError, setRolesError] = useState('')
-  const [rolesMessage, setRolesMessage] = useState('')
-  const [editingRoleId, setEditingRoleId] = useState(null)
-  const [roleName, setRoleName] = useState('')
-  const [savingRole, setSavingRole] = useState(false)
-  const [showRoleModal, setShowRoleModal] = useState(false)
+  const {
+    users, setUsers,
+    usersLoading,
+    usersError, setUsersError,
+    usersMessage, setUsersMessage,
+    usersPagination, setUsersPagination,
+    usersPaginationRef,
+    editingUserId, setEditingUserId,
+    userName, setUserName,
+    userEmail, setUserEmail,
+    userPhoneNumber, setUserPhoneNumber,
+    userPassword, setUserPassword,
+    userRole, setUserRole,
+    expireDate, setExpireDate,
+    userStatus, setUserStatus,
+    savingUser, setSavingUser,
+    showUserModal, setShowUserModal,
+    loadUsers,
+  } = useUsers(token)
+
+  const {
+    roles, setRoles,
+    rolesLoading,
+    rolesError, setRolesError,
+    rolesMessage, setRolesMessage,
+    editingRoleId, setEditingRoleId,
+    roleName, setRoleName,
+    savingRole, setSavingRole,
+    showRoleModal, setShowRoleModal,
+    loadRoles,
+  } = useRoles(token)
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -346,222 +189,223 @@ function App() {
   const [changePasswordMessage, setChangePasswordMessage] = useState('')
   const [savingChangePassword, setSavingChangePassword] = useState(false)
 
-  const [adsUrls, setAdsUrls] = useState([])
-  const [adsLoading, setAdsLoading] = useState(false)
-  const [adsError, setAdsError] = useState('')
-  const [adsMessage, setAdsMessage] = useState('')
-  const [adsUrlPagination, setAdsUrlPagination] = useState(() => createInitialPagination())
-  const adsUrlPaginationRef = useRef(adsUrlPagination)
-  const [editingAdsId, setEditingAdsId] = useState(null)
-  const [editingAdsOriginal, setEditingAdsOriginal] = useState(null)
-  const [capMainName, setCapMainName] = useState('')
-  const [adsType, setAdsType] = useState('')
-  const [platform, setPlatform] = useState('')
-  const [fullUrl, setFullUrl] = useState('')
-  const [displayNumber, setDisplayNumber] = useState('')
-  const [remark, setRemark] = useState('')
-  const [savingAds, setSavingAds] = useState(false)
-  const [showAdsModal, setShowAdsModal] = useState(false)
-  const [showBulkAdsModal, setShowBulkAdsModal] = useState(false)
-  const [bulkAdsFile, setBulkAdsFile] = useState(null)
-  const [bulkAdsSaving, setBulkAdsSaving] = useState(false)
-  const [bulkAdsError, setBulkAdsError] = useState('')
-  const [bulkAdsMessage, setBulkAdsMessage] = useState('')
+  const {
+    adsUrls, setAdsUrls,
+    adsLoading,
+    adsError, setAdsError,
+    adsMessage, setAdsMessage,
+    adsUrlPagination, setAdsUrlPagination,
+    adsUrlPaginationRef,
+    editingAdsId, setEditingAdsId,
+    editingAdsOriginal, setEditingAdsOriginal,
+    capMainName, setCapMainName,
+    adsType, setAdsType,
+    platform, setPlatform,
+    fullUrl, setFullUrl,
+    displayNumber, setDisplayNumber,
+    remark, setRemark,
+    savingAds, setSavingAds,
+    showAdsModal, setShowAdsModal,
+    showBulkAdsModal, setShowBulkAdsModal,
+    bulkAdsFile, setBulkAdsFile,
+    bulkAdsSaving, setBulkAdsSaving,
+    bulkAdsError, setBulkAdsError,
+    bulkAdsMessage, setBulkAdsMessage,
+    showFolderImportModal, setShowFolderImportModal,
+    folderImportFiles, setFolderImportFiles,
+    folderImportAdsType, setFolderImportAdsType,
+    folderImportSaving, setFolderImportSaving,
+    folderImportError, setFolderImportError,
+    folderImportMessage, setFolderImportMessage,
+    adsUrlFilters, setAdsUrlFilters,
+    adsUrlQueryApplied, setAdsUrlQueryApplied,
+    adsUrlFiltersRef,
+    loadAdsUrls,
+  } = useShiftLinks(token)
 
-  const [adsUrlFilters, setAdsUrlFilters] = useState({
-    adsType: '',
-    adsName: '',
-    platformName: '',
-  })
-  const [adsUrlQueryApplied, setAdsUrlQueryApplied] = useState(false)
-  const adsUrlFiltersRef = useRef(adsUrlFilters)
+  const {
+    normalAds, setNormalAds,
+    normalAdsLoading,
+    normalAdsError, setNormalAdsError,
+    normalAdsMessage, setNormalAdsMessage,
+    normalAdsPagination, setNormalAdsPagination,
+    normalAdsPaginationRef,
+    editingNormalAdsId, setEditingNormalAdsId,
+    normalCampainName, setNormalCampainName,
+    normalCampainCountry, setNormalCampainCountry,
+    normalPlatformName, setNormalPlatformName,
+    normalAffiliteUrl, setNormalAffiliteUrl,
+    normalLandingPageUrl, setNormalLandingPageUrl,
+    normalDynamicProxyInfo, setNormalDynamicProxyInfo,
+    normalDynamicProxyInfoBackup, setNormalDynamicProxyInfoBackup,
+    normalIntervalTime, setNormalIntervalTime,
+    normalStatus, setNormalStatus,
+    savingNormalAds, setSavingNormalAds,
+    showNormalAdsModal, setShowNormalAdsModal,
+    normalAdsFilters, setNormalAdsFilters,
+    normalAdsQueryApplied, setNormalAdsQueryApplied,
+    normalAdsFiltersRef,
+    loadNormalAds,
+  } = useNormalAds(token)
 
-  const [normalAds, setNormalAds] = useState([])
-  const [normalAdsLoading, setNormalAdsLoading] = useState(false)
-  const [normalAdsError, setNormalAdsError] = useState('')
-  const [normalAdsMessage, setNormalAdsMessage] = useState('')
-  const [normalAdsPagination, setNormalAdsPagination] = useState(() => createInitialPagination())
-  const normalAdsPaginationRef = useRef(normalAdsPagination)
-  const [editingNormalAdsId, setEditingNormalAdsId] = useState(null)
-  const [normalCampainName, setNormalCampainName] = useState('')
-  const [normalCampainCountry, setNormalCampainCountry] = useState('')
-  const [normalPlatformName, setNormalPlatformName] = useState('')
-  const [normalAffiliteUrl, setNormalAffiliteUrl] = useState('')
-  const [normalLandingPageUrl, setNormalLandingPageUrl] = useState('')
-  const [normalDynamicProxyInfo, setNormalDynamicProxyInfo] = useState('')
-  const [normalDynamicProxyInfoBackup, setNormalDynamicProxyInfoBackup] = useState('')
-  const [normalIntervalTime, setNormalIntervalTime] = useState('')
-  const [normalStatus, setNormalStatus] = useState('RUNNING')
-  const [savingNormalAds, setSavingNormalAds] = useState(false)
-  const [showNormalAdsModal, setShowNormalAdsModal] = useState(false)
-  const [normalAdsFilters, setNormalAdsFilters] = useState({
-    campainName: '',
-    platformName: '',
-    status: '',
-  })
-  const [normalAdsQueryApplied, setNormalAdsQueryApplied] = useState(false)
-  const normalAdsFiltersRef = useRef(normalAdsFilters)
+  const {
+    matrixAds, setMatrixAds,
+    matrixAdsLoading,
+    matrixAdsError, setMatrixAdsError,
+    matrixAdsMessage, setMatrixAdsMessage,
+    matrixAdsPagination, setMatrixAdsPagination,
+    matrixAdsPaginationRef,
+    editingMatrixAdsId, setEditingMatrixAdsId,
+    matrixCampainName, setMatrixCampainName,
+    matrixCampainCountry, setMatrixCampainCountry,
+    matrixLandingPageUrl, setMatrixLandingPageUrl,
+    matrixDynamicProxyInfo, setMatrixDynamicProxyInfo,
+    matrixDynamicProxyInfoBackup, setMatrixDynamicProxyInfoBackup,
+    matrixIntervalTime, setMatrixIntervalTime,
+    matrixStatus, setMatrixStatus,
+    matrixAffiliateRows, setMatrixAffiliateRows,
+    savingMatrixAds, setSavingMatrixAds,
+    showMatrixAdsModal, setShowMatrixAdsModal,
+    matrixAdsFilters, setMatrixAdsFilters,
+    matrixAdsQueryApplied, setMatrixAdsQueryApplied,
+    matrixAdsFiltersRef,
+    loadMatrixAds,
+  } = useMatrixAds(token)
 
-  const [matrixAds, setMatrixAds] = useState([])
-  const [matrixAdsLoading, setMatrixAdsLoading] = useState(false)
-  const [matrixAdsError, setMatrixAdsError] = useState('')
-  const [matrixAdsMessage, setMatrixAdsMessage] = useState('')
-  const [matrixAdsPagination, setMatrixAdsPagination] = useState(() => createInitialPagination())
-  const matrixAdsPaginationRef = useRef(matrixAdsPagination)
-  const [editingMatrixAdsId, setEditingMatrixAdsId] = useState(null)
-  const [matrixCampainName, setMatrixCampainName] = useState('')
-  const [matrixCampainCountry, setMatrixCampainCountry] = useState('')
-  const [matrixLandingPageUrl, setMatrixLandingPageUrl] = useState('')
-  const [matrixDynamicProxyInfo, setMatrixDynamicProxyInfo] = useState('')
-  const [matrixDynamicProxyInfoBackup, setMatrixDynamicProxyInfoBackup] = useState('')
-  const [matrixIntervalTime, setMatrixIntervalTime] = useState('')
-  const [matrixStatus, setMatrixStatus] = useState('RUNNING')
-  const [matrixAffiliateRows, setMatrixAffiliateRows] = useState([createEmptyAffiliateRow()])
-  const [savingMatrixAds, setSavingMatrixAds] = useState(false)
-  const [showMatrixAdsModal, setShowMatrixAdsModal] = useState(false)
-  const [matrixAdsFilters, setMatrixAdsFilters] = useState({
-    campainName: '',
-    platformName: '',
-    status: '',
-  })
-  const [matrixAdsQueryApplied, setMatrixAdsQueryApplied] = useState(false)
-  const matrixAdsFiltersRef = useRef(matrixAdsFilters)
+  const {
+    platforms, setPlatforms,
+    platformsLoading,
+    platformsError, setPlatformsError,
+    platformsMessage, setPlatformsMessage,
+    platformList, setPlatformList,
+    platformListLoading,
+    platformPagination, setPlatformPagination,
+    platformPaginationRef,
+    editingPlatformId, setEditingPlatformId,
+    platformName, setPlatformName,
+    paymentMethod, setPaymentMethod,
+    platformRemarks, setPlatformRemarks,
+    savingPlatform, setSavingPlatform,
+    showPlatformModal, setShowPlatformModal,
+    loadPlatformOptions,
+    loadPlatformList,
+  } = usePlatforms(token)
 
-  const [platforms, setPlatforms] = useState([])
-  const [platformsLoading, setPlatformsLoading] = useState(false)
-  const [platformsError, setPlatformsError] = useState('')
-  const [platformsMessage, setPlatformsMessage] = useState('')
-  const [platformList, setPlatformList] = useState([])
-  const [platformListLoading, setPlatformListLoading] = useState(false)
-  const [platformPagination, setPlatformPagination] = useState(() => createInitialPagination())
-  const platformPaginationRef = useRef(platformPagination)
-  const [editingPlatformId, setEditingPlatformId] = useState(null)
-  const [platformName, setPlatformName] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('')
-  const [platformRemarks, setPlatformRemarks] = useState('')
-  const [savingPlatform, setSavingPlatform] = useState(false)
-  const [showPlatformModal, setShowPlatformModal] = useState(false)
+  const {
+    emails, setEmails,
+    emailsLoading,
+    emailsError, setEmailsError,
+    emailsMessage, setEmailsMessage,
+    emailPagination, setEmailPagination,
+    emailPaginationRef,
+    emailFilters, setEmailFilters,
+    emailQueryApplied, setEmailQueryApplied,
+    emailFiltersRef,
+    editingEmailId, setEditingEmailId,
+    emailUserName, setEmailUserName,
+    emailBirthdayDate, setEmailBirthdayDate,
+    emailAddress, setEmailAddress,
+    emailPassword, setEmailPassword,
+    emailParentEmail, setEmailParentEmail,
+    emailHomeAddress, setEmailHomeAddress,
+    emailRemarks, setEmailRemarks,
+    savingEmail, setSavingEmail,
+    showEmailModal, setShowEmailModal,
+    loadToolEmails,
+  } = useEmails(token)
 
-  const [emails, setEmails] = useState([])
-  const [emailsLoading, setEmailsLoading] = useState(false)
-  const [emailsError, setEmailsError] = useState('')
-  const [emailsMessage, setEmailsMessage] = useState('')
-  const [emailPagination, setEmailPagination] = useState(() => createInitialPagination())
-  const emailPaginationRef = useRef(emailPagination)
-  const [emailFilters, setEmailFilters] = useState({
-    userName: '',
-    emailAddress: '',
-  })
-  const [emailQueryApplied, setEmailQueryApplied] = useState(false)
-  const emailFiltersRef = useRef(emailFilters)
-  const [editingEmailId, setEditingEmailId] = useState(null)
-  const [emailUserName, setEmailUserName] = useState('')
-  const [emailBirthdayDate, setEmailBirthdayDate] = useState('')
-  const [emailAddress, setEmailAddress] = useState('')
-  const [emailPassword, setEmailPassword] = useState('')
-  const [emailParentEmail, setEmailParentEmail] = useState('')
-  const [emailHomeAddress, setEmailHomeAddress] = useState('')
-  const [emailRemarks, setEmailRemarks] = useState('')
-  const [savingEmail, setSavingEmail] = useState(false)
-  const [showEmailModal, setShowEmailModal] = useState(false)
-
-  const [accounts, setAccounts] = useState([])
-  const [accountsLoading, setAccountsLoading] = useState(false)
-  const [accountsError, setAccountsError] = useState('')
-  const [accountsMessage, setAccountsMessage] = useState('')
-  const [accountPagination, setAccountPagination] = useState(() => createInitialPagination())
-  const accountPaginationRef = useRef(accountPagination)
+  const {
+    accounts, setAccounts,
+    accountsLoading,
+    accountsError, setAccountsError,
+    accountsMessage, setAccountsMessage,
+    accountPagination, setAccountPagination,
+    accountPaginationRef,
+    accountFilters, setAccountFilters,
+    accountQueryApplied, setAccountQueryApplied,
+    accountFiltersRef,
+    editingAccountId, setEditingAccountId,
+    accountEmailAddress, setAccountEmailAddress,
+    accountUserName, setAccountUserName,
+    accountPlatformName, setAccountPlatformName,
+    accountPaymentStatus, setAccountPaymentStatus,
+    accountStatus, setAccountStatus,
+    accountRegisterDate, setAccountRegisterDate,
+    accountBalance, setAccountBalance,
+    accountCurrency, setAccountCurrency,
+    accountRemarks, setAccountRemarks,
+    savingAccount, setSavingAccount,
+    showAccountModal, setShowAccountModal,
+    loadToolAccounts,
+  } = useAccounts(token)
   const [accountEmailOptionsSource, setAccountEmailOptionsSource] = useState([])
   const [accountEmailOptionsLoading, setAccountEmailOptionsLoading] = useState(false)
-  const [accountFilters, setAccountFilters] = useState({
-    userName: '',
-    platformName: '',
-    status: '',
-  })
-  const [accountQueryApplied, setAccountQueryApplied] = useState(false)
-  const accountFiltersRef = useRef(accountFilters)
-  const [editingAccountId, setEditingAccountId] = useState(null)
-  const [accountEmailAddress, setAccountEmailAddress] = useState('')
-  const [accountUserName, setAccountUserName] = useState('')
-  const [accountPlatformName, setAccountPlatformName] = useState('')
-  const [accountPaymentStatus, setAccountPaymentStatus] = useState('')
-  const [accountStatus, setAccountStatus] = useState('')
-  const [accountRegisterDate, setAccountRegisterDate] = useState('')
-  const [accountBalance, setAccountBalance] = useState('')
-  const [accountCurrency, setAccountCurrency] = useState('')
-  const [accountRemarks, setAccountRemarks] = useState('')
-  const [savingAccount, setSavingAccount] = useState(false)
-  const [showAccountModal, setShowAccountModal] = useState(false)
 
-  const [paypals, setPaypals] = useState([])
-  const [paypalsLoading, setPaypalsLoading] = useState(false)
-  const [paypalsError, setPaypalsError] = useState('')
-  const [paypalsMessage, setPaypalsMessage] = useState('')
-  const [paypalPagination, setPaypalPagination] = useState(() => createInitialPagination())
-  const paypalPaginationRef = useRef(paypalPagination)
-  const [paypalFilters, setPaypalFilters] = useState({
-    paypalEmail: '',
-    primaryEmail: '',
-  })
-  const [paypalQueryApplied, setPaypalQueryApplied] = useState(false)
-  const paypalFiltersRef = useRef(paypalFilters)
-  const [editingPaypalId, setEditingPaypalId] = useState(null)
-  const [paypalEmail, setPaypalEmail] = useState('')
-  const [paypalPrimaryEmail, setPaypalPrimaryEmail] = useState('')
-  const [paypalIdValue, setPaypalIdValue] = useState('')
-  const [savingPaypal, setSavingPaypal] = useState(false)
-  const [showPaypalModal, setShowPaypalModal] = useState(false)
+  const {
+    paypals, setPaypals,
+    paypalsLoading,
+    paypalsError, setPaypalsError,
+    paypalsMessage, setPaypalsMessage,
+    paypalPagination, setPaypalPagination,
+    paypalPaginationRef,
+    paypalFilters, setPaypalFilters,
+    paypalQueryApplied, setPaypalQueryApplied,
+    paypalFiltersRef,
+    editingPaypalId, setEditingPaypalId,
+    paypalEmail, setPaypalEmail,
+    paypalPrimaryEmail, setPaypalPrimaryEmail,
+    paypalIdValue, setPaypalIdValue,
+    savingPaypal, setSavingPaypal,
+    showPaypalModal, setShowPaypalModal,
+    loadToolPaypals,
+  } = usePaypals(token)
 
-  const [incomes, setIncomes] = useState([])
-  const [incomesLoading, setIncomesLoading] = useState(false)
-  const [incomesError, setIncomesError] = useState('')
-  const [incomesMessage, setIncomesMessage] = useState('')
-  const [incomePagination, setIncomePagination] = useState(() => createInitialPagination())
-  const incomePaginationRef = useRef(incomePagination)
+  const {
+    incomes, setIncomes,
+    incomesLoading,
+    incomesError, setIncomesError,
+    incomesMessage, setIncomesMessage,
+    incomePagination, setIncomePagination,
+    incomePaginationRef,
+    incomeFilters, setIncomeFilters,
+    incomeQueryApplied, setIncomeQueryApplied,
+    incomeFiltersRef,
+    editingIncomeId, setEditingIncomeId,
+    incomePlatformName, setIncomePlatformName,
+    incomeUserName, setIncomeUserName,
+    incomeAmount, setIncomeAmount,
+    incomeCurrency, setIncomeCurrency,
+    incomePaymentMethod, setIncomePaymentMethod,
+    incomePaypalAccount, setIncomePaypalAccount,
+    incomePayoutDate, setIncomePayoutDate,
+    incomeRemarks, setIncomeRemarks,
+    savingIncome, setSavingIncome,
+    showIncomeModal, setShowIncomeModal,
+    loadToolIncomes,
+  } = useIncomes(token)
   const [paypalAccountOptionsSource, setPaypalAccountOptionsSource] = useState([])
   const [paypalAccountOptionsLoading, setPaypalAccountOptionsLoading] = useState(false)
-  const [incomeFilters, setIncomeFilters] = useState({
-    platformName: '',
-    userName: '',
-    paypalAccount: '',
-    payoutDateBegin: '',
-    payoutDateEnd: '',
-  })
-  const [incomeQueryApplied, setIncomeQueryApplied] = useState(false)
-  const incomeFiltersRef = useRef(incomeFilters)
-  const [editingIncomeId, setEditingIncomeId] = useState(null)
-  const [incomePlatformName, setIncomePlatformName] = useState('')
-  const [incomeUserName, setIncomeUserName] = useState('')
-  const [incomeAmount, setIncomeAmount] = useState('')
-  const [incomeCurrency, setIncomeCurrency] = useState('')
-  const [incomePaymentMethod, setIncomePaymentMethod] = useState('')
-  const [incomePaypalAccount, setIncomePaypalAccount] = useState('')
-  const [incomePayoutDate, setIncomePayoutDate] = useState('')
-  const [incomeRemarks, setIncomeRemarks] = useState('')
-  const [savingIncome, setSavingIncome] = useState(false)
-  const [showIncomeModal, setShowIncomeModal] = useState(false)
 
-  const [outcomes, setOutcomes] = useState([])
-  const [outcomesLoading, setOutcomesLoading] = useState(false)
-  const [outcomesError, setOutcomesError] = useState('')
-  const [outcomesMessage, setOutcomesMessage] = useState('')
-  const [outcomePagination, setOutcomePagination] = useState(() => createInitialPagination())
-  const outcomePaginationRef = useRef(outcomePagination)
-  const [outcomeFilters, setOutcomeFilters] = useState({
-    outcomeType: '',
-    payDateBegin: '',
-    payDateEnd: '',
-  })
-  const [outcomeQueryApplied, setOutcomeQueryApplied] = useState(false)
-  const outcomeFiltersRef = useRef(outcomeFilters)
-  const [editingOutcomeId, setEditingOutcomeId] = useState(null)
-  const [outcomeType, setOutcomeType] = useState('')
-  const [outcomeAmount, setOutcomeAmount] = useState('')
-  const [outcomeCurrency, setOutcomeCurrency] = useState('')
-  const [outcomePayDate, setOutcomePayDate] = useState('')
-  const [outcomeRemarks, setOutcomeRemarks] = useState('')
-  const [savingOutcome, setSavingOutcome] = useState(false)
-  const [showOutcomeModal, setShowOutcomeModal] = useState(false)
+  const {
+    outcomes, setOutcomes,
+    outcomesLoading,
+    outcomesError, setOutcomesError,
+    outcomesMessage, setOutcomesMessage,
+    outcomePagination, setOutcomePagination,
+    outcomePaginationRef,
+    outcomeFilters, setOutcomeFilters,
+    outcomeQueryApplied, setOutcomeQueryApplied,
+    outcomeFiltersRef,
+    editingOutcomeId, setEditingOutcomeId,
+    outcomeType, setOutcomeType,
+    outcomeAmount, setOutcomeAmount,
+    outcomeCurrency, setOutcomeCurrency,
+    outcomePayDate, setOutcomePayDate,
+    outcomeRemarks, setOutcomeRemarks,
+    savingOutcome, setSavingOutcome,
+    showOutcomeModal, setShowOutcomeModal,
+    loadToolOutcomes,
+  } = useOutcomes(token)
 
   const isAuthenticated = useMemo(() => Boolean(token), [token])
 
@@ -586,7 +430,7 @@ function App() {
       names.add(editingPlatformName)
     }
 
-    return Array.from(names).sort((left, right) => left.localeCompare(right))
+    return sortNamesAscending(names)
   }, [editingAdsOriginal, platformList, platforms])
 
   const roleOptions = useMemo(() => {
@@ -602,129 +446,26 @@ function App() {
       names.add(userRole)
     }
 
-    return Array.from(names).sort((left, right) => left.localeCompare(right))
+    return sortNamesAscending(names)
   }, [roles, userRole])
 
-  const adsUrlColumns = useMemo(() => {
-    return [
-      { key: 'id', label: 'ID', fields: ['id'] },
-      {
-        key: 'adsName',
-        label: 'Campaign Name',
-        fields: ['adsName', 'capMainName', 'campainName'],
-      },
-      { key: 'adsType', label: 'Ads Type', fields: ['adsType', 'ads_type'] },
-      { key: 'platformName', label: 'Platform Name', fields: ['platformName', 'platform'] },
-      { key: 'seqNumber', label: 'Seq Number', fields: ['seqNumber'] },
-      { key: 'displayNumber', label: 'Display Number', fields: ['displayNumber'] },
-      {
-        key: 'displayTimes',
-        label: 'Display Time',
-        fields: ['displayTimes'],
-      },
-      {
-        key: 'landingPageUrl',
-        label: 'Landing Page Url',
-        fields: ['landingPageUrl', 'landingUrl'],
-      },
-      { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
-      { key: 'remarks', label: 'Remarks', fields: ['remarks', 'remark'] },
-      { key: 'status', label: 'Status', fields: ['status'] },
-      { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
-      { key: 'updateDate', label: 'Update Date', fields: ['updateDate'] },
-    ]
-  }, [])
+  const adsUrlColumns = ADS_URL_COLUMNS
 
-  const shiftLinkLogColumns = useMemo(() => {
-    return [
-      { key: 'id', label: 'ID', fields: ['id'] },
-      { key: 'adsType', label: 'Ads Type', fields: ['adsType'] },
-      { key: 'adsName', label: 'Ads Name', fields: ['adsName', 'capMainName', 'campainName'] },
-      { key: 'platformName', label: 'Platform Name', fields: ['platformName', 'platform'] },
-      { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
-      { key: 'displayTimes', label: 'Display Time', fields: ['displayTimes'] },
-      { key: 'remarks', label: 'Remarks', fields: ['remarks', 'remark'] },
-      { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
-    ]
-  }, [])
+  const shiftLinkLogColumns = SHIFT_LINK_LOG_COLUMNS
 
-  const adsStatusOptions = useMemo(
-    () => [
-      { value: 'RUNNING', label: 'Running' },
-      { value: 'PAUSED', label: 'Paused' },
-    ],
-    [],
-  )
+  const adsStatusOptions = ADS_STATUS_OPTIONS
 
-  const paymentMethodOptions = useMemo(
-    () => [
-      { value: 'PayPal', label: 'PayPal' },
-      { value: 'Gift Card', label: 'Gift Card' },
-      { value: 'Bank Trans', label: 'Bank Trans' },
-      { value: 'Others', label: 'Others' },
-    ],
-    [],
-  )
+  const paymentMethodOptions = PAYMENT_METHOD_OPTIONS
 
-  const outcomeTypeOptions = useMemo(
-    () => [
-      { value: 'MediaBy', label: 'MediaBy' },
-      { value: 'IP Proxy', label: 'IP Proxy' },
-      { value: 'VPN', label: 'VPN' },
-      { value: 'AdsPower Browser', label: 'AdsPower Browser' },
-      { value: 'SEMRUSH', label: 'SEMRUSH' },
-      { value: 'Others', label: 'Others' },
-    ],
-    [],
-  )
+  const outcomeTypeOptions = OUTCOME_TYPE_OPTIONS
 
-  const accountStatusOptions = useMemo(
-    () => [
-      { value: 'RUNNING', label: 'RUNNING' },
-      { value: 'PAUSED', label: 'PAUSED' },
-      { value: 'LOCKED', label: 'LOCKED' },
-      { value: 'OTHER', label: 'OTHER' },
-    ],
-    [],
-  )
+  const accountStatusOptions = ACCOUNT_STATUS_OPTIONS
 
-  const accountPaymentStatusOptions = useMemo(
-    () => [
-      { value: 'TODO', label: 'TODO' },
-      { value: 'ADDED', label: 'ADDED' },
-      { value: 'OTHER', label: 'OTHER' },
-    ],
-    [],
-  )
+  const accountPaymentStatusOptions = ACCOUNT_PAYMENT_STATUS_OPTIONS
 
-  const accountCurrencyOptions = useMemo(
-    () => [
-      { value: 'USD', label: 'USD' },
-      { value: 'CNY', label: 'CNY' },
-    ],
-    [],
-  )
+  const accountCurrencyOptions = ACCOUNT_CURRENCY_OPTIONS
 
-  const adsTypeOptions = useMemo(() => {
-    if (isAdminRole(currentUserRole)) {
-      return [
-        { value: 'Normal', label: 'Normal' },
-        { value: 'Matrix', label: 'Matrix' },
-      ]
-    }
-
-    const options = []
-
-    if (isNormalRole(currentUserRole)) {
-      options.push({ value: 'Normal', label: 'Normal' })
-    }
-
-    if (isMatrixRole(currentUserRole)) {
-      options.push({ value: 'Matrix', label: 'Matrix' })
-    }
-
-    return options
-  }, [currentUserRole])
+  const adsTypeOptions = useMemo(() => buildAdsTypeOptions(currentUserRole), [currentUserRole])
 
   const defaultShiftLinkLogAdsType = useMemo(
     () => (adsTypeOptions.length === 1 ? adsTypeOptions[0].value : ''),
@@ -747,99 +488,43 @@ function App() {
     })
   }, [shiftLinkLogCatalog, allowedShiftLinkLogAdsTypes, currentUserProfile, currentUser, identifier])
 
-  const shiftLinkLogAdsNameOptions = useMemo(() => {
-    const names = new Set()
+  const shiftLinkLogAdsNameOptions = useMemo(
+    () =>
+      collectCatalogFieldNames(availableShiftLinkLogCatalog, {
+        field: CATALOG_ADS_NAME_FIELDS,
+        adsType: shiftLinkLogFilters.adsType,
+      }),
+    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType],
+  )
 
-    availableShiftLinkLogCatalog.forEach((item) => {
-      const adsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
-      if (shiftLinkLogFilters.adsType && adsType !== shiftLinkLogFilters.adsType) {
-        return
-      }
+  const shiftLinkLogPlatformOptions = useMemo(
+    () =>
+      collectCatalogFieldNames(availableShiftLinkLogCatalog, {
+        field: CATALOG_PLATFORM_NAME_FIELDS,
+        adsType: shiftLinkLogFilters.adsType,
+        adsName: shiftLinkLogFilters.adsName,
+      }),
+    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsName, shiftLinkLogFilters.adsType],
+  )
 
-      const adsName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
-      )
-      if (adsName) {
-        names.add(adsName)
-      }
-    })
+  const adsUrlAdsNameOptions = useMemo(
+    () =>
+      collectCatalogFieldNames(availableShiftLinkLogCatalog, {
+        field: CATALOG_ADS_NAME_FIELDS,
+        adsType: adsUrlFilters.adsType,
+      }),
+    [adsUrlFilters.adsType, availableShiftLinkLogCatalog],
+  )
 
-    return Array.from(names).sort((left, right) => left.localeCompare(right))
-  }, [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType])
-
-  const shiftLinkLogPlatformOptions = useMemo(() => {
-    const names = new Set()
-
-    availableShiftLinkLogCatalog.forEach((item) => {
-      const adsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
-      if (shiftLinkLogFilters.adsType && adsType !== shiftLinkLogFilters.adsType) {
-        return
-      }
-
-      const adsName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
-      )
-      if (shiftLinkLogFilters.adsName && adsName !== shiftLinkLogFilters.adsName) {
-        return
-      }
-
-      const platformName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['platformName', 'platform']),
-      )
-      if (platformName) {
-        names.add(platformName)
-      }
-    })
-
-    return Array.from(names).sort((left, right) => left.localeCompare(right))
-  }, [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsName, shiftLinkLogFilters.adsType])
-
-  const adsUrlAdsNameOptions = useMemo(() => {
-    const names = new Set()
-
-    availableShiftLinkLogCatalog.forEach((item) => {
-      const itemAdsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
-      if (adsUrlFilters.adsType && itemAdsType !== adsUrlFilters.adsType) {
-        return
-      }
-
-      const adsName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
-      )
-      if (adsName) {
-        names.add(adsName)
-      }
-    })
-
-    return Array.from(names).sort((left, right) => left.localeCompare(right))
-  }, [adsUrlFilters.adsType, availableShiftLinkLogCatalog])
-
-  const adsUrlPlatformOptions = useMemo(() => {
-    const names = new Set()
-
-    availableShiftLinkLogCatalog.forEach((item) => {
-      const itemAdsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
-      if (adsUrlFilters.adsType && itemAdsType !== adsUrlFilters.adsType) {
-        return
-      }
-
-      const adsName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['adsName', 'capMainName', 'campainName']),
-      )
-      if (adsUrlFilters.adsName && adsName !== adsUrlFilters.adsName) {
-        return
-      }
-
-      const filterPlatformName = toOptionalTrimmedString(
-        firstDefinedValue(item, ['platformName', 'platform']),
-      )
-      if (filterPlatformName) {
-        names.add(filterPlatformName)
-      }
-    })
-
-    return Array.from(names).sort((left, right) => left.localeCompare(right))
-  }, [adsUrlFilters.adsName, adsUrlFilters.adsType, availableShiftLinkLogCatalog])
+  const adsUrlPlatformOptions = useMemo(
+    () =>
+      collectCatalogFieldNames(availableShiftLinkLogCatalog, {
+        field: CATALOG_PLATFORM_NAME_FIELDS,
+        adsType: adsUrlFilters.adsType,
+        adsName: adsUrlFilters.adsName,
+      }),
+    [adsUrlFilters.adsName, adsUrlFilters.adsType, availableShiftLinkLogCatalog],
+  )
 
   const toolEmailUserOptions = useMemo(() => {
     const usersByName = new Map()
@@ -904,70 +589,15 @@ function App() {
     )
   }, [incomePaypalAccount, paypalPrimaryEmail, paypalAccountOptionsSource])
 
-  const normalAdsColumns = useMemo(() => {
-    const preferredOrder = [
-      'id',
-      'campainName',
-      'campainCountry',
-      'platformName',
-      'affiliteUrl',
-      'landingPageUrl',
-      'dynamicProxyInfo',
-      'intervalTime',
-      'status',
-      'createDate',
-      'updateDate',
-    ]
-    const fieldNames = new Set()
+  const normalAdsColumns = useMemo(
+    () => buildDynamicColumns(normalAds, NORMAL_ADS_PREFERRED_COLUMNS, NORMAL_ADS_EXCLUDED_COLUMNS),
+    [normalAds],
+  )
 
-    normalAds.forEach((item) => {
-      if (item && typeof item === 'object') {
-        Object.keys(item).forEach((key) => fieldNames.add(key))
-      }
-    })
-
-    const orderedFields = preferredOrder.filter((fieldName) => fieldNames.has(fieldName))
-    const remainingFields = Array.from(fieldNames).filter(
-      (fieldName) =>
-        !preferredOrder.includes(fieldName) &&
-        fieldName !== 'adsOwner' &&
-        fieldName !== 'dynamicProxyInfoBackup',
-    )
-
-    remainingFields.sort((left, right) => left.localeCompare(right))
-    return [...orderedFields, ...remainingFields]
-  }, [normalAds])
-
-  const matrixAdsColumns = useMemo(() => {
-    const preferredOrder = [
-      'id',
-      'campainName',
-      'campainCountry',
-      'landingPageUrl',
-      'dynamicProxyInfo',
-      'dynamicProxyInfoBackup',
-      'intervalTime',
-      'status',
-      'affiliateInfos',
-      'createDate',
-      'updateDate',
-    ]
-    const fieldNames = new Set()
-
-    matrixAds.forEach((item) => {
-      if (item && typeof item === 'object') {
-        Object.keys(item).forEach((key) => fieldNames.add(key))
-      }
-    })
-
-    const orderedFields = preferredOrder.filter((fieldName) => fieldNames.has(fieldName))
-    const remainingFields = Array.from(fieldNames).filter(
-      (fieldName) => !preferredOrder.includes(fieldName) && fieldName !== 'adsOwner',
-    )
-
-    remainingFields.sort((left, right) => left.localeCompare(right))
-    return [...orderedFields, ...remainingFields]
-  }, [matrixAds])
+  const matrixAdsColumns = useMemo(
+    () => buildDynamicColumns(matrixAds, MATRIX_ADS_PREFERRED_COLUMNS, MATRIX_ADS_EXCLUDED_COLUMNS),
+    [matrixAds],
+  )
 
   const canCreateNormalAds = useMemo(() => {
     if (normalAdsTotalCount == null) {
@@ -1272,6 +902,15 @@ function App() {
     setShowBulkAdsModal(true)
   }
 
+  function openFolderImport() {
+    setFolderImportFiles(null)
+    setFolderImportAdsType(defaultShiftLinkLogAdsType)
+    setFolderImportSaving(false)
+    setFolderImportError('')
+    setFolderImportMessage('')
+    setShowFolderImportModal(true)
+  }
+
   function clearPlatformForm() {
     setEditingPlatformId(null)
     setPlatformName('')
@@ -1448,83 +1087,6 @@ function App() {
     setShowMatrixAdsModal(true)
   }
 
-  const loadUsers = useCallback(async (pageConfig = usersPaginationRef.current) => {
-    setUsersLoading(true)
-    setUsersError('')
-
-    try {
-      const response = await requestApi(
-        `/users${buildQueryString({
-          page: pageConfig.page,
-          size: pageConfig.size,
-        })}`,
-        { token },
-      )
-      setUsers(extractItems(response))
-      setUsersPagination(buildPaginationState(response, pageConfig))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setUsersError(message)
-    } finally {
-      setUsersLoading(false)
-    }
-  }, [token])
-
-  const loadToolEmails = useCallback(
-    async (filters = emailFiltersRef.current, pageConfig = emailPaginationRef.current) => {
-      setEmailsLoading(true)
-      setEmailsError('')
-
-      try {
-        const response = await requestApi(
-          `/tool-emails${buildQueryString({
-            userName: filters.userName,
-            emailAddress: filters.emailAddress,
-            page: pageConfig.page,
-            size: pageConfig.size,
-          })}`,
-          { token },
-        )
-        setEmails(extractItems(response))
-        setEmailPagination(buildPaginationState(response, pageConfig))
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        setEmailsError(message)
-      } finally {
-        setEmailsLoading(false)
-      }
-    },
-    [token],
-  )
-
-  const loadToolAccounts = useCallback(
-    async (filters = accountFiltersRef.current, pageConfig = accountPaginationRef.current) => {
-      setAccountsLoading(true)
-      setAccountsError('')
-
-      try {
-        const response = await requestApi(
-          `/tool-accounts${buildQueryString({
-            userName: filters.userName,
-            platformName: filters.platformName,
-            status: filters.status,
-            page: pageConfig.page,
-            size: pageConfig.size,
-          })}`,
-          { token },
-        )
-        setAccounts(extractItems(response))
-        setAccountPagination(buildPaginationState(response, pageConfig))
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        setAccountsError(message)
-      } finally {
-        setAccountsLoading(false)
-      }
-    },
-    [token],
-  )
-
   const loadAccountEmailOptions = useCallback(async () => {
     setAccountEmailOptionsLoading(true)
 
@@ -1549,33 +1111,6 @@ function App() {
     }
   }, [activeMenu, token])
 
-  const loadToolPaypals = useCallback(
-    async (filters = paypalFiltersRef.current, pageConfig = paypalPaginationRef.current) => {
-      setPaypalsLoading(true)
-      setPaypalsError('')
-
-      try {
-        const response = await requestApi(
-          `/tool-paypals${buildQueryString({
-            paypalEmail: filters.paypalEmail,
-            primaryEmail: filters.primaryEmail,
-            page: pageConfig.page,
-            size: pageConfig.size,
-          })}`,
-          { token },
-        )
-        setPaypals(extractItems(response))
-        setPaypalPagination(buildPaginationState(response, pageConfig))
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        setPaypalsError(message)
-      } finally {
-        setPaypalsLoading(false)
-      }
-    },
-    [token],
-  )
-
   const loadPaypalAccountOptions = useCallback(async () => {
     setPaypalAccountOptionsLoading(true)
 
@@ -1595,240 +1130,6 @@ function App() {
       setPaypalAccountOptionsLoading(false)
     }
   }, [token])
-
-  const loadToolIncomes = useCallback(
-    async (filters = incomeFiltersRef.current, pageConfig = incomePaginationRef.current) => {
-      setIncomesLoading(true)
-      setIncomesError('')
-
-      try {
-        const response = await requestApi(
-          `/tool-incomes${buildQueryString({
-            platformName: filters.platformName,
-            userName: filters.userName,
-            paypalAccount: filters.paypalAccount,
-            payoutDateBegin: toApiDateValue(filters.payoutDateBegin),
-            payoutDateEnd: toApiDateValue(filters.payoutDateEnd),
-            page: pageConfig.page,
-            size: pageConfig.size,
-          })}`,
-          { token },
-        )
-        setIncomes(extractItems(response))
-        setIncomePagination(buildPaginationState(response, pageConfig))
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        setIncomesError(message)
-      } finally {
-        setIncomesLoading(false)
-      }
-    },
-    [token],
-  )
-
-  const loadToolOutcomes = useCallback(
-    async (filters = outcomeFiltersRef.current, pageConfig = outcomePaginationRef.current) => {
-      setOutcomesLoading(true)
-      setOutcomesError('')
-
-      try {
-        const response = await requestApi(
-          `/tool-outcomes${buildQueryString({
-            outcomeType: filters.outcomeType,
-            payDateBegin: toApiDateValue(filters.payDateBegin),
-            payDateEnd: toApiDateValue(filters.payDateEnd),
-            page: pageConfig.page,
-            size: pageConfig.size,
-          })}`,
-          { token },
-        )
-        setOutcomes(extractItems(response))
-        setOutcomePagination(buildPaginationState(response, pageConfig))
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        setOutcomesError(message)
-      } finally {
-        setOutcomesLoading(false)
-      }
-    },
-    [token],
-  )
-
-  const loadRoles = useCallback(async () => {
-    setRolesLoading(true)
-    setRolesError('')
-
-    try {
-      const response = await requestApi('/roles', { token })
-      setRoles(extractItems(response))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setRolesError(message)
-    } finally {
-      setRolesLoading(false)
-    }
-  }, [token])
-
-  const loadAdsUrls = useCallback(
-    async (filters = {}, pageConfig = adsUrlPaginationRef.current) => {
-    setAdsLoading(true)
-    setAdsError('')
-
-    try {
-      const path = `/shift-links${buildQueryString({
-        ...filters,
-        page: pageConfig.page,
-        size: pageConfig.size,
-      })}`
-      const response = await requestApi(path, { token })
-      setAdsUrls(extractItems(response))
-      setAdsUrlPagination(buildPaginationState(response, pageConfig))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAdsError(message)
-    } finally {
-      setAdsLoading(false)
-    }
-    },
-    [token],
-  )
-
-  const loadShiftLinkLogCatalog = useCallback(async () => {
-    setShiftLinkLogCatalogLoading(true)
-    setShiftLinkLogCatalogError('')
-
-    try {
-      const response = await requestApi('/shift-links/all', { token })
-      setShiftLinkLogCatalog(extractItems(response))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setShiftLinkLogCatalogError(message)
-    } finally {
-      setShiftLinkLogCatalogLoading(false)
-    }
-  }, [token])
-
-  const loadShiftLinkLogs = useCallback(
-    async (filters = shiftLinkLogFiltersRef.current, pageConfig = shiftLinkLogPaginationRef.current) => {
-      setShiftLinkLogsLoading(true)
-      setShiftLinkLogsError('')
-
-      try {
-        const response = await requestApi(
-          `/shift-link-logs${buildQueryString({
-            adsType: filters.adsType,
-            adsName: filters.adsName,
-            platformName: filters.platformName,
-            page: pageConfig.page,
-            size: pageConfig.size,
-          })}`,
-          { token },
-        )
-        setShiftLinkLogs(extractItems(response))
-        setShiftLinkLogPagination(buildPaginationState(response, pageConfig))
-        setShiftLinkLogsLoaded(true)
-        setShiftLinkLogQueryApplied(true)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        setShiftLinkLogsError(message)
-        setShiftLinkLogs([])
-        setShiftLinkLogsLoaded(true)
-      } finally {
-        setShiftLinkLogsLoading(false)
-      }
-    },
-    [token],
-  )
-
-  const loadPlatformOptions = useCallback(async () => {
-    setPlatformsLoading(true)
-    setPlatformsError('')
-
-    try {
-      const response = await requestApi('/platforms/all', { token })
-      setPlatforms(extractItems(response))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setPlatformsError(message)
-      setPlatforms([])
-    } finally {
-      setPlatformsLoading(false)
-    }
-  }, [token])
-
-  const loadPlatformList = useCallback(
-    async (pageConfig = platformPaginationRef.current) => {
-      setPlatformListLoading(true)
-      setPlatformsError('')
-
-      try {
-        const response = await requestApi(
-          `/platforms${buildQueryString({
-            page: pageConfig.page,
-            size: pageConfig.size,
-          })}`,
-          { token },
-        )
-        setPlatformList(extractItems(response))
-        setPlatformPagination(buildPaginationState(response, pageConfig))
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        setPlatformsError(message)
-        setPlatformList([])
-      } finally {
-        setPlatformListLoading(false)
-      }
-    },
-    [token],
-  )
-
-  const loadNormalAds = useCallback(
-    async (filters = {}, pageConfig = normalAdsPaginationRef.current) => {
-      setNormalAdsLoading(true)
-      setNormalAdsError('')
-
-      try {
-        const path = `/normal-ads${buildQueryString({
-          ...filters,
-          page: pageConfig.page,
-          size: pageConfig.size,
-        })}`
-        const response = await requestApi(path, { token })
-        setNormalAds(extractItems(response))
-        setNormalAdsPagination(buildPaginationState(response, pageConfig))
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        setNormalAdsError(message)
-      } finally {
-        setNormalAdsLoading(false)
-      }
-    },
-    [token],
-  )
-
-  const loadMatrixAds = useCallback(
-    async (filters = {}, pageConfig = matrixAdsPaginationRef.current) => {
-      setMatrixAdsLoading(true)
-      setMatrixAdsError('')
-
-      try {
-        const path = `/matrix-ads${buildQueryString({
-          ...filters,
-          page: pageConfig.page,
-          size: pageConfig.size,
-        })}`
-        const response = await requestApi(path, { token })
-        setMatrixAds(extractItems(response))
-        setMatrixAdsPagination(buildPaginationState(response, pageConfig))
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        setMatrixAdsError(message)
-      } finally {
-        setMatrixAdsLoading(false)
-      }
-    },
-    [token],
-  )
 
   const loadCurrentUserProfile = useCallback(
     async (userName) => {
@@ -1909,86 +1210,6 @@ function App() {
     setRunningNormalAdsCount(normalItems.length)
     setRunningMatrixAdsCount(matrixItems.length)
   }, [currentUser, currentUserProfile, identifier, token])
-
-  useEffect(() => {
-    adsUrlFiltersRef.current = adsUrlFilters
-  }, [adsUrlFilters])
-
-  useEffect(() => {
-    shiftLinkLogFiltersRef.current = shiftLinkLogFilters
-  }, [shiftLinkLogFilters])
-
-  useEffect(() => {
-    usersPaginationRef.current = usersPagination
-  }, [usersPagination])
-
-  useEffect(() => {
-    adsUrlPaginationRef.current = adsUrlPagination
-  }, [adsUrlPagination])
-
-  useEffect(() => {
-    shiftLinkLogPaginationRef.current = shiftLinkLogPagination
-  }, [shiftLinkLogPagination])
-
-  useEffect(() => {
-    normalAdsFiltersRef.current = normalAdsFilters
-  }, [normalAdsFilters])
-
-  useEffect(() => {
-    normalAdsPaginationRef.current = normalAdsPagination
-  }, [normalAdsPagination])
-
-  useEffect(() => {
-    matrixAdsFiltersRef.current = matrixAdsFilters
-  }, [matrixAdsFilters])
-
-  useEffect(() => {
-    matrixAdsPaginationRef.current = matrixAdsPagination
-  }, [matrixAdsPagination])
-
-  useEffect(() => {
-    emailFiltersRef.current = emailFilters
-  }, [emailFilters])
-
-  useEffect(() => {
-    emailPaginationRef.current = emailPagination
-  }, [emailPagination])
-
-  useEffect(() => {
-    accountFiltersRef.current = accountFilters
-  }, [accountFilters])
-
-  useEffect(() => {
-    accountPaginationRef.current = accountPagination
-  }, [accountPagination])
-
-  useEffect(() => {
-    paypalFiltersRef.current = paypalFilters
-  }, [paypalFilters])
-
-  useEffect(() => {
-    paypalPaginationRef.current = paypalPagination
-  }, [paypalPagination])
-
-  useEffect(() => {
-    incomeFiltersRef.current = incomeFilters
-  }, [incomeFilters])
-
-  useEffect(() => {
-    incomePaginationRef.current = incomePagination
-  }, [incomePagination])
-
-  useEffect(() => {
-    outcomeFiltersRef.current = outcomeFilters
-  }, [outcomeFilters])
-
-  useEffect(() => {
-    outcomePaginationRef.current = outcomePagination
-  }, [outcomePagination])
-
-  useEffect(() => {
-    platformPaginationRef.current = platformPagination
-  }, [platformPagination])
 
   const accessibleMenus = useMemo(() => {
     if (!isAuthenticated) {
@@ -3266,6 +2487,110 @@ function App() {
     }
   }
 
+  // 从文件夹批量导入 Shift Link / Bulk import shift links from a folder.
+  // 结构 / Structure: root/platform/campaign-file，文件内每行一个 Full URL，DisplayNumber 默认 100。
+  async function handleFolderImportShiftLinks(event) {
+    event.preventDefault()
+    setFolderImportSaving(true)
+    setFolderImportError('')
+    setFolderImportMessage('')
+
+    try {
+      if (!folderImportFiles || folderImportFiles.length === 0) {
+        throw new Error('Please choose a folder to import.')
+      }
+
+      const adsTypeValue = toOptionalTrimmedString(folderImportAdsType)
+      if (!adsTypeValue) {
+        throw new Error('Please select an Ads Type.')
+      }
+
+      const { entries, platformNames } = await parseFolderShiftLinks(folderImportFiles)
+
+      // platform 不存在则直接新增 / create missing platforms directly
+      const existingPlatforms = new Set(platformOptions)
+      const createdPlatforms = []
+      for (const platformNameValue of platformNames) {
+        if (existingPlatforms.has(platformNameValue)) {
+          continue
+        }
+        try {
+          await requestApi('/platforms', {
+            method: 'POST',
+            token,
+            body: { platformName: platformNameValue },
+          })
+          createdPlatforms.push(platformNameValue)
+        } catch (error) {
+          // 已存在则忽略 / ignore when the platform already exists
+          const message = error instanceof Error ? error.message : ''
+          if (!/already exists/i.test(message)) {
+            throw error
+          }
+        }
+      }
+
+      const fallbackAdsOwner = getLoggedInAdsOwner(identifier, currentUser)
+      let createdCount = 0
+      const failures = []
+      for (const entry of entries) {
+        try {
+          const parsedUrl = parseAdsUrl(entry.fullUrl)
+          const payload = {
+            adsType: adsTypeValue,
+            adsName: entry.campaignName,
+            platformName: entry.platformName,
+            fullUrl: entry.fullUrl,
+            landingPageUrl: parsedUrl.landingUrl,
+            urlSuffix: parsedUrl.urlSuffix,
+            displayNumber: 100,
+          }
+          if (fallbackAdsOwner) {
+            payload.adsOwner = fallbackAdsOwner
+          }
+          await requestApi('/shift-links', { method: 'POST', token, body: payload })
+          createdCount += 1
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error'
+          failures.push(`${entry.platformName}/${entry.campaignName}: ${message}`)
+        }
+      }
+
+      if (createdPlatforms.length > 0) {
+        await loadPlatformOptions()
+      }
+      await loadAdsUrls(
+        adsUrlQueryApplied ? adsUrlFiltersRef.current : {},
+        adsUrlPaginationRef.current,
+      )
+
+      const summaryParts = [`Imported ${createdCount} shift links.`]
+      if (createdPlatforms.length > 0) {
+        summaryParts.push(`Created ${createdPlatforms.length} new platform(s).`)
+      }
+      if (failures.length > 0) {
+        summaryParts.push(`${failures.length} failed.`)
+      }
+      const summary = summaryParts.join(' ')
+
+      setAdsMessage(summary)
+
+      if (failures.length > 0) {
+        setFolderImportError(failures.slice(0, 5).join('\n'))
+        setFolderImportMessage(summary)
+      } else {
+        setFolderImportMessage(summary)
+        setShowFolderImportModal(false)
+        setFolderImportFiles(null)
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setFolderImportError(message)
+    } finally {
+      setFolderImportSaving(false)
+    }
+  }
+
   async function handleShiftLinkLogSearch(event) {
     event.preventDefault()
     setShiftLinkLogCatalogError('')
@@ -3941,6 +3266,7 @@ function App() {
         platformsError={platformsError}
         onCreateAds={openCreateAds}
         onOpenBulkAdsUpload={openBulkAdsUpload}
+        onOpenFolderImport={openFolderImport}
         onDownloadAdsTemplate={handleDownloadAdsTemplate}
         onAdsUrlFiltersChange={handleAdsUrlFiltersChange}
         onApplyAdsUrlFilters={applyAdsUrlFilters}
@@ -3975,6 +3301,15 @@ function App() {
         onBulkAdsFileChange={setBulkAdsFile}
         onBulkUploadAds={handleBulkUploadAds}
         onCloseBulkAdsModal={() => setShowBulkAdsModal(false)}
+        showFolderImportModal={showFolderImportModal}
+        folderImportAdsType={folderImportAdsType}
+        onFolderImportAdsTypeChange={setFolderImportAdsType}
+        folderImportSaving={folderImportSaving}
+        folderImportError={folderImportError}
+        folderImportMessage={folderImportMessage}
+        onFolderImportFilesChange={setFolderImportFiles}
+        onFolderImportShiftLinks={handleFolderImportShiftLinks}
+        onCloseFolderImportModal={() => setShowFolderImportModal(false)}
         pagination={adsUrlPagination}
         onPageChange={handleAdsUrlPageChange}
         onPageSizeChange={handleAdsUrlPageSizeChange}

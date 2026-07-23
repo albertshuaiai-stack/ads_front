@@ -271,6 +271,59 @@ async function createShiftLinkUploadFile(file, fallbackAdsOwner) {
   })
 }
 
+// 解析选中的文件夹为 Shift Link 列表 / Parse the picked folder into shift link entries.
+// 结构约定 / Structure: root/platform/campaignFile ，文件内每行一个 Full URL。
+async function parseFolderShiftLinks(fileList) {
+  const files = Array.from(fileList || [])
+  if (files.length === 0) {
+    throw new Error('The selected folder is empty.')
+  }
+
+  const entries = []
+  const platformNames = new Set()
+
+  for (const file of files) {
+    const relativePath = file.webkitRelativePath || file.name
+    const segments = relativePath.split('/').filter(Boolean)
+
+    // 至少需要 root/platform/file 三级 / need at least root/platform/file
+    if (segments.length < 3) {
+      continue
+    }
+
+    const platformName = segments[1]
+    const fileName = segments[segments.length - 1]
+    const campaignName = fileName.replace(/\.[^.]+$/, '')
+
+    if (!platformName || !campaignName) {
+      continue
+    }
+
+    const text = await file.text()
+    const urls = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+
+    if (urls.length === 0) {
+      continue
+    }
+
+    platformNames.add(platformName)
+    urls.forEach((fullUrl) => {
+      entries.push({ platformName, campaignName, fullUrl })
+    })
+  }
+
+  if (entries.length === 0) {
+    throw new Error(
+      'No valid links found. Expected structure: folder / platform / campaign-file with one URL per line.',
+    )
+  }
+
+  return { entries, platformNames: Array.from(platformNames) }
+}
+
 function extractItems(response) {
   if (Array.isArray(response)) {
     return response
@@ -451,6 +504,7 @@ export {
   readShiftLinkPayloadFromRow,
   readAdsRowsFromFile,
   createShiftLinkUploadFile,
+  parseFolderShiftLinks,
   extractItems,
   buildQueryString,
   getLoggedInAdsOwner,
