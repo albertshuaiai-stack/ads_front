@@ -1,6 +1,31 @@
 import * as XLSX from 'xlsx'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ads.admirecars.com/api'
+function normalizeApiBaseUrl(baseUrl) {
+  const trimmedBaseUrl = String(baseUrl ?? '').trim()
+  if (!trimmedBaseUrl) {
+    return trimmedBaseUrl
+  }
+
+  if (/^[a-z][a-z\d+\-.]*:\/\//i.test(trimmedBaseUrl) || trimmedBaseUrl.startsWith('/')) {
+    return trimmedBaseUrl
+  }
+
+  if (trimmedBaseUrl.startsWith('//')) {
+    const protocol =
+      typeof window !== 'undefined' && window.location.protocol
+        ? window.location.protocol
+        : 'https:'
+    return `${protocol}${trimmedBaseUrl}`
+  }
+
+  const protocol =
+    typeof window !== 'undefined' && window.location.protocol ? window.location.protocol : 'https:'
+  return `${protocol}//${trimmedBaseUrl}`
+}
+
+const API_BASE_URL = normalizeApiBaseUrl(
+  import.meta.env.VITE_API_BASE_URL || 'https://ads.admirecars.com/api',
+)
 const TOKEN_STORAGE_KEY = 'ads_auth_token'
 const USER_STORAGE_KEY = 'ads_current_user'
 const ROLE_STORAGE_KEY = 'ads_current_role'
