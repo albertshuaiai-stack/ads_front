@@ -16,6 +16,7 @@ import ShiftLinkLogSection from './components/ShiftLinkLogSection/ShiftLinkLogSe
 import ShiftLinkManagementSection from './components/ShiftLinkManagementSection/ShiftLinkManagementSection'
 import Sidebar from './components/Sidebar/Sidebar'
 import TestShiftLinkSection from './components/TestShiftLinkSection/TestShiftLinkSection'
+import UserAgentManagementSection from './components/UserAgentManagementSection/UserAgentManagementSection'
 import UserManagementSection from './components/UserManagementSection/UserManagementSection'
 import './App.css'
 import { COUNTRY_OPTIONS, toCountryCode } from './lib/countryOptions'
@@ -91,6 +92,7 @@ import {
 import { createInitialPagination } from './utils/pagination'
 import { isOwnedByCurrentUser } from './utils/ownership'
 import { useUsers } from './hooks/useUsers'
+import { useUserAgents } from './hooks/useUserAgents'
 import { useRoles } from './hooks/useRoles'
 import { usePlatforms } from './hooks/usePlatforms'
 import { useNormalAds } from './hooks/useNormalAds'
@@ -181,6 +183,18 @@ function App() {
     showRoleModal, setShowRoleModal,
     loadRoles,
   } = useRoles(token)
+  const {
+    userAgents, setUserAgents,
+    userAgentsLoading,
+    userAgentsError, setUserAgentsError,
+    userAgentsMessage, setUserAgentsMessage,
+    editingUserAgentId, setEditingUserAgentId,
+    userAgentDevice, setUserAgentDevice,
+    userAgentValue, setUserAgentValue,
+    savingUserAgent, setSavingUserAgent,
+    showUserAgentModal, setShowUserAgentModal,
+    loadUserAgents,
+  } = useUserAgents(token)
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -819,6 +833,18 @@ function App() {
     })
   }
 
+  function clearUserAgentForm() {
+    setEditingUserAgentId(null)
+    setUserAgentDevice('')
+    setUserAgentValue('')
+  }
+
+  function openCreateUserAgent() {
+    clearUserAgentForm()
+    setUserAgentsError('')
+    setShowUserAgentModal(true)
+  }
+
   async function updateAdsUrlStatus(item, status) {
     setAdsError('')
     setAdsMessage('')
@@ -1221,6 +1247,7 @@ function App() {
         'user-management',
         'role-management',
         'ads-platform-management',
+        'user-agent-management',
         ...TOOL_MENU_IDS,
         'auto-script',
         'test-shift-link',
@@ -1466,6 +1493,11 @@ function App() {
       return
     }
 
+    if (activeMenu === 'user-agent-management') {
+      void loadUserAgents()
+      return
+    }
+
     if (activeMenu === 'email-management') {
       void loadToolEmails(emailQueryApplied ? emailFiltersRef.current : {})
       return
@@ -1499,6 +1531,7 @@ function App() {
     activeMenu,
     loadUsers,
     loadRoles,
+    loadUserAgents,
     loadAdsUrls,
     loadShiftLinkLogCatalog,
     loadShiftLinkLogs,
@@ -1852,6 +1885,83 @@ function App() {
     }
   }
 
+  function startEditUserAgent(item) {
+    setEditingUserAgentId(item.id)
+    setUserAgentDevice(item.device || '')
+    setUserAgentValue(item.userAgent || '')
+    setShowUserAgentModal(true)
+  }
+
+  async function handleSaveUserAgent(event) {
+    event.preventDefault()
+    setSavingUserAgent(true)
+    setUserAgentsError('')
+    setUserAgentsMessage('')
+
+    try {
+      const device = toOptionalTrimmedString(userAgentDevice)
+      const userAgent = toOptionalTrimmedString(userAgentValue)
+
+      if (!device) {
+        throw new Error('Device is required.')
+      }
+
+      if (!userAgent) {
+        throw new Error('User Agent is required.')
+      }
+
+      const payload = { device, userAgent }
+
+      if (editingUserAgentId) {
+        await requestApi(`/refer-user-agents/${editingUserAgentId}`, {
+          method: 'PUT',
+          token,
+          body: {
+            id: editingUserAgentId,
+            ...payload,
+          },
+        })
+        setUserAgentsMessage('User Agent updated successfully.')
+      } else {
+        await requestApi('/refer-user-agents', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setUserAgentsMessage('User Agent created successfully.')
+      }
+
+      clearUserAgentForm()
+      setShowUserAgentModal(false)
+      await loadUserAgents()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setUserAgentsError(message)
+    } finally {
+      setSavingUserAgent(false)
+    }
+  }
+
+  async function handleDeleteUserAgent(id) {
+    setUserAgentsError('')
+    setUserAgentsMessage('')
+
+    try {
+      await requestApi(`/refer-user-agents/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setUserAgentsMessage('User Agent deleted successfully.')
+      await loadUserAgents()
+      if (editingUserAgentId === id) {
+        clearUserAgentForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setUserAgentsError(message)
+    }
+  }
+
   function handleLogout() {
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     localStorage.removeItem(USER_STORAGE_KEY)
@@ -1876,6 +1986,9 @@ function App() {
     setRoles([])
     setRolesError('')
     setRolesMessage('')
+    setUserAgents([])
+    setUserAgentsError('')
+    setUserAgentsMessage('')
     setAdsUrls([])
     setAdsError('')
     setAdsMessage('')
@@ -1971,9 +2084,11 @@ function App() {
     setShowIncomeModal(false)
     setShowOutcomeModal(false)
     setShowUserModal(false)
+    setShowUserAgentModal(false)
     setShowAdsModal(false)
     setShowPlatformModal(false)
     clearUserForm()
+    clearUserAgentForm()
     clearAdsForm()
     clearPlatformForm()
     clearRoleForm()
@@ -3141,6 +3256,8 @@ function App() {
       ? 'User'
       : activeMenu === 'role-management'
         ? 'User Role'
+        : activeMenu === 'user-agent-management'
+          ? 'User Agent'
         : activeMenu === 'auto-script'
           ? 'Auto Script'
         : activeMenu === 'email-management'
@@ -3226,6 +3343,27 @@ function App() {
         pagination={usersPagination}
         onPageChange={handleUsersPageChange}
         onPageSizeChange={handleUsersPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'user-agent-management') {
+    activeSection = (
+      <UserAgentManagementSection
+        userAgents={userAgents}
+        userAgentsLoading={userAgentsLoading}
+        userAgentsError={userAgentsError}
+        userAgentsMessage={userAgentsMessage}
+        onCreateUserAgent={openCreateUserAgent}
+        onEditUserAgent={startEditUserAgent}
+        onDeleteUserAgent={handleDeleteUserAgent}
+        showUserAgentModal={showUserAgentModal}
+        editingUserAgentId={editingUserAgentId}
+        userAgentDevice={userAgentDevice}
+        onUserAgentDeviceChange={setUserAgentDevice}
+        userAgentValue={userAgentValue}
+        onUserAgentValueChange={setUserAgentValue}
+        onSaveUserAgent={handleSaveUserAgent}
+        savingUserAgent={savingUserAgent}
+        onCloseUserAgentModal={() => setShowUserAgentModal(false)}
       />
     )
   } else if (activeMenu === 'role-management') {

@@ -1,0 +1,9 @@
+.user-agent-management__value {
+  max-width: 420px;
+  word-break: break-word;
+}
+
+.user-agent-management__textarea {
+  min-height: 140px;
+  resize: vertical;
+}

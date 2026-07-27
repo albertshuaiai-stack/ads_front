@@ -7,6 +7,7 @@ export const MENU_GROUPS = [
       { id: 'user-management', label: 'User' },
       { id: 'role-management', label: 'User Role' },
       { id: 'ads-platform-management', label: 'Platform' },
+      { id: 'user-agent-management', label: 'User Agent' },
     ],
   },
   {
