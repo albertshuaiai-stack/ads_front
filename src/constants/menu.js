@@ -26,11 +26,11 @@ export const MENU_GROUPS = [
     id: 'tool',
     title: 'Tool',
     items: [
-      { id: 'email-management', label: 'Email Management' },
+      { id: 'email-management', label: 'Email' },
       { id: 'cash-bach-account', label: 'Cash Bach Account' },
-      { id: 'paypal-management', label: 'PayPal Management' },
-      { id: 'income-management', label: 'Income Management' },
-      { id: 'outcome-management', label: 'Outcome Management' },
+      { id: 'paypal-management', label: 'PayPal' },
+      { id: 'income-management', label: 'Income' },
+      { id: 'outcome-management', label: 'Expenditure' },
     ],
   },
 ]

@@ -4,16 +4,16 @@ export const ADS_URL_COLUMNS = [
   { key: 'id', label: 'ID', fields: ['id'] },
   {
     key: 'adsName',
-    label: 'Campaign Name',
+    label: 'Ads Name',
     fields: ['adsName', 'capMainName', 'campainName'],
   },
   { key: 'adsType', label: 'Ads Type', fields: ['adsType', 'ads_type'] },
   { key: 'platformName', label: 'Platform Name', fields: ['platformName', 'platform'] },
   { key: 'seqNumber', label: 'Seq Number', fields: ['seqNumber'] },
-  { key: 'displayNumber', label: 'Display Number', fields: ['displayNumber'] },
+  { key: 'displayNumber', label: 'Display Capacity', fields: ['displayNumber'] },
   {
     key: 'displayTimes',
-    label: 'Display Time',
+    label: 'Display Times',
     fields: ['displayTimes'],
   },
   {
@@ -31,10 +31,10 @@ export const ADS_URL_COLUMNS = [
 export const SHIFT_LINK_LOG_COLUMNS = [
   { key: 'id', label: 'ID', fields: ['id'] },
   { key: 'adsType', label: 'Ads Type', fields: ['adsType'] },
-  { key: 'adsName', label: 'Ads Name', fields: ['adsName', 'capMainName', 'campainName'] },
+  { key: 'adsName', label: 'Ads Name', fields: ['adsName', 'capMainName', 'campaignName'] },
   { key: 'platformName', label: 'Platform Name', fields: ['platformName', 'platform'] },
   { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
-  { key: 'displayTimes', label: 'Display Time', fields: ['displayTimes'] },
+  { key: 'displayTimes', label: 'Display Times', fields: ['displayTimes'] },
   { key: 'remarks', label: 'Remarks', fields: ['remarks', 'remark'] },
   { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
 ]

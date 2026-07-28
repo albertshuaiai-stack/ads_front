@@ -51,7 +51,7 @@ function OutcomeManagementSection({
 
           <form className="filter-form" onSubmit={onApplyOutcomeFilters}>
             <div className="filter-item">
-              <label htmlFor="outcomeManagementOutcomeTypeFilter">Outcome Type</label>
+              <label htmlFor="outcomeManagementOutcomeTypeFilter">Expenditure Type</label>
               <select
                 id="outcomeManagementOutcomeTypeFilter"
                 value={outcomeFilters.outcomeType}
@@ -127,8 +127,8 @@ function OutcomeManagementSection({
                 <thead>
                   <tr>
                     <th>ID</th>
-                    <th>Outcome Type</th>
-                    <th>Outcome Amount</th>
+                    <th>Expenditure Type</th>
+                    <th>Expenditure Amount</th>
                     <th>Currency</th>
                     <th>Pay Date</th>
                     <th>Remarks</th>
@@ -182,14 +182,14 @@ function OutcomeManagementSection({
           onClose={onCloseOutcomeModal}
         >
           <form className="modal-form" onSubmit={onSaveOutcome}>
-            <label htmlFor="outcomeManagementOutcomeType">Outcome Type</label>
+            <label htmlFor="outcomeManagementOutcomeType">Expenditure Type</label>
             <select
               id="outcomeManagementOutcomeType"
               value={outcomeType}
               onChange={(event) => onOutcomeTypeChange(event.target.value)}
               required
             >
-              <option value="">Select outcome type</option>
+              <option value="">Select expenditure type</option>
               {outcomeTypeOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -197,7 +197,7 @@ function OutcomeManagementSection({
               ))}
             </select>
 
-            <label htmlFor="outcomeManagementOutcomeAmount">Outcome Amount</label>
+            <label htmlFor="outcomeManagementOutcomeAmount">Expenditure Amount</label>
             <input
               id="outcomeManagementOutcomeAmount"
               type="number"

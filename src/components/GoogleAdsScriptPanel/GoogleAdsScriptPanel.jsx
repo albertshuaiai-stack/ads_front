@@ -4,7 +4,7 @@ import './GoogleAdsScriptPanel.css'
 const NORMAL_GOOGLE_ADS_SCRIPT = `// Google Ads自动跟踪模板脚本
 // 服务器: https://ads.admirecars.com
 
-var API_BASE_URL = 'https://ads.admirecars.com/api//normal/ads?api_key={API_KEY}&campaign_name=';
+var API_BASE_URL = 'https://ads.admirecars.com/api/normal/ads?api_key={API_KEY}&campaign_name=';
 
 function main() {
   if (isMccAccount()) {

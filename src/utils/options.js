@@ -37,6 +37,7 @@ export function buildAdsTypeOptions(role) {
 
 // 基于数据行动态推导列（按偏好排序，排除指定字段）/ derive columns dynamically from rows
 export function buildDynamicColumns(rows, preferredOrder, excludedFields = []) {
+  debugger;
   const fieldNames = new Set()
 
   rows.forEach((item) => {
@@ -55,7 +56,7 @@ export function buildDynamicColumns(rows, preferredOrder, excludedFields = []) {
   return [...orderedFields, ...remainingFields]
 }
 
-const ADS_NAME_FIELDS = ['adsName', 'capMainName', 'campainName']
+const ADS_NAME_FIELDS = ['adsName', 'capMainName', 'campaignName']
 const PLATFORM_NAME_FIELDS = ['platformName', 'platform']
 
 // 从班表日志目录收集去重字段值，支持按 adsType / adsName 过滤

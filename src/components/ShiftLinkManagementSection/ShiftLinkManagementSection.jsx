@@ -316,7 +316,7 @@ function ShiftLinkManagementSection({
               required
             />
 
-            <label htmlFor="displayNumber">Display Number</label>
+            <label htmlFor="displayNumber">Display Capacity</label>
             <input
               id="displayNumber"
               type="number"
@@ -324,7 +324,7 @@ function ShiftLinkManagementSection({
               step="1"
               value={displayNumber}
               onChange={(event) => onDisplayNumberChange(event.target.value)}
-              placeholder="Enter display number"
+              placeholder="Enter display capacity"
             />
 
             <label htmlFor="remark">Remarks</label>
