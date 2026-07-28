@@ -3269,7 +3269,7 @@ function App() {
         : activeMenu === 'income-management'
           ? 'Income Management'
         : activeMenu === 'outcome-management'
-          ? 'Outcome Management'
+          ? 'Expenditure Management'
         : activeMenu === 'ads-url-management'
           ? 'Shift Link'
           : activeMenu === 'shift-link-log'

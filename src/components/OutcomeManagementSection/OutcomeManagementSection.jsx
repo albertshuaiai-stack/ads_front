@@ -41,10 +41,10 @@ function OutcomeManagementSection({
       <div className="panel outcome-management">
         <div className="user-list">
           <div className="list-header">
-            <h3>Outcome Management</h3>
+            <h3>Expenditure Management</h3>
             <div className="toolbar-actions">
               <button type="button" className="primary" onClick={onCreateOutcome}>
-                Add Outcome
+                Add Expenditure
               </button>
             </div>
           </div>
@@ -62,7 +62,7 @@ function OutcomeManagementSection({
                   })
                 }
               >
-                <option value="">All outcome types</option>
+                <option value="">All expenditure types</option>
                 {outcomeTypeOptions.map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
