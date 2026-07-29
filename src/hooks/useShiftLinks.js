@@ -29,9 +29,17 @@ export function useShiftLinks(token) {
   const [showFolderImportModal, setShowFolderImportModal] = useState(false)
   const [folderImportFiles, setFolderImportFiles] = useState(null)
   const [folderImportAdsType, setFolderImportAdsType] = useState('')
+  const [folderImportDisplayNumber, setFolderImportDisplayNumber] = useState('100')
   const [folderImportSaving, setFolderImportSaving] = useState(false)
   const [folderImportError, setFolderImportError] = useState('')
   const [folderImportMessage, setFolderImportMessage] = useState('')
+  // 批量删除（按 Campaign / Platform）/ Bulk delete by campaign or platform
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false)
+  const [bulkDeleteMode, setBulkDeleteMode] = useState('campaign')
+  const [bulkDeleteValue, setBulkDeleteValue] = useState('')
+  const [bulkDeleteSaving, setBulkDeleteSaving] = useState(false)
+  const [bulkDeleteError, setBulkDeleteError] = useState('')
+  const [bulkDeleteMessage, setBulkDeleteMessage] = useState('')
   const [adsUrlFilters, setAdsUrlFilters] = useState({
     adsType: '',
     adsName: '',
@@ -97,9 +105,16 @@ export function useShiftLinks(token) {
     showFolderImportModal, setShowFolderImportModal,
     folderImportFiles, setFolderImportFiles,
     folderImportAdsType, setFolderImportAdsType,
+    folderImportDisplayNumber, setFolderImportDisplayNumber,
     folderImportSaving, setFolderImportSaving,
     folderImportError, setFolderImportError,
     folderImportMessage, setFolderImportMessage,
+    showBulkDeleteModal, setShowBulkDeleteModal,
+    bulkDeleteMode, setBulkDeleteMode,
+    bulkDeleteValue, setBulkDeleteValue,
+    bulkDeleteSaving, setBulkDeleteSaving,
+    bulkDeleteError, setBulkDeleteError,
+    bulkDeleteMessage, setBulkDeleteMessage,
     adsUrlFilters, setAdsUrlFilters,
     adsUrlQueryApplied, setAdsUrlQueryApplied,
     adsUrlFiltersRef,

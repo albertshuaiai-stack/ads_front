@@ -58,12 +58,25 @@ function ShiftLinkManagementSection({
   showFolderImportModal,
   folderImportAdsType,
   onFolderImportAdsTypeChange,
+  folderImportDisplayNumber,
+  onFolderImportDisplayNumberChange,
   folderImportSaving,
   folderImportError,
   folderImportMessage,
   onFolderImportFilesChange,
   onFolderImportShiftLinks,
   onCloseFolderImportModal,
+  onOpenBulkDelete,
+  showBulkDeleteModal,
+  bulkDeleteMode,
+  onBulkDeleteModeChange,
+  bulkDeleteValue,
+  onBulkDeleteValueChange,
+  bulkDeleteSaving,
+  bulkDeleteError,
+  bulkDeleteMessage,
+  onBulkDeleteShiftLinks,
+  onCloseBulkDeleteModal,
   pagination,
   onPageChange,
   onPageSizeChange,
@@ -83,6 +96,9 @@ function ShiftLinkManagementSection({
               </button>
               <button type="button" className="secondary" onClick={onOpenFolderImport}>
                 Import from Folder
+              </button>
+              <button type="button" className="secondary" onClick={onOpenBulkDelete}>
+                Bulk Delete
               </button>
               <button type="button" className="secondary" onClick={onDownloadAdsTemplate}>
                 Download Template
@@ -415,11 +431,22 @@ function ShiftLinkManagementSection({
               required
             />
 
+            <label htmlFor="folderImportDisplayNumber">Display Number</label>
+            <input
+              id="folderImportDisplayNumber"
+              type="number"
+              min="0"
+              step="1"
+              value={folderImportDisplayNumber}
+              onChange={(event) => onFolderImportDisplayNumberChange(event.target.value)}
+              required
+            />
+
             <p className="field-help">
               Folder structure: <code>root / platform / campaign-file</code>. First-level folders
               are platform names, file names (without extension) are Campaign Names, and each line
-              inside a file is one Full URL. Display Number defaults to 100. Missing platforms are
-              created automatically.
+              inside a file is one Full URL. Display Number applies to every imported link. Missing
+              platforms are created automatically.
             </p>
 
             {folderImportError ? (
@@ -434,6 +461,60 @@ function ShiftLinkManagementSection({
                 {folderImportSaving ? 'Importing...' : 'Import Shift Links'}
               </button>
               <button type="button" className="secondary" onClick={onCloseFolderImportModal}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </InlineFormCard>
+      ) : null}
+
+      {showBulkDeleteModal ? (
+        <InlineFormCard title="Bulk Delete Shift Links" onClose={onCloseBulkDeleteModal}>
+          <form className="modal-form" onSubmit={onBulkDeleteShiftLinks}>
+            <label htmlFor="bulkDeleteMode">Delete By</label>
+            <select
+              id="bulkDeleteMode"
+              value={bulkDeleteMode}
+              onChange={(event) => onBulkDeleteModeChange(event.target.value)}
+            >
+              <option value="campaign">Campaign Name</option>
+              <option value="platform">Platform Name</option>
+            </select>
+
+            <label htmlFor="bulkDeleteValue">
+              {bulkDeleteMode === 'platform' ? 'Platform Name' : 'Campaign Name'}
+            </label>
+            <input
+              id="bulkDeleteValue"
+              value={bulkDeleteValue}
+              onChange={(event) => onBulkDeleteValueChange(event.target.value)}
+              list="bulkDeleteValueOptions"
+              required
+            />
+            <datalist id="bulkDeleteValueOptions">
+              {(bulkDeleteMode === 'platform' ? platformOptions : adsNameOptions).map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
+
+            <p className="field-help">
+              All shift links matching the selected{' '}
+              {bulkDeleteMode === 'platform' ? 'Platform Name' : 'Campaign Name'} will be
+              permanently deleted. This action cannot be undone.
+            </p>
+
+            {bulkDeleteError ? (
+              <p className="status error" role="alert">
+                {bulkDeleteError}
+              </p>
+            ) : null}
+            {bulkDeleteMessage ? <p className="status success">{bulkDeleteMessage}</p> : null}
+
+            <div className="form-actions">
+              <button type="submit" className="primary" disabled={bulkDeleteSaving}>
+                {bulkDeleteSaving ? 'Deleting...' : 'Delete'}
+              </button>
+              <button type="button" className="secondary" onClick={onCloseBulkDeleteModal}>
                 Cancel
               </button>
             </div>

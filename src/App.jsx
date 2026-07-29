@@ -228,9 +228,16 @@ function App() {
     showFolderImportModal, setShowFolderImportModal,
     folderImportFiles, setFolderImportFiles,
     folderImportAdsType, setFolderImportAdsType,
+    folderImportDisplayNumber, setFolderImportDisplayNumber,
     folderImportSaving, setFolderImportSaving,
     folderImportError, setFolderImportError,
     folderImportMessage, setFolderImportMessage,
+    showBulkDeleteModal, setShowBulkDeleteModal,
+    bulkDeleteMode, setBulkDeleteMode,
+    bulkDeleteValue, setBulkDeleteValue,
+    bulkDeleteSaving, setBulkDeleteSaving,
+    bulkDeleteError, setBulkDeleteError,
+    bulkDeleteMessage, setBulkDeleteMessage,
     adsUrlFilters, setAdsUrlFilters,
     adsUrlQueryApplied, setAdsUrlQueryApplied,
     adsUrlFiltersRef,
@@ -931,10 +938,20 @@ function App() {
   function openFolderImport() {
     setFolderImportFiles(null)
     setFolderImportAdsType(defaultShiftLinkLogAdsType)
+    setFolderImportDisplayNumber('100')
     setFolderImportSaving(false)
     setFolderImportError('')
     setFolderImportMessage('')
     setShowFolderImportModal(true)
+  }
+
+  function openBulkDelete() {
+    setBulkDeleteMode('campaign')
+    setBulkDeleteValue('')
+    setBulkDeleteSaving(false)
+    setBulkDeleteError('')
+    setBulkDeleteMessage('')
+    setShowBulkDeleteModal(true)
   }
 
   function clearPlatformForm() {
@@ -2620,6 +2637,13 @@ function App() {
         throw new Error('Please select an Ads Type.')
       }
 
+      // Display Number：用户输入，默认 100 / user input, defaults to 100
+      const parsedDisplayNumber = Number.parseInt(folderImportDisplayNumber, 10)
+      if (!Number.isFinite(parsedDisplayNumber) || parsedDisplayNumber < 0) {
+        throw new Error('Please enter a valid Display Number (0 or greater).')
+      }
+      const resolvedDisplayNumber = parsedDisplayNumber
+
       const { entries, platformNames } = await parseFolderShiftLinks(folderImportFiles)
 
       // platform 不存在则直接新增 / create missing platforms directly
@@ -2658,7 +2682,7 @@ function App() {
             fullUrl: entry.fullUrl,
             landingPageUrl: parsedUrl.landingUrl,
             urlSuffix: parsedUrl.urlSuffix,
-            displayNumber: 100,
+            displayNumber: resolvedDisplayNumber,
           }
           if (fallbackAdsOwner) {
             payload.adsOwner = fallbackAdsOwner
@@ -2703,6 +2727,51 @@ function App() {
       setFolderImportError(message)
     } finally {
       setFolderImportSaving(false)
+    }
+  }
+
+  // 按 Campaign Name 或 Platform Name 整体删除 Shift Link / bulk delete shift links by campaign or platform
+  async function handleBulkDeleteShiftLinks(event) {
+    event.preventDefault()
+    setBulkDeleteSaving(true)
+    setBulkDeleteError('')
+    setBulkDeleteMessage('')
+
+    try {
+      const value = toOptionalTrimmedString(bulkDeleteValue)
+      const isPlatform = bulkDeleteMode === 'platform'
+      if (!value) {
+        throw new Error(isPlatform ? 'Please enter a Platform Name.' : 'Please enter a Campaign Name.')
+      }
+
+      const confirmed = window.confirm(
+        `All shift links matching ${isPlatform ? 'Platform Name' : 'Campaign Name'} "${value}" will be permanently deleted. Continue?`,
+      )
+      if (!confirmed) {
+        return
+      }
+
+      const params = isPlatform ? { platformName: value } : { campaignName: value }
+      const response = await requestApi(`/shift-links/bulk-delete${buildQueryString(params)}`, {
+        method: 'DELETE',
+        token,
+      })
+      const deletedCount = response && typeof response.deletedCount === 'number' ? response.deletedCount : 0
+      const summary = `Deleted ${deletedCount} shift link(s).`
+
+      await loadAdsUrls(
+        adsUrlQueryApplied ? adsUrlFiltersRef.current : {},
+        adsUrlPaginationRef.current,
+      )
+
+      setAdsMessage(summary)
+      setBulkDeleteMessage(summary)
+      setShowBulkDeleteModal(false)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setBulkDeleteError(message)
+    } finally {
+      setBulkDeleteSaving(false)
     }
   }
 
@@ -3442,12 +3511,25 @@ function App() {
         showFolderImportModal={showFolderImportModal}
         folderImportAdsType={folderImportAdsType}
         onFolderImportAdsTypeChange={setFolderImportAdsType}
+        folderImportDisplayNumber={folderImportDisplayNumber}
+        onFolderImportDisplayNumberChange={setFolderImportDisplayNumber}
         folderImportSaving={folderImportSaving}
         folderImportError={folderImportError}
         folderImportMessage={folderImportMessage}
         onFolderImportFilesChange={setFolderImportFiles}
         onFolderImportShiftLinks={handleFolderImportShiftLinks}
         onCloseFolderImportModal={() => setShowFolderImportModal(false)}
+        onOpenBulkDelete={openBulkDelete}
+        showBulkDeleteModal={showBulkDeleteModal}
+        bulkDeleteMode={bulkDeleteMode}
+        onBulkDeleteModeChange={setBulkDeleteMode}
+        bulkDeleteValue={bulkDeleteValue}
+        onBulkDeleteValueChange={setBulkDeleteValue}
+        bulkDeleteSaving={bulkDeleteSaving}
+        bulkDeleteError={bulkDeleteError}
+        bulkDeleteMessage={bulkDeleteMessage}
+        onBulkDeleteShiftLinks={handleBulkDeleteShiftLinks}
+        onCloseBulkDeleteModal={() => setShowBulkDeleteModal(false)}
         pagination={adsUrlPagination}
         onPageChange={handleAdsUrlPageChange}
         onPageSizeChange={handleAdsUrlPageSizeChange}
