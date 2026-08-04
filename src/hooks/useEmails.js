@@ -1,6 +1,6 @@
 // 邮箱管理模块状态与数据加载 / Email management module state and data loading
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
+import { buildOwnerQueryParams, buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
 import { createInitialPagination, buildPaginationState } from '../utils/pagination'
 
 export function useEmails(token) {
@@ -13,6 +13,7 @@ export function useEmails(token) {
   const [emailFilters, setEmailFilters] = useState({
     userName: '',
     emailAddress: '',
+    ownerPhoneNumber: '',
   })
   const [emailQueryApplied, setEmailQueryApplied] = useState(false)
   const emailFiltersRef = useRef(emailFilters)
@@ -45,6 +46,7 @@ export function useEmails(token) {
           `/tool-emails${buildQueryString({
             userName: filters.userName,
             emailAddress: filters.emailAddress,
+            ...buildOwnerQueryParams(filters.ownerPhoneNumber),
             page: pageConfig.page,
             size: pageConfig.size,
           })}`,

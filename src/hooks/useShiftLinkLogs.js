@@ -1,6 +1,6 @@
 // Shift Link Log 模块状态与数据加载 / Shift Link Log module state and data loading
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
+import { buildOwnerQueryParams, buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
 import { createInitialPagination, buildPaginationState } from '../utils/pagination'
 
 export function useShiftLinkLogs(token) {
@@ -8,6 +8,7 @@ export function useShiftLinkLogs(token) {
     adsType: '',
     adsName: '',
     platformName: '',
+    ownerPhoneNumber: '',
   })
   const [shiftLinkLogCatalog, setShiftLinkLogCatalog] = useState([])
   const [shiftLinkLogCatalogLoading, setShiftLinkLogCatalogLoading] = useState(false)
@@ -55,6 +56,7 @@ export function useShiftLinkLogs(token) {
             adsType: filters.adsType,
             adsName: filters.adsName,
             platformName: filters.platformName,
+            ...buildOwnerQueryParams(filters.ownerPhoneNumber),
             page: pageConfig.page,
             size: pageConfig.size,
           })}`,

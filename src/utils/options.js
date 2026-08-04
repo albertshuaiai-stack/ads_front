@@ -15,24 +15,26 @@ export function sortNamesAscending(names) {
 
 // 根据角色构造广告类型选项 / build ads type options from the current role
 export function buildAdsTypeOptions(role) {
-  if (isAdminRole(role)) {
+  const hasAdminRole = isAdminRole(role)
+  const hasNormalRole = isNormalRole(role)
+  const hasMatrixRole = isMatrixRole(role)
+
+  if (hasNormalRole && !hasMatrixRole && !hasAdminRole) {
+    return [{ value: 'Normal', label: 'Normal' }]
+  }
+
+  if (hasMatrixRole && !hasNormalRole && !hasAdminRole) {
+    return [{ value: 'Matrix', label: 'Matrix' }]
+  }
+
+  if (hasAdminRole || hasNormalRole || hasMatrixRole) {
     return [
       { value: 'Normal', label: 'Normal' },
       { value: 'Matrix', label: 'Matrix' },
     ]
   }
 
-  const options = []
-
-  if (isNormalRole(role)) {
-    options.push({ value: 'Normal', label: 'Normal' })
-  }
-
-  if (isMatrixRole(role)) {
-    options.push({ value: 'Matrix', label: 'Matrix' })
-  }
-
-  return options
+  return []
 }
 
 // 基于数据行动态推导列（按偏好排序，排除指定字段）/ derive columns dynamically from rows

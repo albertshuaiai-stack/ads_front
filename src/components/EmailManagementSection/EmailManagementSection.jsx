@@ -33,6 +33,8 @@ function EmailManagementSection({
   onSaveEmail,
   savingEmail,
   onCloseEmailModal,
+  showOwnerFilter,
+  ownerOptions,
   formatDateDisplayValue,
   pagination,
   onPageChange,
@@ -52,6 +54,29 @@ function EmailManagementSection({
           </div>
 
           <form className="filter-form" onSubmit={onApplyEmailFilters}>
+            {showOwnerFilter ? (
+              <div className="filter-item">
+                <label htmlFor="emailManagementOwnerFilter">Owner</label>
+                <select
+                  id="emailManagementOwnerFilter"
+                  value={emailFilters.ownerPhoneNumber}
+                  onChange={(event) =>
+                    onEmailFiltersChange({
+                      ...emailFilters,
+                      ownerPhoneNumber: event.target.value,
+                    })
+                  }
+                >
+                  <option value="">All owners</option>
+                  {ownerOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="filter-item">
               <label htmlFor="emailManagementUserNameFilter">User Name</label>
               <input

@@ -1,6 +1,7 @@
 // 矩阵广告模块状态与数据加载 / Matrix ADs module state and data loading
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  buildOwnerQueryParams,
   buildQueryString,
   createEmptyAffiliateRow,
   extractItems,
@@ -30,6 +31,7 @@ export function useMatrixAds(token) {
     campainName: '',
     platformName: '',
     status: '',
+    ownerPhoneNumber: '',
   })
   const [matrixAdsQueryApplied, setMatrixAdsQueryApplied] = useState(false)
   const matrixAdsFiltersRef = useRef(matrixAdsFilters)
@@ -48,8 +50,10 @@ export function useMatrixAds(token) {
       setMatrixAdsError('')
 
       try {
+        const { ownerPhoneNumber, ...restFilters } = filters || {}
         const path = `/matrix-ads${buildQueryString({
-          ...filters,
+          ...restFilters,
+          ...buildOwnerQueryParams(ownerPhoneNumber),
           page: pageConfig.page,
           size: pageConfig.size,
         })}`

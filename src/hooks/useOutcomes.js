@@ -1,6 +1,6 @@
 // 支出管理模块状态与数据加载 / Outcome management module state and data loading
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
+import { buildOwnerQueryParams, buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
 import { createInitialPagination, buildPaginationState } from '../utils/pagination'
 import { toApiDateValue } from '../utils/formatters'
 
@@ -15,6 +15,7 @@ export function useOutcomes(token) {
     outcomeType: '',
     payDateBegin: '',
     payDateEnd: '',
+    ownerPhoneNumber: '',
   })
   const [outcomeQueryApplied, setOutcomeQueryApplied] = useState(false)
   const outcomeFiltersRef = useRef(outcomeFilters)
@@ -46,6 +47,7 @@ export function useOutcomes(token) {
             outcomeType: filters.outcomeType,
             payDateBegin: toApiDateValue(filters.payDateBegin),
             payDateEnd: toApiDateValue(filters.payDateEnd),
+            ...buildOwnerQueryParams(filters.ownerPhoneNumber),
             page: pageConfig.page,
             size: pageConfig.size,
           })}`,

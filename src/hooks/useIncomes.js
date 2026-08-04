@@ -1,6 +1,6 @@
 // 收入管理模块状态与数据加载 / Income management module state and data loading
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
+import { buildOwnerQueryParams, buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
 import { createInitialPagination, buildPaginationState } from '../utils/pagination'
 import { toApiDateValue } from '../utils/formatters'
 
@@ -17,6 +17,7 @@ export function useIncomes(token) {
     paypalAccount: '',
     payoutDateBegin: '',
     payoutDateEnd: '',
+    ownerPhoneNumber: '',
   })
   const [incomeQueryApplied, setIncomeQueryApplied] = useState(false)
   const incomeFiltersRef = useRef(incomeFilters)
@@ -53,6 +54,7 @@ export function useIncomes(token) {
             paypalAccount: filters.paypalAccount,
             payoutDateBegin: toApiDateValue(filters.payoutDateBegin),
             payoutDateEnd: toApiDateValue(filters.payoutDateEnd),
+            ...buildOwnerQueryParams(filters.ownerPhoneNumber),
             page: pageConfig.page,
             size: pageConfig.size,
           })}`,

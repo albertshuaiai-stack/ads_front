@@ -1,6 +1,6 @@
 // 普通广告模块状态与数据加载 / Normal ADs module state and data loading
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
+import { buildOwnerQueryParams, buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
 import { createInitialPagination, buildPaginationState } from '../utils/pagination'
 
 export function useNormalAds(token) {
@@ -26,6 +26,7 @@ export function useNormalAds(token) {
     campainName: '',
     platformName: '',
     status: '',
+    ownerPhoneNumber: '',
   })
   const [normalAdsQueryApplied, setNormalAdsQueryApplied] = useState(false)
   const normalAdsFiltersRef = useRef(normalAdsFilters)
@@ -44,8 +45,10 @@ export function useNormalAds(token) {
       setNormalAdsError('')
 
       try {
+        const { ownerPhoneNumber, ...restFilters } = filters || {}
         const path = `/normal-ads${buildQueryString({
-          ...filters,
+          ...restFilters,
+          ...buildOwnerQueryParams(ownerPhoneNumber),
           page: pageConfig.page,
           size: pageConfig.size,
         })}`

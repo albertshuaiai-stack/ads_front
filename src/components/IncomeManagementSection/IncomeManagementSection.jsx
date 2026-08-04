@@ -42,6 +42,8 @@ function IncomeManagementSection({
   userNameOptionsLoading,
   paypalAccountOptions,
   paypalAccountOptionsLoading,
+  showOwnerFilter,
+  ownerOptions,
   formatDateDisplayValue,
   pagination,
   onPageChange,
@@ -61,6 +63,29 @@ function IncomeManagementSection({
           </div>
 
           <form className="filter-form" onSubmit={onApplyIncomeFilters}>
+            {showOwnerFilter ? (
+              <div className="filter-item">
+                <label htmlFor="incomeManagementOwnerFilter">Owner</label>
+                <select
+                  id="incomeManagementOwnerFilter"
+                  value={incomeFilters.ownerPhoneNumber}
+                  onChange={(event) =>
+                    onIncomeFiltersChange({
+                      ...incomeFilters,
+                      ownerPhoneNumber: event.target.value,
+                    })
+                  }
+                >
+                  <option value="">All owners</option>
+                  {ownerOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="filter-item">
               <label htmlFor="incomeManagementPlatformNameFilter">Platform Name</label>
               <input

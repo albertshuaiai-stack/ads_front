@@ -15,6 +15,8 @@ function ShiftLinkLogSection({
   hasLoadedLogs,
   logColumns,
   pagination,
+  showOwnerFilter,
+  ownerOptions,
   onFiltersChange,
   onSearch,
   onReload,
@@ -39,6 +41,31 @@ function ShiftLinkLogSection({
         </div>
 
         <form className="filter-form" onSubmit={onSearch}>
+          {showOwnerFilter ? (
+            <div className="filter-item">
+              <label htmlFor="shiftLinkLogOwner">Owner</label>
+              <select
+                id="shiftLinkLogOwner"
+                value={filters.ownerPhoneNumber}
+                onChange={(event) =>
+                  onFiltersChange({
+                    ...filters,
+                    ownerPhoneNumber: event.target.value,
+                    adsName: '',
+                    platformName: '',
+                  })
+                }
+              >
+                <option value="">All owners</option>
+                {ownerOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
           <div className="filter-item">
             <label htmlFor="shiftLinkLogAdsType">Ads Type</label>
             <select
@@ -46,6 +73,7 @@ function ShiftLinkLogSection({
               value={filters.adsType}
               onChange={(event) =>
                 onFiltersChange({
+                  ...filters,
                   adsType: event.target.value,
                   adsName: '',
                   platformName: '',

@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react'
 import './Sidebar.css'
 
 function getIconFor(id) {
@@ -50,6 +51,59 @@ function getIconFor(id) {
           <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="1.2" />
           <path d="M7 12h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           <path d="M9 9h6M9 15h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
+    case 'ads-account-management':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M7 10h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M7 14h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="17" cy="14" r="2" stroke="currentColor" strokeWidth="1.2" />
+        </svg>
+      )
+    case 'affiliate-job-detail':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
+    case 'affiliate-trigger':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M12 8v4l3 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'affiliate-ip-proxy':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <path d="M7 12a5 5 0 0 1 10 0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M4 17h16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
+    case 'affiliate-sync-config':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M8 8h8M8 12h8M8 16h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
+    case 'affiliate-sync-task':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M8 3v4M16 3v4M7 11h10M7 15h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
+    case 'affiliate-sync-result':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M8 9h8M8 13h8M8 17h5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M16 7l2 2-4 4-2-2 4-4z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
     case 'paypal-management':
@@ -139,6 +193,39 @@ function Sidebar({
   onLogout,
   menuGroups,
 }) {
+  const visibleGroups = useMemo(
+    () =>
+      menuGroups
+        .map((group) => ({
+          ...group,
+          visibleItems: group.items.filter((item) => accessibleMenus.includes(item.id)),
+        }))
+        .filter((group) => group.visibleItems.length > 0),
+    [accessibleMenus, menuGroups],
+  )
+
+  const [expandedGroups, setExpandedGroups] = useState({})
+
+  useEffect(() => {
+    setExpandedGroups((current) => {
+      const next = {}
+
+      visibleGroups.forEach((group) => {
+        const hasActiveItem = group.visibleItems.some((item) => item.id === activeMenu)
+        next[group.id] = hasActiveItem || current[group.id] !== false
+      })
+
+      return next
+    })
+  }, [activeMenu, visibleGroups])
+
+  function toggleGroup(groupId) {
+    setExpandedGroups((current) => ({
+      ...current,
+      [groupId]: current[groupId] === false,
+    }))
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -149,17 +236,26 @@ function Sidebar({
       </div>
 
       <nav className="sidebar__nav">
-        {menuGroups.map((group) => {
-          const visibleItems = group.items.filter((item) => accessibleMenus.includes(item.id))
-          if (visibleItems.length === 0) {
-            return null
-          }
-
+        {visibleGroups.map((group) => {
+          const isExpanded = expandedGroups[group.id] !== false
           return (
             <section className="sidebar-group" key={group.id}>
-              <div className="sidebar-group__title">{group.title}</div>
-              <div className="sidebar-group__items">
-                {visibleItems.map((item) => {
+              <button
+                type="button"
+                className={`sidebar-group__toggle ${isExpanded ? 'sidebar-group__toggle--expanded' : ''}`}
+                onClick={() => toggleGroup(group.id)}
+                aria-expanded={isExpanded}
+              >
+                <span className="sidebar-group__title">{group.title}</span>
+                <span className="sidebar-group__chevron" aria-hidden>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M8 10l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </button>
+              {isExpanded ? (
+                <div className="sidebar-group__items">
+                  {group.visibleItems.map((item) => {
                   const icon = getIconFor(item.id)
                   return (
                     <button
@@ -172,8 +268,9 @@ function Sidebar({
                       <span className="sidebar-item__label">{item.label}</span>
                     </button>
                   )
-                })}
-              </div>
+                  })}
+                </div>
+              ) : null}
             </section>
           )
         })}

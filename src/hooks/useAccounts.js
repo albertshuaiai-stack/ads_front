@@ -1,6 +1,6 @@
 // 账户（Cash Bach Account）模块状态与数据加载 / Account module state and data loading
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
+import { buildOwnerQueryParams, buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
 import { createInitialPagination, buildPaginationState } from '../utils/pagination'
 
 export function useAccounts(token) {
@@ -14,6 +14,7 @@ export function useAccounts(token) {
     userName: '',
     platformName: '',
     status: '',
+    ownerPhoneNumber: '',
   })
   const [accountQueryApplied, setAccountQueryApplied] = useState(false)
   const accountFiltersRef = useRef(accountFilters)
@@ -49,6 +50,7 @@ export function useAccounts(token) {
             userName: filters.userName,
             platformName: filters.platformName,
             status: filters.status,
+            ...buildOwnerQueryParams(filters.ownerPhoneNumber),
             page: pageConfig.page,
             size: pageConfig.size,
           })}`,

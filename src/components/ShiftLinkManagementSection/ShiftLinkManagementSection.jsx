@@ -18,6 +18,8 @@ function ShiftLinkManagementSection({
   platformOptions,
   platformsLoading,
   platformsError,
+  showOwnerFilter,
+  ownerOptions,
   onCreateAds,
   onOpenBulkAdsUpload,
   onOpenFolderImport,
@@ -107,6 +109,31 @@ function ShiftLinkManagementSection({
           </div>
 
           <form className="filter-form" onSubmit={onApplyAdsUrlFilters}>
+            {showOwnerFilter ? (
+              <div className="filter-item">
+                <label htmlFor="adsUrlOwnerFilter">Owner</label>
+                <select
+                  id="adsUrlOwnerFilter"
+                  value={adsUrlFilters.ownerPhoneNumber}
+                  onChange={(event) =>
+                    onAdsUrlFiltersChange({
+                      ...adsUrlFilters,
+                      ownerPhoneNumber: event.target.value,
+                      adsName: '',
+                      platformName: '',
+                    })
+                  }
+                >
+                  <option value="">All owners</option>
+                  {ownerOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="filter-item">
               <label htmlFor="adsUrlAdsTypeFilter">Ads Type</label>
               <select
@@ -114,6 +141,7 @@ function ShiftLinkManagementSection({
                 value={adsUrlFilters.adsType}
                 onChange={(event) =>
                   onAdsUrlFiltersChange({
+                    ...adsUrlFilters,
                     adsType: event.target.value,
                     adsName: '',
                     platformName: '',

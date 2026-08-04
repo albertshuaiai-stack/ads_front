@@ -374,6 +374,18 @@ function buildQueryString(params) {
   return queryString ? `?${queryString}` : ''
 }
 
+function buildOwnerQueryParams(ownerPhoneNumber) {
+  const ownerValue = toOptionalTrimmedString(ownerPhoneNumber)
+  if (!ownerValue) {
+    return {}
+  }
+
+  return {
+    adsOwner: ownerValue,
+    userPhoneNumber: ownerValue,
+  }
+}
+
 function getLoggedInAdsOwner(identifier, currentUser) {
   return toOptionalTrimmedString(currentUser || identifier)
 }
@@ -450,6 +462,119 @@ function normalizeAffiliateRow(row) {
     displayNumber: toOptionalTrimmedString(row?.displayNumber) || '',
     remarks: toOptionalTrimmedString(row?.remarks) || '',
   }
+}
+
+function createEmptyParameterRow() {
+  return {
+    parameterName: '',
+    parameterValue: '',
+  }
+}
+
+function normalizeParameterRow(row) {
+  return {
+    parameterName: toOptionalTrimmedString(row?.parameterName) || '',
+    parameterValue: toOptionalTrimmedString(row?.parameterValue) || '',
+  }
+}
+
+function serializeParameterRows(rows) {
+  const result = {}
+
+  rows
+    .map((row) => normalizeParameterRow(row))
+    .forEach((row, index) => {
+      if (!row.parameterName) {
+        if (row.parameterValue) {
+          throw new Error(`Parameter row ${index + 1}: Parameter Name is required.`)
+        }
+        return
+      }
+
+      result[row.parameterName] = row.parameterValue
+    })
+
+  return JSON.stringify(result)
+}
+
+function parseParameterRows(value) {
+  const text = toOptionalTrimmedString(value)
+
+  if (!text) {
+    return [createEmptyParameterRow()]
+  }
+
+  let parsed
+  try {
+    parsed = JSON.parse(text)
+  } catch {
+    throw new Error('Payload JSON from backend is invalid.')
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('Payload JSON from backend must be an object.')
+  }
+
+  const rows = Object.entries(parsed).map(([parameterName, parameterValue]) => ({
+    parameterName,
+    parameterValue:
+      parameterValue == null || typeof parameterValue === 'string'
+        ? parameterValue || ''
+        : JSON.stringify(parameterValue),
+  }))
+
+  return rows.length > 0 ? rows : [createEmptyParameterRow()]
+}
+
+const RESPONSE_PAYLOAD_FORMATS = new Set(['TEXT', 'JSON', 'XML', 'YAML'])
+
+function createResponsePayloadState() {
+  return {
+    format: 'TEXT',
+    content: '',
+  }
+}
+
+function parseResponsePayloadState(value) {
+  const text = toOptionalTrimmedString(value)
+
+  if (!text) {
+    return createResponsePayloadState()
+  }
+
+  try {
+    const parsed = JSON.parse(text)
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed) &&
+      RESPONSE_PAYLOAD_FORMATS.has(String(parsed.__payloadFormat || '').toUpperCase())
+    ) {
+      return {
+        format: String(parsed.__payloadFormat).toUpperCase(),
+        content: parsed.__payloadContent == null ? '' : String(parsed.__payloadContent),
+      }
+    }
+  } catch {
+    // Keep backward compatibility with plain text payloads.
+  }
+
+  return {
+    format: 'TEXT',
+    content: text,
+  }
+}
+
+function serializeResponsePayloadState(format, content) {
+  const normalizedFormat = String(format || 'TEXT').trim().toUpperCase()
+  if (!RESPONSE_PAYLOAD_FORMATS.has(normalizedFormat)) {
+    throw new Error('Response Payload Format is invalid.')
+  }
+
+  return JSON.stringify({
+    __payloadFormat: normalizedFormat,
+    __payloadContent: toOptionalTrimmedString(content) || '',
+  })
 }
 
 async function downloadApiFile(path, token, fileName) {
@@ -532,6 +657,7 @@ export {
   parseFolderShiftLinks,
   extractItems,
   buildQueryString,
+  buildOwnerQueryParams,
   getLoggedInAdsOwner,
   getStatusToneClass,
   normalizeRoleName,
@@ -541,6 +667,13 @@ export {
   getDefaultMenuForRole,
   createEmptyAffiliateRow,
   normalizeAffiliateRow,
+  createEmptyParameterRow,
+  normalizeParameterRow,
+  serializeParameterRows,
+  parseParameterRows,
+  createResponsePayloadState,
+  parseResponsePayloadState,
+  serializeResponsePayloadState,
   downloadApiFile,
   downloadStaticFile,
   uploadApiFile,

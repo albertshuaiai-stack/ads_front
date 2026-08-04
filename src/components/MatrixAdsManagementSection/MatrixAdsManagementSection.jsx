@@ -16,6 +16,8 @@ function MatrixAdsManagementSection({
   countryOptions,
   platformOptions,
   platformsLoading,
+  showOwnerFilter,
+  ownerOptions,
   onCreateMatrixAds,
   canCreateMatrixAds,
   matrixAdsQuotaMessage,
@@ -74,6 +76,29 @@ function MatrixAdsManagementSection({
           {matrixAdsQuotaMessage ? <p className="field-help">{matrixAdsQuotaMessage}</p> : null}
 
           <form className="filter-form" onSubmit={onApplyMatrixAdsFilters}>
+            {showOwnerFilter ? (
+              <div className="filter-item">
+                <label htmlFor="matrixOwnerFilter">Owner</label>
+                <select
+                  id="matrixOwnerFilter"
+                  value={matrixAdsFilters.ownerPhoneNumber}
+                  onChange={(event) =>
+                    onMatrixAdsFiltersChange({
+                      ...matrixAdsFilters,
+                      ownerPhoneNumber: event.target.value,
+                    })
+                  }
+                >
+                  <option value="">All owners</option>
+                  {ownerOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="filter-item">
               <label htmlFor="matrixCampainFilter">Campaign Name</label>
               <input

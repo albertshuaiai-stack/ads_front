@@ -15,6 +15,8 @@ function NormalAdsManagementSection({
   countryOptions,
   platformOptions,
   platformsLoading,
+  showOwnerFilter,
+  ownerOptions,
   onCreateNormalAds,
   canCreateNormalAds,
   normalAdsQuotaMessage,
@@ -73,6 +75,29 @@ function NormalAdsManagementSection({
           {normalAdsQuotaMessage ? <p className="field-help">{normalAdsQuotaMessage}</p> : null}
 
           <form className="filter-form" onSubmit={onApplyNormalAdsFilters}>
+            {showOwnerFilter ? (
+              <div className="filter-item">
+                <label htmlFor="normalOwnerFilter">Owner</label>
+                <select
+                  id="normalOwnerFilter"
+                  value={normalAdsFilters.ownerPhoneNumber}
+                  onChange={(event) =>
+                    onNormalAdsFiltersChange({
+                      ...normalAdsFilters,
+                      ownerPhoneNumber: event.target.value,
+                    })
+                  }
+                >
+                  <option value="">All owners</option>
+                  {ownerOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="filter-item">
               <label htmlFor="normalCampainFilter">Campaign Name</label>
               <input

@@ -31,14 +31,37 @@
   gap: 12px;
 }
 
-.sidebar-group__title {
+.sidebar-group__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   margin: 0;
-  padding-top: 6px;
+  padding: 6px 0 0;
+  border: 0;
   border-top: 1px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+}
+
+.sidebar-group__title {
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
   text-transform: uppercase;
+}
+
+.sidebar-group__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: transform 0.18s ease;
+}
+
+.sidebar-group__toggle--expanded .sidebar-group__chevron {
+  transform: rotate(180deg);
 }
 
 .sidebar-group__items {

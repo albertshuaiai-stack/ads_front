@@ -28,20 +28,48 @@ export const MENU_GROUPS = [
     items: [
       { id: 'email-management', label: 'Email' },
       { id: 'cash-bach-account', label: 'Cash Bach Account' },
+      { id: 'ads-account-management', label: 'Ads Account' },
       { id: 'paypal-management', label: 'PayPal' },
       { id: 'income-management', label: 'Income' },
       { id: 'outcome-management', label: 'Expenditure' },
     ],
   },
+  {
+    id: 'affiliate-ads',
+    title: 'Affiliate Ads',
+    items: [
+      { id: 'affiliate-job-detail', label: 'Job Detail' },
+      { id: 'affiliate-trigger', label: 'Trigger' },
+      { id: 'affiliate-ip-proxy', label: 'IP Proxy' },
+      { id: 'affiliate-sync-config', label: 'Ads Sync Config' },
+      { id: 'affiliate-sync-task', label: 'Ads Sync Task' },
+      { id: 'affiliate-test-task', label: 'Ads Test Task' },
+      { id: 'affiliate-test-result', label: 'Ads Test Result' },
+      { id: 'affiliate-sync-result', label: 'Ads Sync Result' },
+    ],
+  },
 ]
 
-// 财务工具类菜单 id 集合 / Financial tool menu ids
+// Tool 类菜单 id 集合 / Tool menu ids
 export const TOOL_MENU_IDS = [
   'email-management',
   'cash-bach-account',
+  'ads-account-management',
   'paypal-management',
   'income-management',
   'outcome-management',
+]
+
+// Affiliate Ads 类菜单 id 集合 / Affiliate Ads menu ids
+export const AFFILIATE_ADS_MENU_IDS = [
+  'affiliate-job-detail',
+  'affiliate-trigger',
+  'affiliate-ip-proxy',
+  'affiliate-sync-config',
+  'affiliate-sync-task',
+  'affiliate-test-task',
+  'affiliate-test-result',
+  'affiliate-sync-result',
 ]
 
 // Shift Link 批量导入模板下载地址 / Shift Link bulk-upload template url

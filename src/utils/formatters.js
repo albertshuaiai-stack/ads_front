@@ -36,6 +36,42 @@ export function formatDateDisplayValue(value) {
   return dateValue ? dateValue.replace(/-/g, '/') : formatTableValue(value)
 }
 
+export function formatDateTimeDisplayValue(value) {
+  if (value == null || value === '') {
+    return formatTableValue(value)
+  }
+
+  let parsedDate = null
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    parsedDate = new Date(value)
+  } else {
+    const text = toOptionalTrimmedString(value)
+    if (!text) {
+      return formatTableValue(value)
+    }
+
+    if (/^\d+$/.test(text)) {
+      parsedDate = new Date(Number(text))
+    } else {
+      parsedDate = new Date(text)
+    }
+  }
+
+  if (!(parsedDate instanceof Date) || Number.isNaN(parsedDate.getTime())) {
+    return formatTableValue(value)
+  }
+
+  const year = parsedDate.getFullYear()
+  const month = String(parsedDate.getMonth() + 1).padStart(2, '0')
+  const day = String(parsedDate.getDate()).padStart(2, '0')
+  const hours = String(parsedDate.getHours()).padStart(2, '0')
+  const minutes = String(parsedDate.getMinutes()).padStart(2, '0')
+  const seconds = String(parsedDate.getSeconds()).padStart(2, '0')
+
+  return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`
+}
+
 // 归一化广告状态（ACTIVE -> RUNNING）/ Normalize ads status
 export function normalizeAdsStatusValue(value) {
   const text = String(value ?? '').trim().toUpperCase()

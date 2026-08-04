@@ -1,6 +1,6 @@
 // Shift Link（广告链接）模块状态与数据加载 / Shift Link module state and data loading
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
+import { buildOwnerQueryParams, buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
 import { createInitialPagination, buildPaginationState } from '../utils/pagination'
 
 export function useShiftLinks(token) {
@@ -44,6 +44,7 @@ export function useShiftLinks(token) {
     adsType: '',
     adsName: '',
     platformName: '',
+    ownerPhoneNumber: '',
   })
   const [adsUrlQueryApplied, setAdsUrlQueryApplied] = useState(false)
   const adsUrlFiltersRef = useRef(adsUrlFilters)
@@ -62,8 +63,10 @@ export function useShiftLinks(token) {
       setAdsError('')
 
       try {
+        const { ownerPhoneNumber, ...restFilters } = filters || {}
         const path = `/shift-links${buildQueryString({
-          ...filters,
+          ...restFilters,
+          ...buildOwnerQueryParams(ownerPhoneNumber),
           page: pageConfig.page,
           size: pageConfig.size,
         })}`

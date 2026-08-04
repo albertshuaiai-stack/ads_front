@@ -29,6 +29,8 @@ function OutcomeManagementSection({
   onSaveOutcome,
   savingOutcome,
   onCloseOutcomeModal,
+  showOwnerFilter,
+  ownerOptions,
   accountCurrencyOptions,
   outcomeTypeOptions,
   formatDateDisplayValue,
@@ -50,6 +52,29 @@ function OutcomeManagementSection({
           </div>
 
           <form className="filter-form" onSubmit={onApplyOutcomeFilters}>
+            {showOwnerFilter ? (
+              <div className="filter-item">
+                <label htmlFor="outcomeManagementOwnerFilter">Owner</label>
+                <select
+                  id="outcomeManagementOwnerFilter"
+                  value={outcomeFilters.ownerPhoneNumber}
+                  onChange={(event) =>
+                    onOutcomeFiltersChange({
+                      ...outcomeFilters,
+                      ownerPhoneNumber: event.target.value,
+                    })
+                  }
+                >
+                  <option value="">All owners</option>
+                  {ownerOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="filter-item">
               <label htmlFor="outcomeManagementOutcomeTypeFilter">Expenditure Type</label>
               <select

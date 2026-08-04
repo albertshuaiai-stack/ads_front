@@ -45,6 +45,8 @@ function CashBachAccountManagementSection({
   pagination,
   onPageChange,
   onPageSizeChange,
+  showOwnerFilter,
+  ownerOptions,
   userNameOptions,
   userNameOptionsLoading,
 }) {
@@ -62,6 +64,29 @@ function CashBachAccountManagementSection({
           </div>
 
           <form className="filter-form" onSubmit={onApplyAccountFilters}>
+            {showOwnerFilter ? (
+              <div className="filter-item">
+                <label htmlFor="cashBachAccountOwnerFilter">Owner</label>
+                <select
+                  id="cashBachAccountOwnerFilter"
+                  value={accountFilters.ownerPhoneNumber}
+                  onChange={(event) =>
+                    onAccountFiltersChange({
+                      ...accountFilters,
+                      ownerPhoneNumber: event.target.value,
+                    })
+                  }
+                >
+                  <option value="">All owners</option>
+                  {ownerOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="filter-item">
               <label htmlFor="cashBachAccountUserNameFilter">User Name</label>
               <select

@@ -25,6 +25,8 @@ function PaypalManagementSection({
   onSavePaypal,
   savingPaypal,
   onClosePaypalModal,
+  showOwnerFilter,
+  ownerOptions,
   pagination,
   onPageChange,
   onPageSizeChange,
@@ -44,6 +46,29 @@ function PaypalManagementSection({
           </div>
 
           <form className="filter-form" onSubmit={onApplyPaypalFilters}>
+            {showOwnerFilter ? (
+              <div className="filter-item">
+                <label htmlFor="paypalManagementOwnerFilter">Owner</label>
+                <select
+                  id="paypalManagementOwnerFilter"
+                  value={paypalFilters.ownerPhoneNumber}
+                  onChange={(event) =>
+                    onPaypalFiltersChange({
+                      ...paypalFilters,
+                      ownerPhoneNumber: event.target.value,
+                    })
+                  }
+                >
+                  <option value="">All owners</option>
+                  {ownerOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+
             <div className="filter-item">
               <label htmlFor="paypalManagementPaypalEmailFilter">PayPal Email</label>
               <input

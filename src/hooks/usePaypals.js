@@ -1,6 +1,6 @@
 // PayPal 管理模块状态与数据加载 / PayPal management module state and data loading
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
+import { buildOwnerQueryParams, buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
 import { createInitialPagination, buildPaginationState } from '../utils/pagination'
 
 export function usePaypals(token) {
@@ -13,6 +13,7 @@ export function usePaypals(token) {
   const [paypalFilters, setPaypalFilters] = useState({
     paypalEmail: '',
     primaryEmail: '',
+    ownerPhoneNumber: '',
   })
   const [paypalQueryApplied, setPaypalQueryApplied] = useState(false)
   const paypalFiltersRef = useRef(paypalFilters)
@@ -41,6 +42,7 @@ export function usePaypals(token) {
           `/tool-paypals${buildQueryString({
             paypalEmail: filters.paypalEmail,
             primaryEmail: filters.primaryEmail,
+            ...buildOwnerQueryParams(filters.ownerPhoneNumber),
             page: pageConfig.page,
             size: pageConfig.size,
           })}`,
