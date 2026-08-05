@@ -474,6 +474,7 @@ function App() {
     affiliateSyncResultFiltersRef,
     loadAffiliateSyncResults,
   } = useAffiliateSyncResults(token, loggedInAdsOwner, showAdminOwnerFilter)
+  const [runningAffiliateSyncResultId, setRunningAffiliateSyncResultId] = useState(null)
 
   const {
     affiliateTestResults, setAffiliateTestResults,
@@ -1578,6 +1579,29 @@ function App() {
       setAffiliateTestTasksError(message)
     } finally {
       setRunningAffiliateTestTaskId(null)
+    }
+  }
+
+  async function handleTestAffiliateSyncResult(id) {
+    setRunningAffiliateSyncResultId(id)
+    setAffiliateSyncResultsError('')
+    setAffiliateSyncResultsMessage('')
+
+    try {
+      await requestApi(`/affiliate-ads-sync/${id}/testAd`, {
+        method: 'POST',
+        token,
+      })
+      setAffiliateSyncResultsMessage('Ad test triggered successfully.')
+      await loadAffiliateSyncResults(
+        affiliateSyncResultQueryApplied ? affiliateSyncResultFiltersRef.current : {},
+        affiliateSyncResultPaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAffiliateSyncResultsError(message)
+    } finally {
+      setRunningAffiliateSyncResultId(null)
     }
   }
 
@@ -3110,6 +3134,7 @@ function App() {
     setAffiliateSyncResultsError('')
     setAffiliateSyncResultsMessage('')
     setAffiliateSyncResultPagination(createInitialPagination())
+    setRunningAffiliateSyncResultId(null)
     setAffiliateSyncResultFilters({
       affiliateNetwork: '',
       siteName: '',
@@ -5129,21 +5154,21 @@ function App() {
         : activeMenu === 'ads-account-management'
           ? 'Ads Account Management'
         : activeMenu === 'affiliate-job-detail'
-          ? 'Job Detail'
+          ? 'Auto Job'
         : activeMenu === 'affiliate-sync-config'
-          ? 'Ads Sync Config'
+          ? 'API Config'
         : activeMenu === 'affiliate-sync-task'
-          ? 'Ads Sync Task'
+          ? 'Auto Sync Task'
         : activeMenu === 'affiliate-test-task'
-          ? 'Ads Test Task'
+          ? 'Auto Test Task'
         : activeMenu === 'affiliate-test-result'
-          ? 'Ads Test Result'
+          ? 'Auto Test Report'
         : activeMenu === 'affiliate-sync-result'
-          ? 'Ads Sync Result'
+          ? 'Auto Sync Report'
         : activeMenu === 'affiliate-trigger'
-          ? 'Trigger'
+          ? 'Auto Trigger'
         : activeMenu === 'affiliate-ip-proxy'
-          ? 'IP Proxy Management'
+          ? 'Proxy Config'
         : activeMenu === 'paypal-management'
           ? 'PayPal Management'
         : activeMenu === 'income-management'
@@ -5760,6 +5785,8 @@ function App() {
         affiliateNetworkOptions={platformOptions}
         formatDateDisplayValue={formatDateDisplayValue}
         pagination={affiliateSyncResultPagination}
+        runningAffiliateSyncResultId={runningAffiliateSyncResultId}
+        onTestAffiliateSyncResult={handleTestAffiliateSyncResult}
         onPageChange={handleAffiliateSyncResultPageChange}
         onPageSizeChange={handleAffiliateSyncResultPageSizeChange}
       />

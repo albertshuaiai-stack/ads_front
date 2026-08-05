@@ -56,7 +56,7 @@ function AffiliateSyncConfigManagementSection({
       <div className="panel affiliate-sync-config-management">
         <div className="user-list">
           <div className="list-header">
-            <h3>Ads Sync Config</h3>
+            <h3>API Config</h3>
             <div className="toolbar-actions">
               <button type="button" className="primary" onClick={onCreateAffiliateSyncConfig}>
                 Add Ads Sync Config

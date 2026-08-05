@@ -26,7 +26,7 @@ function AffiliateJobDetailSection({
     <div className="panel affiliate-job-detail">
       <div className="user-list">
         <div className="list-header">
-          <h3>Job Detail</h3>
+          <h3>Auto Job</h3>
         </div>
 
         <form className="filter-form" onSubmit={onApplyAffiliateJobDetailFilters}>

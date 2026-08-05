@@ -19,7 +19,7 @@ function AffiliateTriggerSection({
     <div className="panel affiliate-trigger">
       <div className="user-list">
         <div className="list-header">
-          <h3>Trigger</h3>
+          <h3>Auto Trigger</h3>
         </div>
 
         <form className="filter-form" onSubmit={onApplyAffiliateTriggerFilters}>

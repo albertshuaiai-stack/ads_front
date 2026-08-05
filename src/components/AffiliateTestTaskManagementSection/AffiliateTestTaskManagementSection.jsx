@@ -54,7 +54,7 @@ function AffiliateTestTaskManagementSection({
       <div className="panel affiliate-test-task-management">
         <div className="user-list">
           <div className="list-header">
-            <h3>Ads Test Task</h3>
+            <h3>Auto Test Task</h3>
             <div className="toolbar-actions">
               <button type="button" className="primary" onClick={onCreateAffiliateTestTask}>
                 Add Ads Test Task

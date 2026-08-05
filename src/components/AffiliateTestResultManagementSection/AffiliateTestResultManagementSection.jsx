@@ -47,7 +47,7 @@ function AffiliateTestResultManagementSection({
       <div className="panel affiliate-test-result-management">
         <div className="user-list">
           <div className="list-header">
-            <h3>Ads Test Result</h3>
+            <h3>Auto Test Report</h3>
             <div className="toolbar-actions">
               <button type="button" className="primary" onClick={onCreateAffiliateTestResult}>
                 Add Ads Test Result

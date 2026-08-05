@@ -1,6 +1,10 @@
 import PaginationControls from '../PaginationControls/PaginationControls'
 import { formatTableValue } from '../../lib/adsPortal'
 
+function isActiveMerchantStatus(value) {
+  return String(value ?? '').trim().toLowerCase() === 'active'
+}
+
 function AffiliateSyncResultManagementSection({
   affiliateSyncResults,
   affiliateSyncResultsLoading,
@@ -15,6 +19,8 @@ function AffiliateSyncResultManagementSection({
   affiliateNetworkOptions,
   formatDateDisplayValue,
   pagination,
+  runningAffiliateSyncResultId,
+  onTestAffiliateSyncResult,
   onPageChange,
   onPageSizeChange,
 }) {
@@ -22,7 +28,7 @@ function AffiliateSyncResultManagementSection({
     <div className="panel affiliate-sync-result-management">
       <div className="user-list">
         <div className="list-header">
-          <h3>Ads Sync Result</h3>
+          <h3>Auto Sync Report</h3>
         </div>
 
         <form className="filter-form" onSubmit={onApplyAffiliateSyncResultFilters}>
@@ -126,7 +132,6 @@ function AffiliateSyncResultManagementSection({
                   <th>ID</th>
                   <th>Site Name</th>
                   <th>Site URL</th>
-                  <th>Site Logo URL</th>
                   <th>Tracking URL</th>
                   <th>Region</th>
                   <th>Merchant Status</th>
@@ -137,6 +142,7 @@ function AffiliateSyncResultManagementSection({
                   <th>Status</th>
                   <th>Create Date</th>
                   <th>Update Date</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -145,7 +151,6 @@ function AffiliateSyncResultManagementSection({
                     <td>{item.id}</td>
                     <td>{formatTableValue(item.siteName)}</td>
                     <td>{formatTableValue(item.siteUrl)}</td>
-                    <td>{formatTableValue(item.siteLogoUrl)}</td>
                     <td>{formatTableValue(item.trackingUrl)}</td>
                     <td>{formatTableValue(item.region)}</td>
                     <td>{formatTableValue(item.merchantStatus)}</td>
@@ -156,6 +161,18 @@ function AffiliateSyncResultManagementSection({
                     <td>{formatTableValue(item.status)}</td>
                     <td>{formatDateDisplayValue(item.createDate)}</td>
                     <td>{formatDateDisplayValue(item.updateDate)}</td>
+                    <td className="actions">
+                      {isActiveMerchantStatus(item.merchantStatus) ? (
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => onTestAffiliateSyncResult(item.id)}
+                          disabled={runningAffiliateSyncResultId === item.id}
+                        >
+                          {runningAffiliateSyncResultId === item.id ? 'Testing...' : 'Test Ad'}
+                        </button>
+                      ) : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>

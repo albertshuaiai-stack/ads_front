@@ -71,7 +71,7 @@ function AffiliateSyncTaskManagementSection({
       <div className="panel affiliate-sync-task-management">
         <div className="user-list">
           <div className="list-header">
-            <h3>Ads Sync Task</h3>
+            <h3>Auto Sync Task</h3>
             <div className="toolbar-actions">
               <button type="button" className="primary" onClick={onCreateAffiliateSyncTask}>
                 Add Ads Sync Task

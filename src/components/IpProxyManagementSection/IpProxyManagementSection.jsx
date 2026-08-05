@@ -42,7 +42,7 @@ function IpProxyManagementSection({
       <div className="panel ip-proxy-management">
         <div className="user-list">
           <div className="list-header">
-            <h3>IP Proxy Management</h3>
+            <h3>Proxy Config</h3>
             <div className="toolbar-actions">
               <button type="button" className="primary" onClick={onCreateIpProxy}>
                 Add IP Proxy
