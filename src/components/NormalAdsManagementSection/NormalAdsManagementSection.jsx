@@ -12,9 +12,8 @@ function NormalAdsManagementSection({
   normalAdsColumns,
   normalAdsFilters,
   adsStatusOptions,
+  filterPlatformOptions,
   countryOptions,
-  platformOptions,
-  platformsLoading,
   showOwnerFilter,
   ownerOptions,
   onCreateNormalAds,
@@ -77,7 +76,7 @@ function NormalAdsManagementSection({
           <form className="filter-form" onSubmit={onApplyNormalAdsFilters}>
             {showOwnerFilter ? (
               <div className="filter-item">
-                <label htmlFor="normalOwnerFilter">Owner</label>
+                <label htmlFor="normalOwnerFilter">Ads Owner</label>
                 <select
                   id="normalOwnerFilter"
                   value={normalAdsFilters.ownerPhoneNumber}
@@ -99,20 +98,6 @@ function NormalAdsManagementSection({
             ) : null}
 
             <div className="filter-item">
-              <label htmlFor="normalCampainFilter">Campaign Name</label>
-              <input
-                id="normalCampainFilter"
-                value={normalAdsFilters.campainName}
-                onChange={(event) =>
-                  onNormalAdsFiltersChange({
-                    ...normalAdsFilters,
-                    campainName: event.target.value,
-                  })
-                }
-              />
-            </div>
-
-            <div className="filter-item">
               <label htmlFor="normalPlatformFilter">Platform</label>
               <select
                 id="normalPlatformFilter"
@@ -123,10 +108,9 @@ function NormalAdsManagementSection({
                     platformName: event.target.value,
                   })
                 }
-                disabled={platformsLoading || platformOptions.length === 0}
               >
                 <option value="">All platforms</option>
-                {platformOptions.map((platformName) => (
+                {filterPlatformOptions.map((platformName) => (
                   <option key={platformName} value={platformName}>
                     {platformName}
                   </option>
@@ -153,6 +137,20 @@ function NormalAdsManagementSection({
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="filter-item">
+              <label htmlFor="normalCampainFilter">Campaign Name</label>
+              <input
+                id="normalCampainFilter"
+                value={normalAdsFilters.campainName}
+                onChange={(event) =>
+                  onNormalAdsFiltersChange({
+                    ...normalAdsFilters,
+                    campainName: event.target.value,
+                  })
+                }
+              />
             </div>
 
             <div className="form-actions">
@@ -274,10 +272,10 @@ function NormalAdsManagementSection({
               id="normalPlatformName"
               value={normalPlatformName}
               onChange={(event) => onNormalPlatformNameChange(event.target.value)}
-              disabled={platformsLoading || platformOptions.length === 0}
+              disabled={filterPlatformOptions.length === 0}
             >
               <option value="">Select a platform</option>
-              {platformOptions.map((platformName) => (
+              {filterPlatformOptions.map((platformName) => (
                 <option key={platformName} value={platformName}>
                   {platformName}
                 </option>

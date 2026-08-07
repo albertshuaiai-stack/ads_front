@@ -19,17 +19,6 @@ export function useAffiliateTestResults(token, defaultAdsOwner, isAdminView) {
   })
   const [affiliateTestResultQueryApplied, setAffiliateTestResultQueryApplied] = useState(false)
   const affiliateTestResultFiltersRef = useRef(affiliateTestResultFilters)
-  const [editingAffiliateTestResultId, setEditingAffiliateTestResultId] = useState(null)
-  const [affiliateTestResultNetwork, setAffiliateTestResultNetwork] = useState('')
-  const [affiliateTestResultRegion, setAffiliateTestResultRegion] = useState('')
-  const [affiliateTestResultSiteName, setAffiliateTestResultSiteName] = useState('')
-  const [affiliateTestResultSiteUrl, setAffiliateTestResultSiteUrl] = useState('')
-  const [affiliateTestResultTrackingUrl, setAffiliateTestResultTrackingUrl] = useState('')
-  const [affiliateTestResultFinalUrl, setAffiliateTestResultFinalUrl] = useState('')
-  const [affiliateTestResultStatus, setAffiliateTestResultStatus] = useState('')
-  const [affiliateTestResultAdsOwner, setAffiliateTestResultAdsOwner] = useState('')
-  const [savingAffiliateTestResult, setSavingAffiliateTestResult] = useState(false)
-  const [showAffiliateTestResultModal, setShowAffiliateTestResultModal] = useState(false)
 
   useEffect(() => {
     affiliateTestResultFiltersRef.current = affiliateTestResultFilters
@@ -53,7 +42,7 @@ export function useAffiliateTestResults(token, defaultAdsOwner, isAdminView) {
           : toOptionalTrimmedString(defaultAdsOwner)
 
         const response = await requestApi(
-          `/affiliate-ads-test-result${buildQueryString({
+          `/affiliate-test${buildQueryString({
             adsOwner: resolvedAdsOwner,
             affiliateNetwork: filters.affiliateNetwork,
             region: filters.region,
@@ -85,17 +74,6 @@ export function useAffiliateTestResults(token, defaultAdsOwner, isAdminView) {
     affiliateTestResultFilters, setAffiliateTestResultFilters,
     affiliateTestResultQueryApplied, setAffiliateTestResultQueryApplied,
     affiliateTestResultFiltersRef,
-    editingAffiliateTestResultId, setEditingAffiliateTestResultId,
-    affiliateTestResultNetwork, setAffiliateTestResultNetwork,
-    affiliateTestResultRegion, setAffiliateTestResultRegion,
-    affiliateTestResultSiteName, setAffiliateTestResultSiteName,
-    affiliateTestResultSiteUrl, setAffiliateTestResultSiteUrl,
-    affiliateTestResultTrackingUrl, setAffiliateTestResultTrackingUrl,
-    affiliateTestResultFinalUrl, setAffiliateTestResultFinalUrl,
-    affiliateTestResultStatus, setAffiliateTestResultStatus,
-    affiliateTestResultAdsOwner, setAffiliateTestResultAdsOwner,
-    savingAffiliateTestResult, setSavingAffiliateTestResult,
-    showAffiliateTestResultModal, setShowAffiliateTestResultModal,
     loadAffiliateTestResults,
   }
 }

@@ -1,8 +1,12 @@
 import PaginationControls from '../PaginationControls/PaginationControls'
 import { formatTableValue } from '../../lib/adsPortal'
 
+function hasTrackingUrl(value) {
+  return String(value ?? '').trim() !== ''
+}
+
 function isActiveMerchantStatus(value) {
-  return String(value ?? '').trim().toLowerCase() === 'active'
+  return String(value ?? '').trim().toUpperCase() === 'ACTIVE'
 }
 
 function AffiliateSyncResultManagementSection({
@@ -11,16 +15,17 @@ function AffiliateSyncResultManagementSection({
   affiliateSyncResultsError,
   affiliateSyncResultsMessage,
   affiliateSyncResultFilters,
+  affiliateSyncResultStatusOptions,
   onAffiliateSyncResultFiltersChange,
   onApplyAffiliateSyncResultFilters,
   onReloadAffiliateSyncResultFilters,
+  onTestAffiliateSyncResult,
+  testingAffiliateSyncResultId,
   showOwnerFilter,
   ownerOptions,
   affiliateNetworkOptions,
   formatDateDisplayValue,
   pagination,
-  runningAffiliateSyncResultId,
-  onTestAffiliateSyncResult,
   onPageChange,
   onPageSizeChange,
 }) {
@@ -28,7 +33,7 @@ function AffiliateSyncResultManagementSection({
     <div className="panel affiliate-sync-result-management">
       <div className="user-list">
         <div className="list-header">
-          <h3>Auto Sync Report</h3>
+          <h3>Affiliate Ads</h3>
         </div>
 
         <form className="filter-form" onSubmit={onApplyAffiliateSyncResultFilters}>
@@ -69,30 +74,16 @@ function AffiliateSyncResultManagementSection({
             >
               <option value="">All affiliate networks</option>
               {affiliateNetworkOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
           </div>
 
           <div className="filter-item">
-            <label htmlFor="affiliateSyncResultSiteNameFilter">Site Name</label>
-            <input
-              id="affiliateSyncResultSiteNameFilter"
-              value={affiliateSyncResultFilters.siteName}
-              onChange={(event) =>
-                onAffiliateSyncResultFiltersChange({
-                  ...affiliateSyncResultFilters,
-                  siteName: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
             <label htmlFor="affiliateSyncResultStatusFilter">Status</label>
-            <input
+            <select
               id="affiliateSyncResultStatusFilter"
               value={affiliateSyncResultFilters.status}
               onChange={(event) =>
@@ -101,7 +92,14 @@ function AffiliateSyncResultManagementSection({
                   status: event.target.value,
                 })
               }
-            />
+            >
+              <option value="">All statuses</option>
+              {affiliateSyncResultStatusOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-actions">
@@ -120,10 +118,10 @@ function AffiliateSyncResultManagementSection({
           </p>
         ) : null}
         {affiliateSyncResultsMessage ? <p className="status success">{affiliateSyncResultsMessage}</p> : null}
-        {affiliateSyncResultsLoading ? <p>Loading Ads Sync Results...</p> : null}
+        {affiliateSyncResultsLoading ? <p>Loading Affiliate Ads...</p> : null}
 
         {!affiliateSyncResultsLoading && affiliateSyncResults.length === 0 ? (
-          <p>No Ads Sync Results found.</p>
+          <p>No Affiliate Ads found.</p>
         ) : (
           <div className="table-wrap">
             <table>
@@ -142,7 +140,7 @@ function AffiliateSyncResultManagementSection({
                   <th>Status</th>
                   <th>Create Date</th>
                   <th>Update Date</th>
-                  <th>Actions</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -162,14 +160,14 @@ function AffiliateSyncResultManagementSection({
                     <td>{formatDateDisplayValue(item.createDate)}</td>
                     <td>{formatDateDisplayValue(item.updateDate)}</td>
                     <td className="actions">
-                      {isActiveMerchantStatus(item.merchantStatus) ? (
+                      {isActiveMerchantStatus(item.merchantStatus) && hasTrackingUrl(item.trackingUrl) ? (
                         <button
                           type="button"
                           className="secondary"
                           onClick={() => onTestAffiliateSyncResult(item.id)}
-                          disabled={runningAffiliateSyncResultId === item.id}
+                          disabled={testingAffiliateSyncResultId === item.id}
                         >
-                          {runningAffiliateSyncResultId === item.id ? 'Testing...' : 'Test Ad'}
+                          {testingAffiliateSyncResultId === item.id ? 'Testing...' : 'Test'}
                         </button>
                       ) : null}
                     </td>

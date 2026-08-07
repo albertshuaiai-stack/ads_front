@@ -61,15 +61,22 @@ export function buildDynamicColumns(rows, preferredOrder, excludedFields = []) {
 const ADS_NAME_FIELDS = ['adsName', 'capMainName', 'campaignName']
 const PLATFORM_NAME_FIELDS = ['platformName', 'platform']
 
-// 从班表日志目录收集去重字段值，支持按 adsType / adsName 过滤
-// collect deduped field values from the shift-link catalog with optional adsType/adsName filters
-export function collectCatalogFieldNames(catalog, { field, adsType, adsName } = {}) {
+// 从班表日志目录收集去重字段值，支持按 adsType / platformName / adsName 过滤
+// collect deduped field values from the shift-link catalog with optional adsType/platformName/adsName filters
+export function collectCatalogFieldNames(catalog, { field, adsType, platformName, adsName } = {}) {
   const names = new Set()
 
   catalog.forEach((item) => {
     const itemAdsType = normalizeShiftLinkAdsType(firstDefinedValue(item, ['adsType', 'ads_type']))
     if (adsType && itemAdsType !== adsType) {
       return
+    }
+
+    if (platformName) {
+      const itemPlatformName = toOptionalTrimmedString(firstDefinedValue(item, PLATFORM_NAME_FIELDS))
+      if (itemPlatformName !== platformName) {
+        return
+      }
     }
 
     if (adsName) {

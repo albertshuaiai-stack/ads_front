@@ -14,9 +14,6 @@ function AffiliateJobDetailSection({
   affiliateJobDetailsLoading,
   affiliateJobDetailsError,
   affiliateJobDetailsMessage,
-  affiliateJobDetailFilters,
-  onAffiliateJobDetailFiltersChange,
-  onApplyAffiliateJobDetailFilters,
   onReloadAffiliateJobDetailFilters,
   pagination,
   onPageChange,
@@ -27,88 +24,17 @@ function AffiliateJobDetailSection({
       <div className="user-list">
         <div className="list-header">
           <h3>Auto Job</h3>
-        </div>
-
-        <form className="filter-form" onSubmit={onApplyAffiliateJobDetailFilters}>
-          <div className="filter-item">
-            <label htmlFor="affiliateJobDetailSchedNameFilter">Sched Name</label>
-            <input
-              id="affiliateJobDetailSchedNameFilter"
-              value={affiliateJobDetailFilters.schedName}
-              onChange={(event) =>
-                onAffiliateJobDetailFiltersChange({
-                  ...affiliateJobDetailFilters,
-                  schedName: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateJobDetailJobNameFilter">Job Name</label>
-            <input
-              id="affiliateJobDetailJobNameFilter"
-              value={affiliateJobDetailFilters.jobName}
-              onChange={(event) =>
-                onAffiliateJobDetailFiltersChange({
-                  ...affiliateJobDetailFilters,
-                  jobName: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateJobDetailJobGroupFilter">Job Group</label>
-            <input
-              id="affiliateJobDetailJobGroupFilter"
-              value={affiliateJobDetailFilters.jobGroup}
-              onChange={(event) =>
-                onAffiliateJobDetailFiltersChange({
-                  ...affiliateJobDetailFilters,
-                  jobGroup: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateJobDetailJobClassNameFilter">Job Class Name</label>
-            <input
-              id="affiliateJobDetailJobClassNameFilter"
-              value={affiliateJobDetailFilters.jobClassName}
-              onChange={(event) =>
-                onAffiliateJobDetailFiltersChange({
-                  ...affiliateJobDetailFilters,
-                  jobClassName: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateJobDetailDescriptionFilter">Description</label>
-            <input
-              id="affiliateJobDetailDescriptionFilter"
-              value={affiliateJobDetailFilters.description}
-              onChange={(event) =>
-                onAffiliateJobDetailFiltersChange({
-                  ...affiliateJobDetailFilters,
-                  description: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="primary">
-              Search
-            </button>
-            <button type="button" className="secondary" onClick={onReloadAffiliateJobDetailFilters}>
+          <div className="toolbar-actions">
+            <button
+              type="button"
+              className="secondary"
+              onClick={onReloadAffiliateJobDetailFilters}
+              disabled={affiliateJobDetailsLoading}
+            >
               Reload All
             </button>
           </div>
-        </form>
+        </div>
 
         {affiliateJobDetailsError ? (
           <p className="status error" role="alert">

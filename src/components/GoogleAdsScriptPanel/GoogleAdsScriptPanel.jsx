@@ -214,24 +214,32 @@ async function copyTextToClipboard(text) {
   }
 }
 
-function GoogleAdsScriptPanel({ currentUserApiKey = '' }) {
+function GoogleAdsScriptPanel({
+  currentUserApiKey = '',
+  showNormalTemplate = true,
+  showMatrixTemplate = true,
+}) {
   const [copyMessage, setCopyMessage] = useState('')
   const [copyError, setCopyError] = useState('')
-  const [activeTemplateId, setActiveTemplateId] = useState('normal')
   const [isExpanded, setIsExpanded] = useState(false)
 
   const scriptTemplates = [
-    {
-      id: 'normal',
-      title: 'Normal Ads Template',
-      content: injectApiKey(NORMAL_GOOGLE_ADS_SCRIPT, currentUserApiKey),
-    },
-    {
-      id: 'matrix',
-      title: 'Matrix Ads Template',
-      content: injectApiKey(MATRIX_GOOGLE_ADS_SCRIPT, currentUserApiKey),
-    },
-  ]
+    showNormalTemplate
+      ? {
+          id: 'normal',
+          title: 'Normal Ads Template',
+          content: injectApiKey(NORMAL_GOOGLE_ADS_SCRIPT, currentUserApiKey),
+        }
+      : null,
+    showMatrixTemplate
+      ? {
+          id: 'matrix',
+          title: 'Matrix Ads Template',
+          content: injectApiKey(MATRIX_GOOGLE_ADS_SCRIPT, currentUserApiKey),
+        }
+      : null,
+  ].filter(Boolean)
+  const [activeTemplateId, setActiveTemplateId] = useState(scriptTemplates[0]?.id || '')
   const activeTemplate =
     scriptTemplates.find((template) => template.id === activeTemplateId) || scriptTemplates[0]
 
@@ -252,6 +260,7 @@ function GoogleAdsScriptPanel({ currentUserApiKey = '' }) {
       <div className="google-ads-script-panel__header">
         <h3>Google Ads Tracking Templates</h3>
       </div>
+      {!activeTemplate ? <p className="field-help">No script template is available for this role.</p> : null}
       {!currentUserApiKey ? (
         <p className="field-help">
           API Key is not available yet. The copied script will keep the <code>{'{API_KEY}'}</code>{' '}
@@ -264,58 +273,62 @@ function GoogleAdsScriptPanel({ currentUserApiKey = '' }) {
         </p>
       ) : null}
       {copyMessage ? <p className="status success">{copyMessage}</p> : null}
-      <div className="google-ads-script-panel__tabs" role="tablist" aria-label="Script templates">
-        {scriptTemplates.map((template) => (
-          <button
-            key={template.id}
-            type="button"
-            role="tab"
-            className={`google-ads-script-panel__tab${
-              template.id === activeTemplate.id ? ' google-ads-script-panel__tab--active' : ''
-            }`}
-            aria-selected={template.id === activeTemplate.id}
-            onClick={() => setActiveTemplateId(template.id)}
-          >
-            {template.title}
-          </button>
-        ))}
-      </div>
-
-      <div className="google-ads-script-panel__templates">
-        <section className="google-ads-script-panel__template" key={activeTemplate.id}>
-          <div className="google-ads-script-panel__template-header">
-            <div>
-              <h4>{activeTemplate.title}</h4>
-              <p className="field-help">
-                Showing a compact preview. Expand to view the full script content.
-              </p>
-            </div>
-            <div className="google-ads-script-panel__template-actions">
+      {activeTemplate ? (
+        <>
+          <div className="google-ads-script-panel__tabs" role="tablist" aria-label="Script templates">
+            {scriptTemplates.map((template) => (
               <button
+                key={template.id}
                 type="button"
-                className="secondary"
-                onClick={() => setIsExpanded((current) => !current)}
+                role="tab"
+                className={`google-ads-script-panel__tab${
+                  template.id === activeTemplate.id ? ' google-ads-script-panel__tab--active' : ''
+                }`}
+                aria-selected={template.id === activeTemplate.id}
+                onClick={() => setActiveTemplateId(template.id)}
               >
-                {isExpanded ? 'Collapse' : 'Expand'}
+                {template.title}
               </button>
-              <button
-                type="button"
-                className="primary"
-                onClick={() => handleCopyScript(activeTemplate.title, activeTemplate.content)}
-              >
-                Copy
-              </button>
-            </div>
+            ))}
           </div>
-          <pre
-            className={`google-ads-script-panel__code${
-              isExpanded ? ' google-ads-script-panel__code--expanded' : ''
-            }`}
-          >
-            {activeTemplate.content}
-          </pre>
-        </section>
-      </div>
+
+          <div className="google-ads-script-panel__templates">
+            <section className="google-ads-script-panel__template" key={activeTemplate.id}>
+              <div className="google-ads-script-panel__template-header">
+                <div>
+                  <h4>{activeTemplate.title}</h4>
+                  <p className="field-help">
+                    Showing a compact preview. Expand to view the full script content.
+                  </p>
+                </div>
+                <div className="google-ads-script-panel__template-actions">
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setIsExpanded((current) => !current)}
+                  >
+                    {isExpanded ? 'Collapse' : 'Expand'}
+                  </button>
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => handleCopyScript(activeTemplate.title, activeTemplate.content)}
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              <pre
+                className={`google-ads-script-panel__code${
+                  isExpanded ? ' google-ads-script-panel__code--expanded' : ''
+                }`}
+              >
+                {activeTemplate.content}
+              </pre>
+            </section>
+          </div>
+        </>
+      ) : null}
     </section>
   )
 }

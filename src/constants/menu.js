@@ -1,6 +1,13 @@
 // 侧边栏菜单分组配置 / Sidebar menu group configuration
 export const MENU_GROUPS = [
   {
+    id: 'dashboard',
+    title: 'Dashboard',
+    items: [
+      { id: 'shift-link-dashboard', label: 'Dashboard' },
+    ],
+  },
+  {
     id: 'system',
     title: 'System Management',
     items: [
@@ -36,16 +43,14 @@ export const MENU_GROUPS = [
   },
   {
     id: 'affiliate-ads',
-    title: 'Auto Task',
+    title: 'AFFILIATE',
     items: [
+      { id: 'affiliate-auto-task', label: 'Auto Task' },
       { id: 'affiliate-job-detail', label: 'Auto Job' },
       { id: 'affiliate-trigger', label: 'Auto Trigger' },
       { id: 'affiliate-ip-proxy', label: 'Proxy Config' },
-      { id: 'affiliate-sync-config', label: 'API Config' },
-      { id: 'affiliate-sync-task', label: 'Auto Sync Task' },
-      { id: 'affiliate-test-task', label: 'Auto Test Task' },
-      { id: 'affiliate-test-result', label: 'Auto Test Report' },
-      { id: 'affiliate-sync-result', label: 'Auto Sync Report' },
+      { id: 'affiliate-test-result', label: 'Affiliate Test' },
+      { id: 'affiliate-sync-result', label: 'Affiliate Ads' },
     ],
   },
 ]
@@ -62,12 +67,10 @@ export const TOOL_MENU_IDS = [
 
 // Affiliate Ads 类菜单 id 集合 / Affiliate Ads menu ids
 export const AFFILIATE_ADS_MENU_IDS = [
+  'affiliate-auto-task',
   'affiliate-job-detail',
   'affiliate-trigger',
   'affiliate-ip-proxy',
-  'affiliate-sync-config',
-  'affiliate-sync-task',
-  'affiliate-test-task',
   'affiliate-test-result',
   'affiliate-sync-result',
 ]

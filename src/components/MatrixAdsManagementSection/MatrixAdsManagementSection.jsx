@@ -78,7 +78,7 @@ function MatrixAdsManagementSection({
           <form className="filter-form" onSubmit={onApplyMatrixAdsFilters}>
             {showOwnerFilter ? (
               <div className="filter-item">
-                <label htmlFor="matrixOwnerFilter">Owner</label>
+                <label htmlFor="matrixOwnerFilter">Ads Owner</label>
                 <select
                   id="matrixOwnerFilter"
                   value={matrixAdsFilters.ownerPhoneNumber}
@@ -98,20 +98,6 @@ function MatrixAdsManagementSection({
                 </select>
               </div>
             ) : null}
-
-            <div className="filter-item">
-              <label htmlFor="matrixCampainFilter">Campaign Name</label>
-              <input
-                id="matrixCampainFilter"
-                value={matrixAdsFilters.campainName}
-                onChange={(event) =>
-                  onMatrixAdsFiltersChange({
-                    ...matrixAdsFilters,
-                    campainName: event.target.value,
-                  })
-                }
-              />
-            </div>
 
             <div className="filter-item">
               <label htmlFor="matrixPlatformFilter">Platform</label>
@@ -156,6 +142,20 @@ function MatrixAdsManagementSection({
               </select>
             </div>
 
+            <div className="filter-item">
+              <label htmlFor="matrixCampainFilter">Campaign Name</label>
+              <input
+                id="matrixCampainFilter"
+                value={matrixAdsFilters.campainName}
+                onChange={(event) =>
+                  onMatrixAdsFiltersChange({
+                    ...matrixAdsFilters,
+                    campainName: event.target.value,
+                  })
+                }
+              />
+            </div>
+
             <div className="form-actions">
               <button type="submit" className="primary">
                 Search
@@ -179,7 +179,9 @@ function MatrixAdsManagementSection({
                 <thead>
                   <tr>
                     {matrixAdsColumns.map((column) => (
-                      <th key={column}>{toFieldLabel(column)}</th>
+                      <th key={column}>
+                        {column === 'affiliateInfos' ? 'Affiliate Url Count' : toFieldLabel(column)}
+                      </th>
                     ))}
                     <th>Actions</th>
                   </tr>
@@ -195,6 +197,10 @@ function MatrixAdsManagementSection({
                                   {formatAdsStatusLabel(item?.[column])}
                                 </span>
                               )
+                            : column === 'affiliateInfos'
+                              ? Array.isArray(item?.[column])
+                                ? item[column].length
+                                : 0
                             : column === 'campainCountry'
                               ? formatTableValue(toCountryCode(item?.[column]))
                               : formatTableValue(item?.[column])}

@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AdsAccountManagementSection from './components/AdsAccountManagementSection/AdsAccountManagementSection'
+import AffiliateAutoTaskManagementSection from './components/AffiliateAutoTaskManagementSection/AffiliateAutoTaskManagementSection'
 import AffiliateJobDetailSection from './components/AffiliateJobDetailSection/AffiliateJobDetailSection'
-import AffiliateSyncConfigManagementSection from './components/AffiliateSyncConfigManagementSection/AffiliateSyncConfigManagementSection'
 import AffiliateSyncResultManagementSection from './components/AffiliateSyncResultManagementSection/AffiliateSyncResultManagementSection'
-import AffiliateSyncTaskManagementSection from './components/AffiliateSyncTaskManagementSection/AffiliateSyncTaskManagementSection'
-import AffiliateTestTaskManagementSection from './components/AffiliateTestTaskManagementSection/AffiliateTestTaskManagementSection'
 import AffiliateTestResultManagementSection from './components/AffiliateTestResultManagementSection/AffiliateTestResultManagementSection'
 import AffiliateTriggerSection from './components/AffiliateTriggerSection/AffiliateTriggerSection'
 import IpProxyManagementSection from './components/IpProxyManagementSection/IpProxyManagementSection'
@@ -21,6 +19,7 @@ import PageHeader from './components/PageHeader/PageHeader'
 import PaypalManagementSection from './components/PaypalManagementSection/PaypalManagementSection'
 import PlatformManagementSection from './components/PlatformManagementSection/PlatformManagementSection'
 import RoleManagementSection from './components/RoleManagementSection/RoleManagementSection'
+import ShiftLinkDashboardSection from './components/ShiftLinkDashboardSection/ShiftLinkDashboardSection'
 import ShiftLinkLogSection from './components/ShiftLinkLogSection/ShiftLinkLogSection'
 import ShiftLinkManagementSection from './components/ShiftLinkManagementSection/ShiftLinkManagementSection'
 import Sidebar from './components/Sidebar/Sidebar'
@@ -52,13 +51,7 @@ import {
   parseAdsUrl,
   parseFolderShiftLinks,
   requestApi,
-  createEmptyParameterRow,
-  createResponsePayloadState,
   toOptionalTrimmedString,
-  parseParameterRows,
-  parseResponsePayloadState,
-  serializeResponsePayloadState,
-  serializeParameterRows,
   uploadApiFile,
 } from './lib/adsPortal'
 
@@ -74,9 +67,11 @@ import {
   ADS_ACCOUNT_TYPE_OPTIONS,
   ADS_ACCOUNT_AGENCY_PLATFORM_OPTIONS,
   ADS_ACCOUNT_STATUS_OPTIONS,
-  AFFILIATE_SYNC_METHOD_OPTIONS,
-  AFFILIATE_SYNC_RESPONSE_FORMAT_OPTIONS,
-  AFFILIATE_SYNC_TYPE_OPTIONS,
+  AFFILIATE_AUTO_TASK_NETWORK_OPTIONS,
+  AFFILIATE_AUTO_TASK_TYPE_OPTIONS,
+  AFFILIATE_AUTO_TASK_STATUS_OPTIONS,
+  AFFILIATE_SYNC_RESULT_STATUS_OPTIONS,
+  AFFILIATE_TEST_RESULT_STATUS_OPTIONS,
   IP_PROXY_TYPE_OPTIONS,
   IP_PROXY_PROTOCOL_OPTIONS,
   IP_PROXY_STATUS_OPTIONS,
@@ -131,12 +126,10 @@ import { useAdsAccounts } from './hooks/useAdsAccounts'
 import { usePaypals } from './hooks/usePaypals'
 import { useIncomes } from './hooks/useIncomes'
 import { useOutcomes } from './hooks/useOutcomes'
+import { useAffiliateAutoTasks } from './hooks/useAffiliateAutoTasks'
 import { useAffiliateJobDetails } from './hooks/useAffiliateJobDetails'
-import { useAffiliateSyncConfigs } from './hooks/useAffiliateSyncConfigs'
 import { useAffiliateSyncResults } from './hooks/useAffiliateSyncResults'
-import { useAffiliateSyncTasks } from './hooks/useAffiliateSyncTasks'
 import { useAffiliateTestResults } from './hooks/useAffiliateTestResults'
-import { useAffiliateTestTasks } from './hooks/useAffiliateTestTasks'
 import { useAffiliateTriggers } from './hooks/useAffiliateTriggers'
 import { useIpProxies } from './hooks/useIpProxies'
 
@@ -158,7 +151,7 @@ function App() {
   const [runningNormalAdsCount, setRunningNormalAdsCount] = useState(0)
   const [runningMatrixAdsCount, setRunningMatrixAdsCount] = useState(0)
 
-  const [activeMenu, setActiveMenu] = useState('user-management')
+  const [activeMenu, setActiveMenu] = useState('shift-link-dashboard')
   const {
     testShiftLinkCampainName, setTestShiftLinkCampainName,
     testShiftLinkApiKey, setTestShiftLinkApiKey,
@@ -432,35 +425,36 @@ function App() {
     loadAffiliateJobDetails,
   } = useAffiliateJobDetails(token)
 
-  const {
-    affiliateSyncConfigs, setAffiliateSyncConfigs,
-    affiliateSyncConfigsLoading, setAffiliateSyncConfigsLoading,
-    affiliateSyncConfigsError, setAffiliateSyncConfigsError,
-    affiliateSyncConfigsMessage, setAffiliateSyncConfigsMessage,
-    affiliateSyncConfigPagination, setAffiliateSyncConfigPagination,
-    affiliateSyncConfigPaginationRef,
-    affiliateSyncConfigFilters, setAffiliateSyncConfigFilters,
-    affiliateSyncConfigQueryApplied, setAffiliateSyncConfigQueryApplied,
-    affiliateSyncConfigFiltersRef,
-    editingAffiliateSyncConfigId, setEditingAffiliateSyncConfigId,
-    affiliateSyncConfigNetwork, setAffiliateSyncConfigNetwork,
-    affiliateSyncConfigName, setAffiliateSyncConfigName,
-    affiliateSyncConfigUrl, setAffiliateSyncConfigUrl,
-    affiliateSyncConfigMethod, setAffiliateSyncConfigMethod,
-    affiliateSyncConfigRequestHeaderRows, setAffiliateSyncConfigRequestHeaderRows,
-    affiliateSyncConfigRequestPayloadRows, setAffiliateSyncConfigRequestPayloadRows,
-    affiliateSyncConfigResponsePayload, setAffiliateSyncConfigResponsePayload,
-    affiliateSyncConfigResponsePayloadFormat, setAffiliateSyncConfigResponsePayloadFormat,
-    savingAffiliateSyncConfig, setSavingAffiliateSyncConfig,
-    showAffiliateSyncConfigModal, setShowAffiliateSyncConfigModal,
-    loadAffiliateSyncConfigs,
-  } = useAffiliateSyncConfigs(token)
-  const [affiliateSyncConfigOptionsSource, setAffiliateSyncConfigOptionsSource] = useState([])
-  const [affiliateSyncConfigOptionsLoading, setAffiliateSyncConfigOptionsLoading] = useState(false)
-  const [ipProxyOptionsSource, setIpProxyOptionsSource] = useState([])
-  const [ipProxyOptionsLoading, setIpProxyOptionsLoading] = useState(false)
-  const showAdminOwnerFilter = useMemo(() => isAdminRole(currentUserRole), [currentUserRole])
+  const hasAdminRole = useMemo(() => isAdminRole(currentUserRole), [currentUserRole])
+  const hasNormalRole = useMemo(() => isNormalRole(currentUserRole), [currentUserRole])
+  const hasMatrixRole = useMemo(() => isMatrixRole(currentUserRole), [currentUserRole])
+  const isNormalOnlyRole = hasNormalRole && !hasMatrixRole && !hasAdminRole
+  const isMatrixOnlyRole = hasMatrixRole && !hasNormalRole && !hasAdminRole
+  const showAdminOwnerFilter = hasAdminRole
   const loggedInAdsOwner = useMemo(() => getLoggedInAdsOwner(identifier, currentUser), [identifier, currentUser])
+
+  const {
+    affiliateAutoTasks,
+    affiliateAutoTasksLoading,
+    affiliateAutoTasksError, setAffiliateAutoTasksError,
+    affiliateAutoTasksMessage, setAffiliateAutoTasksMessage,
+    affiliateAutoTaskPagination,
+    affiliateAutoTaskPaginationRef,
+    affiliateAutoTaskFilters, setAffiliateAutoTaskFilters,
+    affiliateAutoTaskQueryApplied, setAffiliateAutoTaskQueryApplied,
+    affiliateAutoTaskFiltersRef,
+    editingAffiliateAutoTaskId, setEditingAffiliateAutoTaskId,
+    editingAffiliateAutoTaskOriginal, setEditingAffiliateAutoTaskOriginal,
+    affiliateAutoTaskNetwork, setAffiliateAutoTaskNetwork,
+    affiliateAutoTaskType, setAffiliateAutoTaskType,
+    affiliateAutoTaskRegion, setAffiliateAutoTaskRegion,
+    affiliateAutoTaskAdsOwner, setAffiliateAutoTaskAdsOwner,
+    savingAffiliateAutoTask, setSavingAffiliateAutoTask,
+    showAffiliateAutoTaskModal, setShowAffiliateAutoTaskModal,
+    loadAffiliateAutoTasks,
+  } = useAffiliateAutoTasks(token, loggedInAdsOwner, showAdminOwnerFilter)
+  const [runningAffiliateAutoTaskId, setRunningAffiliateAutoTaskId] = useState(null)
+  const [testingAffiliateSyncResultId, setTestingAffiliateSyncResultId] = useState(null)
 
   const {
     affiliateSyncResults, setAffiliateSyncResults,
@@ -474,7 +468,6 @@ function App() {
     affiliateSyncResultFiltersRef,
     loadAffiliateSyncResults,
   } = useAffiliateSyncResults(token, loggedInAdsOwner, showAdminOwnerFilter)
-  const [runningAffiliateSyncResultId, setRunningAffiliateSyncResultId] = useState(null)
 
   const {
     affiliateTestResults, setAffiliateTestResults,
@@ -486,70 +479,8 @@ function App() {
     affiliateTestResultFilters, setAffiliateTestResultFilters,
     affiliateTestResultQueryApplied, setAffiliateTestResultQueryApplied,
     affiliateTestResultFiltersRef,
-    editingAffiliateTestResultId, setEditingAffiliateTestResultId,
-    affiliateTestResultNetwork, setAffiliateTestResultNetwork,
-    affiliateTestResultRegion, setAffiliateTestResultRegion,
-    affiliateTestResultSiteName, setAffiliateTestResultSiteName,
-    affiliateTestResultSiteUrl, setAffiliateTestResultSiteUrl,
-    affiliateTestResultTrackingUrl, setAffiliateTestResultTrackingUrl,
-    affiliateTestResultFinalUrl, setAffiliateTestResultFinalUrl,
-    affiliateTestResultStatus, setAffiliateTestResultStatus,
-    affiliateTestResultAdsOwner, setAffiliateTestResultAdsOwner,
-    savingAffiliateTestResult, setSavingAffiliateTestResult,
-    showAffiliateTestResultModal, setShowAffiliateTestResultModal,
     loadAffiliateTestResults,
   } = useAffiliateTestResults(token, loggedInAdsOwner, showAdminOwnerFilter)
-
-  const {
-    affiliateSyncTasks, setAffiliateSyncTasks,
-    affiliateSyncTasksLoading, setAffiliateSyncTasksLoading,
-    affiliateSyncTasksError, setAffiliateSyncTasksError,
-    affiliateSyncTasksMessage, setAffiliateSyncTasksMessage,
-    affiliateSyncTaskPagination, setAffiliateSyncTaskPagination,
-    affiliateSyncTaskPaginationRef,
-    affiliateSyncTaskFilters, setAffiliateSyncTaskFilters,
-    affiliateSyncTaskQueryApplied, setAffiliateSyncTaskQueryApplied,
-    affiliateSyncTaskFiltersRef,
-    editingAffiliateSyncTaskId, setEditingAffiliateSyncTaskId,
-    affiliateSyncTaskConfigId, setAffiliateSyncTaskConfigId,
-    affiliateSyncTaskRegion, setAffiliateSyncTaskRegion,
-    affiliateSyncTaskType, setAffiliateSyncTaskType,
-    affiliateSyncTaskCron, setAffiliateSyncTaskCron,
-    affiliateSyncTaskTotalCount, setAffiliateSyncTaskTotalCount,
-    affiliateSyncTaskSuccessCount, setAffiliateSyncTaskSuccessCount,
-    affiliateSyncTaskFailedCount, setAffiliateSyncTaskFailedCount,
-    affiliateSyncTaskStatus, setAffiliateSyncTaskStatus,
-    affiliateSyncTaskAdsOwner, setAffiliateSyncTaskAdsOwner,
-    savingAffiliateSyncTask, setSavingAffiliateSyncTask,
-    runningAffiliateSyncTaskId, setRunningAffiliateSyncTaskId,
-    showAffiliateSyncTaskModal, setShowAffiliateSyncTaskModal,
-    loadAffiliateSyncTasks,
-  } = useAffiliateSyncTasks(token)
-
-  const {
-    affiliateTestTasks, setAffiliateTestTasks,
-    affiliateTestTasksLoading, setAffiliateTestTasksLoading,
-    affiliateTestTasksError, setAffiliateTestTasksError,
-    affiliateTestTasksMessage, setAffiliateTestTasksMessage,
-    affiliateTestTaskPagination, setAffiliateTestTaskPagination,
-    affiliateTestTaskPaginationRef,
-    affiliateTestTaskFilters, setAffiliateTestTaskFilters,
-    affiliateTestTaskQueryApplied, setAffiliateTestTaskQueryApplied,
-    affiliateTestTaskFiltersRef,
-    editingAffiliateTestTaskId, setEditingAffiliateTestTaskId,
-    affiliateTestTaskConfigId, setAffiliateTestTaskConfigId,
-    affiliateTestTaskRegion, setAffiliateTestTaskRegion,
-    affiliateTestTaskIpProxyInfoId, setAffiliateTestTaskIpProxyInfoId,
-    affiliateTestTaskTotalCount, setAffiliateTestTaskTotalCount,
-    affiliateTestTaskSuccessCount, setAffiliateTestTaskSuccessCount,
-    affiliateTestTaskFailedCount, setAffiliateTestTaskFailedCount,
-    affiliateTestTaskStatus, setAffiliateTestTaskStatus,
-    affiliateTestTaskAdsOwner, setAffiliateTestTaskAdsOwner,
-    savingAffiliateTestTask, setSavingAffiliateTestTask,
-    runningAffiliateTestTaskId, setRunningAffiliateTestTaskId,
-    showAffiliateTestTaskModal, setShowAffiliateTestTaskModal,
-    loadAffiliateTestTasks,
-  } = useAffiliateTestTasks(token)
 
   const {
     affiliateTriggers, setAffiliateTriggers,
@@ -698,6 +629,11 @@ function App() {
 
   const adsStatusOptions = ADS_STATUS_OPTIONS
 
+  const normalAdsFilterPlatformOptions = useMemo(
+    () => AFFILIATE_AUTO_TASK_NETWORK_OPTIONS.map((option) => option.value),
+    [],
+  )
+
   const paymentMethodOptions = PAYMENT_METHOD_OPTIONS
 
   const outcomeTypeOptions = OUTCOME_TYPE_OPTIONS
@@ -714,78 +650,15 @@ function App() {
 
   const adsAccountStatusOptions = ADS_ACCOUNT_STATUS_OPTIONS
 
-  const affiliateSyncMethodOptions = AFFILIATE_SYNC_METHOD_OPTIONS
+  const affiliateAutoTaskNetworkOptions = AFFILIATE_AUTO_TASK_NETWORK_OPTIONS
 
-  const affiliateSyncResponseFormatOptions = AFFILIATE_SYNC_RESPONSE_FORMAT_OPTIONS
+  const affiliateAutoTaskTypeOptions = AFFILIATE_AUTO_TASK_TYPE_OPTIONS
 
-  const affiliateSyncTypeOptions = AFFILIATE_SYNC_TYPE_OPTIONS
+  const affiliateAutoTaskStatusOptions = AFFILIATE_AUTO_TASK_STATUS_OPTIONS
 
-  const affiliateSyncConfigOptions = useMemo(() => {
-    const optionsById = new Map()
+  const affiliateSyncResultStatusOptions = AFFILIATE_SYNC_RESULT_STATUS_OPTIONS
 
-    affiliateSyncConfigOptionsSource.forEach((item) => {
-      const id = item?.id
-      if (id == null || optionsById.has(String(id))) {
-        return
-      }
-
-      const syncName = toOptionalTrimmedString(item?.syncName)
-      const affiliateNetwork = toOptionalTrimmedString(item?.affiliateNetwork)
-      const label = syncName && affiliateNetwork
-        ? `${syncName} (${affiliateNetwork})`
-        : syncName || affiliateNetwork || `Config #${id}`
-
-      optionsById.set(String(id), {
-        value: String(id),
-        label,
-      })
-    })
-
-    ;[affiliateSyncTaskConfigId, affiliateTestTaskConfigId].forEach((selectedId) => {
-      if (!selectedId || optionsById.has(String(selectedId))) {
-        return
-      }
-
-      optionsById.set(String(selectedId), {
-        value: String(selectedId),
-        label: `Config #${selectedId}`,
-      })
-    })
-
-    return Array.from(optionsById.values()).sort((left, right) =>
-      String(left.label).localeCompare(String(right.label)),
-    )
-  }, [affiliateSyncConfigOptionsSource, affiliateSyncTaskConfigId, affiliateTestTaskConfigId])
-
-  const ipProxyOptions = useMemo(() => {
-    const optionsById = new Map()
-
-    ipProxyOptionsSource.forEach((item) => {
-      const id = item?.id
-      if (id == null || optionsById.has(String(id))) {
-        return
-      }
-
-      const proxyInfo = toOptionalTrimmedString(item?.proxyInfo)
-      const label = proxyInfo ? `${proxyInfo} (#${id})` : `IP Proxy #${id}`
-
-      optionsById.set(String(id), {
-        value: String(id),
-        label,
-      })
-    })
-
-    if (affiliateTestTaskIpProxyInfoId && !optionsById.has(String(affiliateTestTaskIpProxyInfoId))) {
-      optionsById.set(String(affiliateTestTaskIpProxyInfoId), {
-        value: String(affiliateTestTaskIpProxyInfoId),
-        label: `IP Proxy #${affiliateTestTaskIpProxyInfoId}`,
-      })
-    }
-
-    return Array.from(optionsById.values()).sort((left, right) =>
-      String(left.label).localeCompare(String(right.label)),
-    )
-  }, [affiliateTestTaskIpProxyInfoId, ipProxyOptionsSource])
+  const affiliateTestResultStatusOptions = AFFILIATE_TEST_RESULT_STATUS_OPTIONS
 
   const adsTypeOptions = useMemo(() => buildAdsTypeOptions(currentUserRole), [currentUserRole])
 
@@ -848,8 +721,9 @@ function App() {
       collectCatalogFieldNames(availableShiftLinkLogCatalog, {
         field: CATALOG_ADS_NAME_FIELDS,
         adsType: shiftLinkLogFilters.adsType,
+        platformName: shiftLinkLogFilters.platformName,
       }),
-    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType],
+    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType, shiftLinkLogFilters.platformName],
   )
 
   const shiftLinkLogPlatformOptions = useMemo(
@@ -857,9 +731,8 @@ function App() {
       collectCatalogFieldNames(availableShiftLinkLogCatalog, {
         field: CATALOG_PLATFORM_NAME_FIELDS,
         adsType: shiftLinkLogFilters.adsType,
-        adsName: shiftLinkLogFilters.adsName,
       }),
-    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsName, shiftLinkLogFilters.adsType],
+    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType],
   )
 
   const adsUrlAdsNameOptions = useMemo(
@@ -867,8 +740,9 @@ function App() {
       collectCatalogFieldNames(availableAdsUrlCatalog, {
         field: CATALOG_ADS_NAME_FIELDS,
         adsType: adsUrlFilters.adsType,
+        platformName: adsUrlFilters.platformName,
       }),
-    [adsUrlFilters.adsType, availableAdsUrlCatalog],
+    [adsUrlFilters.adsType, adsUrlFilters.platformName, availableAdsUrlCatalog],
   )
 
   const adsUrlPlatformOptions = useMemo(
@@ -876,9 +750,8 @@ function App() {
       collectCatalogFieldNames(availableAdsUrlCatalog, {
         field: CATALOG_PLATFORM_NAME_FIELDS,
         adsType: adsUrlFilters.adsType,
-        adsName: adsUrlFilters.adsName,
       }),
-    [adsUrlFilters.adsName, adsUrlFilters.adsType, availableAdsUrlCatalog],
+    [adsUrlFilters.adsType, availableAdsUrlCatalog],
   )
 
   const toolEmailUserOptions = useMemo(() => {
@@ -1170,39 +1043,19 @@ function App() {
     })
   }
 
-  function handleAffiliateSyncTaskPageChange(page) {
-    void loadAffiliateSyncTasks(
-      affiliateSyncTaskQueryApplied ? affiliateSyncTaskFiltersRef.current : {},
+  function handleAffiliateAutoTaskPageChange(page) {
+    void loadAffiliateAutoTasks(
+      affiliateAutoTaskQueryApplied ? affiliateAutoTaskFiltersRef.current : {},
       {
         page,
-        size: affiliateSyncTaskPaginationRef.current.size,
+        size: affiliateAutoTaskPaginationRef.current.size,
       },
     )
   }
 
-  function handleAffiliateSyncTaskPageSizeChange(size) {
-    void loadAffiliateSyncTasks(
-      affiliateSyncTaskQueryApplied ? affiliateSyncTaskFiltersRef.current : {},
-      {
-        page: 0,
-        size,
-      },
-    )
-  }
-
-  function handleAffiliateTestTaskPageChange(page) {
-    void loadAffiliateTestTasks(
-      affiliateTestTaskQueryApplied ? affiliateTestTaskFiltersRef.current : {},
-      {
-        page,
-        size: affiliateTestTaskPaginationRef.current.size,
-      },
-    )
-  }
-
-  function handleAffiliateTestTaskPageSizeChange(size) {
-    void loadAffiliateTestTasks(
-      affiliateTestTaskQueryApplied ? affiliateTestTaskFiltersRef.current : {},
+  function handleAffiliateAutoTaskPageSizeChange(size) {
+    void loadAffiliateAutoTasks(
+      affiliateAutoTaskQueryApplied ? affiliateAutoTaskFiltersRef.current : {},
       {
         page: 0,
         size,
@@ -1250,55 +1103,29 @@ function App() {
     )
   }
 
-  function handleAffiliateSyncConfigPageChange(page) {
-    void loadAffiliateSyncConfigs(
-      affiliateSyncConfigQueryApplied ? affiliateSyncConfigFiltersRef.current : {},
-      {
-        page,
-        size: affiliateSyncConfigPaginationRef.current.size,
-      },
-    )
-  }
-
-  function handleAffiliateSyncConfigPageSizeChange(size) {
-    void loadAffiliateSyncConfigs(
-      affiliateSyncConfigQueryApplied ? affiliateSyncConfigFiltersRef.current : {},
-      {
-        page: 0,
-        size,
-      },
-    )
-  }
-
   function handleAffiliateJobDetailPageChange(page) {
-    void loadAffiliateJobDetails(
-      affiliateJobDetailQueryApplied ? affiliateJobDetailFiltersRef.current : {},
-      {
-        page,
-        size: affiliateJobDetailPaginationRef.current.size,
-      },
-    )
+    void loadAffiliateJobDetails({}, {
+      page,
+      size: affiliateJobDetailPaginationRef.current.size,
+    })
   }
 
   function handleAffiliateJobDetailPageSizeChange(size) {
-    void loadAffiliateJobDetails(
-      affiliateJobDetailQueryApplied ? affiliateJobDetailFiltersRef.current : {},
-      {
-        page: 0,
-        size,
-      },
-    )
+    void loadAffiliateJobDetails({}, {
+      page: 0,
+      size,
+    })
   }
 
   function handleAffiliateTriggerPageChange(page) {
-    void loadAffiliateTriggers(affiliateTriggerQueryApplied ? affiliateTriggerFiltersRef.current : {}, {
+    void loadAffiliateTriggers({}, {
       page,
       size: affiliateTriggerPaginationRef.current.size,
     })
   }
 
   function handleAffiliateTriggerPageSizeChange(size) {
-    void loadAffiliateTriggers(affiliateTriggerQueryApplied ? affiliateTriggerFiltersRef.current : {}, {
+    void loadAffiliateTriggers({}, {
       page: 0,
       size,
     })
@@ -1397,49 +1224,37 @@ function App() {
     }
   }
 
-  function startEditAffiliateSyncTask(item) {
-    const normalizedSyncType = String(item.syncType ?? '').trim().toUpperCase()
-    setEditingAffiliateSyncTaskId(item.id)
-    setAffiliateSyncTaskConfigId(
-      item.affiliateAdsSyncConfigId == null ? '' : String(item.affiliateAdsSyncConfigId),
-    )
-    setAffiliateSyncTaskRegion(toCountryCode(item.region))
-    setAffiliateSyncTaskType(normalizedSyncType === 'MANUALLY' ? 'MANUAL' : item.syncType || '')
-    setAffiliateSyncTaskCron(item.cron || '')
-    setAffiliateSyncTaskTotalCount(Number(item.totalCount) || 0)
-    setAffiliateSyncTaskSuccessCount(Number(item.successCount) || 0)
-    setAffiliateSyncTaskFailedCount(Number(item.failedCount) || 0)
-    setAffiliateSyncTaskStatus(item.status || 'WAITING')
-    setAffiliateSyncTaskAdsOwner(item.adsOwner || '')
-    setShowAffiliateSyncTaskModal(true)
+  async function handleTestAffiliateSyncResult(id) {
+    setTestingAffiliateSyncResultId(id)
+    setAffiliateSyncResultsError('')
+    setAffiliateSyncResultsMessage('')
+
+    try {
+      await requestApi(`/affiliate-auto-task/${id}/testAd`, {
+        method: 'POST',
+        token,
+      })
+      setAffiliateSyncResultsMessage('Affiliate ad test triggered successfully.')
+      await loadAffiliateSyncResults(
+        affiliateSyncResultQueryApplied ? affiliateSyncResultFiltersRef.current : {},
+        affiliateSyncResultPaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAffiliateSyncResultsError(message)
+    } finally {
+      setTestingAffiliateSyncResultId(null)
+    }
   }
 
-  function startEditAffiliateTestTask(item) {
-    setEditingAffiliateTestTaskId(item.id)
-    setAffiliateTestTaskConfigId(
-      item.affiliateAdsSyncConfigId == null ? '' : String(item.affiliateAdsSyncConfigId),
-    )
-    setAffiliateTestTaskRegion(toCountryCode(item.region))
-    setAffiliateTestTaskIpProxyInfoId(item.ipProxyInfoId == null ? '' : String(item.ipProxyInfoId))
-    setAffiliateTestTaskTotalCount(Number(item.totalCount) || 0)
-    setAffiliateTestTaskSuccessCount(Number(item.successCount) || 0)
-    setAffiliateTestTaskFailedCount(Number(item.failedCount) || 0)
-    setAffiliateTestTaskStatus(item.status || 'WAITING')
-    setAffiliateTestTaskAdsOwner(item.adsOwner || '')
-    setShowAffiliateTestTaskModal(true)
-  }
-
-  function startEditAffiliateTestResult(item) {
-    setEditingAffiliateTestResultId(item.id)
-    setAffiliateTestResultNetwork(item.affiliateNetwork || '')
-    setAffiliateTestResultRegion(toCountryCode(item.region))
-    setAffiliateTestResultSiteName(item.siteName || '')
-    setAffiliateTestResultSiteUrl(item.siteUrl || '')
-    setAffiliateTestResultTrackingUrl(item.trackingUrl || '')
-    setAffiliateTestResultFinalUrl(item.finalUrl || '')
-    setAffiliateTestResultStatus(item.status || '')
-    setAffiliateTestResultAdsOwner(item.adsOwner || loggedInAdsOwner || '')
-    setShowAffiliateTestResultModal(true)
+  function startEditAffiliateAutoTask(item) {
+    setEditingAffiliateAutoTaskId(item.id)
+    setEditingAffiliateAutoTaskOriginal(item)
+    setAffiliateAutoTaskNetwork(item.affiliateNetwork || '')
+    setAffiliateAutoTaskType(item.autoTaskType || '')
+    setAffiliateAutoTaskRegion(toCountryCode(item.region))
+    setAffiliateAutoTaskAdsOwner(item.adsOwner || loggedInAdsOwner || '')
+    setShowAffiliateAutoTaskModal(true)
   }
 
   async function updateNormalAdsStatus(item, status) {
@@ -1467,141 +1282,72 @@ function App() {
     }
   }
 
-  async function handleDeleteAffiliateSyncTask(id) {
-    setAffiliateSyncTasksError('')
-    setAffiliateSyncTasksMessage('')
+  async function handleDeleteAffiliateAutoTask(id) {
+    setAffiliateAutoTasksError('')
+    setAffiliateAutoTasksMessage('')
 
     try {
-      await requestApi(`/affiliate-ads-sync-task/${id}`, {
+      await requestApi(`/affiliate-auto-task/${id}`, {
         method: 'DELETE',
         token,
       })
-      setAffiliateSyncTasksMessage('Ads Sync Task deleted successfully.')
-      await loadAffiliateSyncTasks(
-        affiliateSyncTaskQueryApplied ? affiliateSyncTaskFiltersRef.current : {},
-        affiliateSyncTaskPaginationRef.current,
+      setAffiliateAutoTasksMessage('Auto Task deleted successfully.')
+      await loadAffiliateAutoTasks(
+        affiliateAutoTaskQueryApplied ? affiliateAutoTaskFiltersRef.current : {},
+        affiliateAutoTaskPaginationRef.current,
       )
-      if (editingAffiliateSyncTaskId === id) {
-        clearAffiliateSyncTaskForm()
+      if (editingAffiliateAutoTaskId === id) {
+        clearAffiliateAutoTaskForm()
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateSyncTasksError(message)
+      setAffiliateAutoTasksError(message)
     }
   }
 
-  async function handleDeleteAffiliateTestTask(id) {
-    setAffiliateTestTasksError('')
-    setAffiliateTestTasksMessage('')
+  async function handleRunAffiliateAutoTaskSync(id) {
+    setRunningAffiliateAutoTaskId(id)
+    setAffiliateAutoTasksError('')
+    setAffiliateAutoTasksMessage('')
 
     try {
-      await requestApi(`/affiliate-ads-test-task/${id}`, {
-        method: 'DELETE',
-        token,
-      })
-      setAffiliateTestTasksMessage('Ads Test Task deleted successfully.')
-      await loadAffiliateTestTasks(
-        affiliateTestTaskQueryApplied ? affiliateTestTaskFiltersRef.current : {},
-        affiliateTestTaskPaginationRef.current,
-      )
-      if (editingAffiliateTestTaskId === id) {
-        clearAffiliateTestTaskForm()
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateTestTasksError(message)
-    }
-  }
-
-  async function handleDeleteAffiliateTestResult(id) {
-    setAffiliateTestResultsError('')
-    setAffiliateTestResultsMessage('')
-
-    try {
-      await requestApi(`/affiliate-ads-test-result/${id}`, {
-        method: 'DELETE',
-        token,
-      })
-      setAffiliateTestResultsMessage('Ads Test Result deleted successfully.')
-      await loadAffiliateTestResults(
-        affiliateTestResultQueryApplied ? affiliateTestResultFiltersRef.current : {},
-        affiliateTestResultPaginationRef.current,
-      )
-      if (editingAffiliateTestResultId === id) {
-        clearAffiliateTestResultForm()
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateTestResultsError(message)
-    }
-  }
-
-  async function handleRunAffiliateSyncTask(id) {
-    setRunningAffiliateSyncTaskId(id)
-    setAffiliateSyncTasksError('')
-    setAffiliateSyncTasksMessage('')
-
-    try {
-      await requestApi(`/affiliate-ads-sync-task/${id}/syncAds`, {
+      await requestApi(`/affiliate-auto-task/${id}/syncAds`, {
         method: 'POST',
         token,
       })
-      setAffiliateSyncTasksMessage('Ads Sync triggered successfully.')
-      await loadAffiliateSyncTasks(
-        affiliateSyncTaskQueryApplied ? affiliateSyncTaskFiltersRef.current : {},
-        affiliateSyncTaskPaginationRef.current,
+      setAffiliateAutoTasksMessage('Auto Task sync triggered successfully.')
+      await loadAffiliateAutoTasks(
+        affiliateAutoTaskQueryApplied ? affiliateAutoTaskFiltersRef.current : {},
+        affiliateAutoTaskPaginationRef.current,
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateSyncTasksError(message)
+      setAffiliateAutoTasksError(message)
     } finally {
-      setRunningAffiliateSyncTaskId(null)
+      setRunningAffiliateAutoTaskId(null)
     }
   }
 
-  async function handleRunAffiliateTestTask(id) {
-    setRunningAffiliateTestTaskId(id)
-    setAffiliateTestTasksError('')
-    setAffiliateTestTasksMessage('')
+  async function handleRunAffiliateAutoTaskTest(id) {
+    setRunningAffiliateAutoTaskId(id)
+    setAffiliateAutoTasksError('')
+    setAffiliateAutoTasksMessage('')
 
     try {
-      await requestApi(`/affiliate-ads-test-task/${id}/testAds`, {
+      await requestApi(`/affiliate-auto-task/${id}/testAds`, {
         method: 'POST',
         token,
       })
-      setAffiliateTestTasksMessage('Ads Test triggered successfully.')
-      await loadAffiliateTestTasks(
-        affiliateTestTaskQueryApplied ? affiliateTestTaskFiltersRef.current : {},
-        affiliateTestTaskPaginationRef.current,
+      setAffiliateAutoTasksMessage('Auto Task test triggered successfully.')
+      await loadAffiliateAutoTasks(
+        affiliateAutoTaskQueryApplied ? affiliateAutoTaskFiltersRef.current : {},
+        affiliateAutoTaskPaginationRef.current,
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateTestTasksError(message)
+      setAffiliateAutoTasksError(message)
     } finally {
-      setRunningAffiliateTestTaskId(null)
-    }
-  }
-
-  async function handleTestAffiliateSyncResult(id) {
-    setRunningAffiliateSyncResultId(id)
-    setAffiliateSyncResultsError('')
-    setAffiliateSyncResultsMessage('')
-
-    try {
-      await requestApi(`/affiliate-ads-sync/${id}/testAd`, {
-        method: 'POST',
-        token,
-      })
-      setAffiliateSyncResultsMessage('Ad test triggered successfully.')
-      await loadAffiliateSyncResults(
-        affiliateSyncResultQueryApplied ? affiliateSyncResultFiltersRef.current : {},
-        affiliateSyncResultPaginationRef.current,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateSyncResultsError(message)
-    } finally {
-      setRunningAffiliateSyncResultId(null)
+      setRunningAffiliateAutoTaskId(null)
     }
   }
 
@@ -1724,54 +1470,13 @@ function App() {
     setIpProxyAdsOwner('')
   }
 
-  function clearAffiliateSyncConfigForm() {
-    setEditingAffiliateSyncConfigId(null)
-    setAffiliateSyncConfigNetwork('')
-    setAffiliateSyncConfigName('')
-    setAffiliateSyncConfigUrl('')
-    setAffiliateSyncConfigMethod('')
-    setAffiliateSyncConfigRequestHeaderRows([createEmptyParameterRow()])
-    setAffiliateSyncConfigRequestPayloadRows([createEmptyParameterRow()])
-    const responsePayloadState = createResponsePayloadState()
-    setAffiliateSyncConfigResponsePayloadFormat(responsePayloadState.format)
-    setAffiliateSyncConfigResponsePayload(responsePayloadState.content)
-  }
-
-  function clearAffiliateSyncTaskForm() {
-    setEditingAffiliateSyncTaskId(null)
-    setAffiliateSyncTaskConfigId('')
-    setAffiliateSyncTaskRegion('')
-    setAffiliateSyncTaskType('')
-    setAffiliateSyncTaskCron('')
-    setAffiliateSyncTaskTotalCount(0)
-    setAffiliateSyncTaskSuccessCount(0)
-    setAffiliateSyncTaskFailedCount(0)
-    setAffiliateSyncTaskStatus('WAITING')
-    setAffiliateSyncTaskAdsOwner('')
-  }
-
-  function clearAffiliateTestTaskForm() {
-    setEditingAffiliateTestTaskId(null)
-    setAffiliateTestTaskConfigId('')
-    setAffiliateTestTaskRegion('')
-    setAffiliateTestTaskIpProxyInfoId('')
-    setAffiliateTestTaskTotalCount(0)
-    setAffiliateTestTaskSuccessCount(0)
-    setAffiliateTestTaskFailedCount(0)
-    setAffiliateTestTaskStatus('WAITING')
-    setAffiliateTestTaskAdsOwner('')
-  }
-
-  function clearAffiliateTestResultForm() {
-    setEditingAffiliateTestResultId(null)
-    setAffiliateTestResultNetwork('')
-    setAffiliateTestResultRegion('')
-    setAffiliateTestResultSiteName('')
-    setAffiliateTestResultSiteUrl('')
-    setAffiliateTestResultTrackingUrl('')
-    setAffiliateTestResultFinalUrl('')
-    setAffiliateTestResultStatus('')
-    setAffiliateTestResultAdsOwner(loggedInAdsOwner || '')
+  function clearAffiliateAutoTaskForm() {
+    setEditingAffiliateAutoTaskId(null)
+    setEditingAffiliateAutoTaskOriginal(null)
+    setAffiliateAutoTaskNetwork('')
+    setAffiliateAutoTaskType('')
+    setAffiliateAutoTaskRegion('')
+    setAffiliateAutoTaskAdsOwner(loggedInAdsOwner || '')
   }
 
   function openCreateAdsAccount() {
@@ -1786,75 +1491,10 @@ function App() {
     setShowIpProxyModal(true)
   }
 
-  function openCreateAffiliateSyncConfig() {
-    clearAffiliateSyncConfigForm()
-    setAffiliateSyncConfigsError('')
-    setShowAffiliateSyncConfigModal(true)
-  }
-
-  function openCreateAffiliateSyncTask() {
-    clearAffiliateSyncTaskForm()
-    setAffiliateSyncTasksError('')
-    setShowAffiliateSyncTaskModal(true)
-  }
-
-  function openCreateAffiliateTestTask() {
-    clearAffiliateTestTaskForm()
-    setAffiliateTestTasksError('')
-    setShowAffiliateTestTaskModal(true)
-  }
-
-  function openCreateAffiliateTestResult() {
-    clearAffiliateTestResultForm()
-    setAffiliateTestResultsError('')
-    setShowAffiliateTestResultModal(true)
-  }
-
-  function addAffiliateSyncConfigRequestPayloadRow() {
-    setAffiliateSyncConfigRequestPayloadRows((current) => [...current, createEmptyParameterRow()])
-  }
-
-  function addAffiliateSyncConfigRequestHeaderRow() {
-    setAffiliateSyncConfigRequestHeaderRows((current) => [...current, createEmptyParameterRow()])
-  }
-
-  function updateAffiliateSyncConfigRequestHeaderRow(index, field, value) {
-    setAffiliateSyncConfigRequestHeaderRows((current) =>
-      current.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: value } : row)),
-    )
-  }
-
-  function removeAffiliateSyncConfigRequestHeaderRow(index) {
-    setAffiliateSyncConfigRequestHeaderRows((current) => {
-      if (current.length === 1) {
-        return [createEmptyParameterRow()]
-      }
-
-      return current.filter((_, rowIndex) => rowIndex !== index)
-    })
-  }
-
-  function updateAffiliateSyncConfigRequestPayloadRow(index, field, value) {
-    setAffiliateSyncConfigRequestPayloadRows((current) =>
-      current.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: value } : row)),
-    )
-  }
-
-  function removeAffiliateSyncConfigRequestPayloadRow(index) {
-    setAffiliateSyncConfigRequestPayloadRows((current) => {
-      if (current.length === 1) {
-        return [createEmptyParameterRow()]
-      }
-
-      return current.filter((_, rowIndex) => rowIndex !== index)
-    })
-  }
-
-  function handleAffiliateSyncTaskTypeChange(value) {
-    setAffiliateSyncTaskType(value)
-    if (value !== 'SCHEDULER') {
-      setAffiliateSyncTaskCron('')
-    }
+  function openCreateAffiliateAutoTask() {
+    clearAffiliateAutoTaskForm()
+    setAffiliateAutoTasksError('')
+    setShowAffiliateAutoTaskModal(true)
   }
 
   function handleAdsAccountTypeChange(value) {
@@ -2047,60 +1687,6 @@ function App() {
     }
   }, [token])
 
-  const loadAffiliateSyncConfigOptions = useCallback(async () => {
-    if (!token) {
-      setAffiliateSyncConfigOptionsSource([])
-      return
-    }
-
-    setAffiliateSyncConfigOptionsLoading(true)
-
-    try {
-      const response = await requestApi(
-        `/affiliate-ads-sync-config${buildQueryString({
-          page: 0,
-          size: 1000,
-        })}`,
-        { token },
-      )
-      setAffiliateSyncConfigOptionsSource(extractItems(response))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      if (activeMenu === 'affiliate-test-task') {
-        setAffiliateTestTasksError(message)
-      } else {
-        setAffiliateSyncTasksError(message)
-      }
-    } finally {
-      setAffiliateSyncConfigOptionsLoading(false)
-    }
-  }, [activeMenu, token])
-
-  const loadIpProxyOptions = useCallback(async () => {
-    if (!token) {
-      setIpProxyOptionsSource([])
-      return
-    }
-
-    setIpProxyOptionsLoading(true)
-
-    try {
-      const response = await requestApi(
-        `/ip-proxy-info${buildQueryString({
-          page: 0,
-          size: 1000,
-        })}`,
-        { token },
-      )
-      setIpProxyOptionsSource(extractItems(response))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateTestTasksError(message)
-    } finally {
-      setIpProxyOptionsLoading(false)
-    }
-  }, [token])
-
   const loadOwnerFilterOptions = useCallback(async () => {
     if (!token) {
       setOwnerFilterOptionsSource([])
@@ -2211,43 +1797,48 @@ function App() {
       return []
     }
 
-    if (isAdminRole(currentUserRole)) {
+    const baseMenus = [
+      'shift-link-dashboard',
+      ...TOOL_MENU_IDS,
+      'ads-url-management',
+      'shift-link-log',
+      'test-shift-link',
+    ]
+
+    if (hasAdminRole) {
       return [
+        ...baseMenus,
         'user-management',
         'role-management',
         'ads-platform-management',
         'user-agent-management',
-        ...TOOL_MENU_IDS,
         ...AFFILIATE_ADS_MENU_IDS,
         'auto-script',
-        'test-shift-link',
-        'shift-link-log',
         'normal-ads-management',
         'matrix-ads-management',
-        'ads-url-management',
       ]
     }
 
-    const menus = [...TOOL_MENU_IDS]
+    const menus = [...baseMenus]
 
-    if (isNormalRole(currentUserRole)) {
-      menus.push('normal-ads-management')
+    if (hasNormalRole && !isMatrixOnlyRole) {
       menus.push(...AFFILIATE_ADS_MENU_IDS)
     }
 
-    if (isMatrixRole(currentUserRole)) {
+    if (hasNormalRole) {
+      menus.push('normal-ads-management')
+    }
+
+    if (hasMatrixRole) {
       menus.push('matrix-ads-management')
     }
 
-    if (menus.length > 0) {
+    if (!isNormalOnlyRole && hasMatrixRole) {
       menus.push('auto-script')
-      menus.push('ads-url-management')
-      menus.push('shift-link-log')
-      menus.push('test-shift-link')
     }
 
-    return menus
-  }, [currentUserRole, isAuthenticated])
+    return Array.from(new Set(menus))
+  }, [hasAdminRole, hasMatrixRole, hasNormalRole, isAuthenticated, isMatrixOnlyRole, isNormalOnlyRole])
 
   useEffect(() => {
     setShiftLinkLogFilters((current) => {
@@ -2262,8 +1853,8 @@ function App() {
 
       return {
         adsType: nextAdsType,
-        adsName: '',
         platformName: '',
+        adsName: '',
         ownerPhoneNumber: current.ownerPhoneNumber || '',
       }
     })
@@ -2282,23 +1873,14 @@ function App() {
 
       return {
         adsType: nextAdsType,
-        adsName: '',
         platformName: '',
+        adsName: '',
         ownerPhoneNumber: current.ownerPhoneNumber || '',
       }
     })
   }, [defaultShiftLinkLogAdsType, allowedShiftLinkLogAdsTypes])
 
   useEffect(() => {
-    if (adsUrlFilters.adsName && !adsUrlAdsNameOptions.includes(adsUrlFilters.adsName)) {
-      setAdsUrlFilters((current) => ({
-        ...current,
-        adsName: '',
-        platformName: '',
-      }))
-      return
-    }
-
     if (
       adsUrlFilters.platformName &&
       !adsUrlPlatformOptions.includes(adsUrlFilters.platformName)
@@ -2306,28 +1888,25 @@ function App() {
       setAdsUrlFilters((current) => ({
         ...current,
         platformName: '',
-      }))
-    }
-  }, [
-    adsUrlAdsNameOptions,
-    adsUrlFilters.adsName,
-    adsUrlFilters.platformName,
-    adsUrlPlatformOptions,
-  ])
-
-  useEffect(() => {
-    if (
-      shiftLinkLogFilters.adsName &&
-      !shiftLinkLogAdsNameOptions.includes(shiftLinkLogFilters.adsName)
-    ) {
-      setShiftLinkLogFilters((current) => ({
-        ...current,
         adsName: '',
-        platformName: '',
       }))
       return
     }
 
+    if (adsUrlFilters.adsName && !adsUrlAdsNameOptions.includes(adsUrlFilters.adsName)) {
+      setAdsUrlFilters((current) => ({
+        ...current,
+        adsName: '',
+      }))
+    }
+  }, [
+    adsUrlFilters.platformName,
+    adsUrlPlatformOptions,
+    adsUrlAdsNameOptions,
+    adsUrlFilters.adsName,
+  ])
+
+  useEffect(() => {
     if (
       shiftLinkLogFilters.platformName &&
       !shiftLinkLogPlatformOptions.includes(shiftLinkLogFilters.platformName)
@@ -2335,13 +1914,25 @@ function App() {
       setShiftLinkLogFilters((current) => ({
         ...current,
         platformName: '',
+        adsName: '',
+      }))
+      return
+    }
+
+    if (
+      shiftLinkLogFilters.adsName &&
+      !shiftLinkLogAdsNameOptions.includes(shiftLinkLogFilters.adsName)
+    ) {
+      setShiftLinkLogFilters((current) => ({
+        ...current,
+        adsName: '',
       }))
     }
   }, [
-    shiftLinkLogAdsNameOptions,
-    shiftLinkLogFilters.adsName,
     shiftLinkLogFilters.platformName,
     shiftLinkLogPlatformOptions,
+    shiftLinkLogAdsNameOptions,
+    shiftLinkLogFilters.adsName,
   ])
 
   useEffect(() => {
@@ -2499,34 +2090,14 @@ function App() {
     }
 
     if (activeMenu === 'affiliate-job-detail') {
-      void loadAffiliateJobDetails(
-        affiliateJobDetailQueryApplied ? affiliateJobDetailFiltersRef.current : {},
-      )
+      void loadAffiliateJobDetails({})
       return
     }
 
-    if (activeMenu === 'affiliate-sync-config') {
-      void loadAffiliateSyncConfigs(
-        affiliateSyncConfigQueryApplied ? affiliateSyncConfigFiltersRef.current : {},
+    if (activeMenu === 'affiliate-auto-task') {
+      void loadAffiliateAutoTasks(
+        affiliateAutoTaskQueryApplied ? affiliateAutoTaskFiltersRef.current : {},
       )
-      void loadPlatformOptions()
-      return
-    }
-
-    if (activeMenu === 'affiliate-sync-task') {
-      void loadAffiliateSyncTasks(
-        affiliateSyncTaskQueryApplied ? affiliateSyncTaskFiltersRef.current : {},
-      )
-      void loadAffiliateSyncConfigOptions()
-      return
-    }
-
-    if (activeMenu === 'affiliate-test-task') {
-      void loadAffiliateTestTasks(
-        affiliateTestTaskQueryApplied ? affiliateTestTaskFiltersRef.current : {},
-      )
-      void loadAffiliateSyncConfigOptions()
-      void loadIpProxyOptions()
       return
     }
 
@@ -2547,7 +2118,7 @@ function App() {
     }
 
     if (activeMenu === 'affiliate-trigger') {
-      void loadAffiliateTriggers(affiliateTriggerQueryApplied ? affiliateTriggerFiltersRef.current : {})
+      void loadAffiliateTriggers({})
       return
     }
 
@@ -2590,29 +2161,23 @@ function App() {
     loadToolAccounts,
     loadAdsAccounts,
     loadAffiliateJobDetails,
-    loadAffiliateSyncConfigs,
+    loadAffiliateAutoTasks,
     loadAffiliateTestResults,
-    loadAffiliateTestTasks,
     loadAffiliateSyncResults,
-    loadAffiliateSyncTasks,
     loadAffiliateTriggers,
-    loadIpProxyOptions,
     loadIpProxies,
     loadToolPaypals,
     loadToolIncomes,
     loadToolOutcomes,
     loadAccountEmailOptions,
-    loadAffiliateSyncConfigOptions,
     loadPaypalAccountOptions,
     emailQueryApplied,
     accountQueryApplied,
     adsAccountQueryApplied,
     affiliateJobDetailQueryApplied,
-    affiliateSyncConfigQueryApplied,
+    affiliateAutoTaskQueryApplied,
     affiliateTestResultQueryApplied,
-    affiliateTestTaskQueryApplied,
     affiliateSyncResultQueryApplied,
-    affiliateSyncTaskQueryApplied,
     affiliateTriggerQueryApplied,
     ipProxyQueryApplied,
     paypalQueryApplied,
@@ -3066,8 +2631,8 @@ function App() {
     setBulkAdsMessage('')
     setAdsUrlFilters({
       adsType: defaultShiftLinkLogAdsType,
-      adsName: '',
       platformName: '',
+      adsName: '',
       ownerPhoneNumber: '',
     })
     setAdsUrlQueryApplied(false)
@@ -3241,8 +2806,8 @@ function App() {
     setMatrixAdsTestLoading(false)
     setShiftLinkLogFilters({
       adsType: defaultShiftLinkLogAdsType,
-      adsName: '',
       platformName: '',
+      adsName: '',
       ownerPhoneNumber: '',
     })
     setShiftLinkLogCatalog([])
@@ -3665,8 +3230,8 @@ function App() {
   function reloadAdsUrlFilters() {
     setAdsUrlFilters({
       adsType: defaultShiftLinkLogAdsType,
-      adsName: '',
       platformName: '',
+      adsName: '',
       ownerPhoneNumber: '',
     })
     setAdsUrlQueryApplied(false)
@@ -3746,58 +3311,24 @@ function App() {
     void loadIpProxies({}, { page: 0, size: ipProxyPaginationRef.current.size })
   }
 
-  function applyAffiliateSyncConfigFilters(event) {
+  function applyAffiliateAutoTaskFilters(event) {
     event.preventDefault()
-    setAffiliateSyncConfigQueryApplied(true)
-    void loadAffiliateSyncConfigs(affiliateSyncConfigFilters, {
+    setAffiliateAutoTaskQueryApplied(true)
+    void loadAffiliateAutoTasks(affiliateAutoTaskFilters, {
       page: 0,
-      size: affiliateSyncConfigPaginationRef.current.size,
+      size: affiliateAutoTaskPaginationRef.current.size,
     })
   }
 
-  function reloadAffiliateSyncConfigFilters() {
-    setAffiliateSyncConfigFilters({
+  function reloadAffiliateAutoTaskFilters() {
+    setAffiliateAutoTaskFilters({
       affiliateNetwork: '',
+      region: '',
+      status: '',
       ownerPhoneNumber: '',
     })
-    setAffiliateSyncConfigQueryApplied(false)
-    void loadAffiliateSyncConfigs({}, { page: 0, size: affiliateSyncConfigPaginationRef.current.size })
-  }
-
-  function applyAffiliateSyncTaskFilters(event) {
-    event.preventDefault()
-    setAffiliateSyncTaskQueryApplied(true)
-    void loadAffiliateSyncTasks(affiliateSyncTaskFilters, {
-      page: 0,
-      size: affiliateSyncTaskPaginationRef.current.size,
-    })
-  }
-
-  function reloadAffiliateSyncTaskFilters() {
-    setAffiliateSyncTaskFilters({
-      affiliateAdsSyncConfigId: '',
-      ownerPhoneNumber: '',
-    })
-    setAffiliateSyncTaskQueryApplied(false)
-    void loadAffiliateSyncTasks({}, { page: 0, size: affiliateSyncTaskPaginationRef.current.size })
-  }
-
-  function applyAffiliateTestTaskFilters(event) {
-    event.preventDefault()
-    setAffiliateTestTaskQueryApplied(true)
-    void loadAffiliateTestTasks(affiliateTestTaskFilters, {
-      page: 0,
-      size: affiliateTestTaskPaginationRef.current.size,
-    })
-  }
-
-  function reloadAffiliateTestTaskFilters() {
-    setAffiliateTestTaskFilters({
-      affiliateAdsSyncConfigId: '',
-      ownerPhoneNumber: '',
-    })
-    setAffiliateTestTaskQueryApplied(false)
-    void loadAffiliateTestTasks({}, { page: 0, size: affiliateTestTaskPaginationRef.current.size })
+    setAffiliateAutoTaskQueryApplied(false)
+    void loadAffiliateAutoTasks({}, { page: 0, size: affiliateAutoTaskPaginationRef.current.size })
   }
 
   function applyAffiliateTestResultFilters(event) {
@@ -3832,21 +3363,11 @@ function App() {
   function reloadAffiliateSyncResultFilters() {
     setAffiliateSyncResultFilters({
       affiliateNetwork: '',
-      siteName: '',
-      status: '',
       ownerPhoneNumber: '',
+      status: '',
     })
     setAffiliateSyncResultQueryApplied(false)
     void loadAffiliateSyncResults({}, { page: 0, size: affiliateSyncResultPaginationRef.current.size })
-  }
-
-  function applyAffiliateJobDetailFilters(event) {
-    event.preventDefault()
-    setAffiliateJobDetailQueryApplied(true)
-    void loadAffiliateJobDetails(affiliateJobDetailFilters, {
-      page: 0,
-      size: affiliateJobDetailPaginationRef.current.size,
-    })
   }
 
   function reloadAffiliateJobDetailFilters() {
@@ -3859,15 +3380,6 @@ function App() {
     })
     setAffiliateJobDetailQueryApplied(false)
     void loadAffiliateJobDetails({}, { page: 0, size: affiliateJobDetailPaginationRef.current.size })
-  }
-
-  function applyAffiliateTriggerFilters(event) {
-    event.preventDefault()
-    setAffiliateTriggerQueryApplied(true)
-    void loadAffiliateTriggers(affiliateTriggerFilters, {
-      page: 0,
-      size: affiliateTriggerPaginationRef.current.size,
-    })
   }
 
   function reloadAffiliateTriggerFilters() {
@@ -4121,8 +3633,8 @@ function App() {
     setShiftLinkLogCatalogError('')
     await loadShiftLinkLogs({
       adsType: toOptionalTrimmedString(shiftLinkLogFilters.adsType),
-      adsName: toOptionalTrimmedString(shiftLinkLogFilters.adsName),
       platformName: toOptionalTrimmedString(shiftLinkLogFilters.platformName),
+      adsName: toOptionalTrimmedString(shiftLinkLogFilters.adsName),
       ownerPhoneNumber: toOptionalTrimmedString(shiftLinkLogFilters.ownerPhoneNumber),
     }, {
       page: 0,
@@ -4133,8 +3645,8 @@ function App() {
   function handleReloadShiftLinkLogs() {
     setShiftLinkLogFilters({
       adsType: defaultShiftLinkLogAdsType,
-      adsName: '',
       platformName: '',
+      adsName: '',
       ownerPhoneNumber: '',
     })
     setShiftLinkLogQueryApplied(false)
@@ -4353,26 +3865,6 @@ function App() {
     setShowIpProxyModal(true)
   }
 
-  function startEditAffiliateSyncConfig(item) {
-    try {
-      const responsePayloadState = parseResponsePayloadState(item.responsePayload)
-      setEditingAffiliateSyncConfigId(item.id)
-      setAffiliateSyncConfigNetwork(item.affiliateNetwork || '')
-      setAffiliateSyncConfigName(item.syncName || '')
-      setAffiliateSyncConfigUrl(item.url || '')
-      setAffiliateSyncConfigMethod(item.method || '')
-      setAffiliateSyncConfigRequestHeaderRows(parseParameterRows(item.requestHeaders))
-      setAffiliateSyncConfigRequestPayloadRows(parseParameterRows(item.requestPayload))
-      setAffiliateSyncConfigResponsePayloadFormat(responsePayloadState.format)
-      setAffiliateSyncConfigResponsePayload(responsePayloadState.content)
-      setShowAffiliateSyncConfigModal(true)
-      setAffiliateSyncConfigsError('')
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateSyncConfigsError(message)
-    }
-  }
-
   async function handleSaveAccount(event) {
     event.preventDefault()
     setSavingAccount(true)
@@ -4529,274 +4021,77 @@ function App() {
     }
   }
 
-  async function handleSaveAffiliateSyncConfig(event) {
+  async function handleSaveAffiliateAutoTask(event) {
     event.preventDefault()
-    setSavingAffiliateSyncConfig(true)
-    setAffiliateSyncConfigsError('')
-    setAffiliateSyncConfigsMessage('')
+    setSavingAffiliateAutoTask(true)
+    setAffiliateAutoTasksError('')
+    setAffiliateAutoTasksMessage('')
 
     try {
-      const affiliateNetwork = toOptionalTrimmedString(affiliateSyncConfigNetwork)
-      const syncName = toOptionalTrimmedString(affiliateSyncConfigName)
-      const url = toOptionalTrimmedString(affiliateSyncConfigUrl)
-      const method = toOptionalTrimmedString(affiliateSyncConfigMethod)
+      const affiliateNetwork = toOptionalTrimmedString(affiliateAutoTaskNetwork)
+      const autoTaskType = toOptionalTrimmedString(affiliateAutoTaskType)
+      const region = toCountryCode(affiliateAutoTaskRegion)
 
       if (!affiliateNetwork) {
         throw new Error('Affiliate Network is required.')
       }
 
-      if (!syncName) {
-        throw new Error('Sync Name is required.')
+      if (!autoTaskType) {
+        throw new Error('Auto Task Type is required.')
       }
 
-      if (!url) {
-        throw new Error('URL is required.')
-      }
-
-      if (!method) {
-        throw new Error('Method is required.')
+      if (!region) {
+        throw new Error('Region is required.')
       }
 
       const payload = {
         affiliateNetwork,
-        syncName,
-        url,
-        method,
-        requestHeaders: serializeParameterRows(affiliateSyncConfigRequestHeaderRows),
-        requestPayload: serializeParameterRows(affiliateSyncConfigRequestPayloadRows),
-        responsePayload: serializeResponsePayloadState(
-          affiliateSyncConfigResponsePayloadFormat,
-          affiliateSyncConfigResponsePayload,
+        autoTaskType,
+        region,
+        adsOwner: toOptionalTrimmedString(
+          affiliateAutoTaskAdsOwner ||
+            editingAffiliateAutoTaskOriginal?.adsOwner ||
+            loggedInAdsOwner,
         ),
       }
 
-      if (editingAffiliateSyncConfigId) {
-        await requestApi(`/affiliate-ads-sync-config/${editingAffiliateSyncConfigId}`, {
+      if (editingAffiliateAutoTaskOriginal) {
+        payload.totalCount = editingAffiliateAutoTaskOriginal.totalCount
+        payload.successCount = editingAffiliateAutoTaskOriginal.successCount
+        payload.failedCount = editingAffiliateAutoTaskOriginal.failedCount
+        payload.startDate = editingAffiliateAutoTaskOriginal.startDate
+        payload.endDate = editingAffiliateAutoTaskOriginal.endDate
+        payload.duration = editingAffiliateAutoTaskOriginal.duration
+        payload.status = editingAffiliateAutoTaskOriginal.status
+      }
+
+      if (editingAffiliateAutoTaskId) {
+        await requestApi(`/affiliate-auto-task/${editingAffiliateAutoTaskId}`, {
           method: 'PUT',
           token,
           body: payload,
         })
-        setAffiliateSyncConfigsMessage('Ads Sync Config updated successfully.')
+        setAffiliateAutoTasksMessage('Auto Task updated successfully.')
       } else {
-        await requestApi('/affiliate-ads-sync-config', {
+        await requestApi('/affiliate-auto-task', {
           method: 'POST',
           token,
           body: payload,
         })
-        setAffiliateSyncConfigsMessage('Ads Sync Config created successfully.')
+        setAffiliateAutoTasksMessage('Auto Task created successfully.')
       }
 
-      clearAffiliateSyncConfigForm()
-      setShowAffiliateSyncConfigModal(false)
-      await loadAffiliateSyncConfigs(
-        affiliateSyncConfigQueryApplied ? affiliateSyncConfigFiltersRef.current : {},
-        affiliateSyncConfigPaginationRef.current,
+      clearAffiliateAutoTaskForm()
+      setShowAffiliateAutoTaskModal(false)
+      await loadAffiliateAutoTasks(
+        affiliateAutoTaskQueryApplied ? affiliateAutoTaskFiltersRef.current : {},
+        affiliateAutoTaskPaginationRef.current,
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateSyncConfigsError(message)
+      setAffiliateAutoTasksError(message)
     } finally {
-      setSavingAffiliateSyncConfig(false)
-    }
-  }
-
-  async function handleSaveAffiliateSyncTask(event) {
-    event.preventDefault()
-    setSavingAffiliateSyncTask(true)
-    setAffiliateSyncTasksError('')
-    setAffiliateSyncTasksMessage('')
-
-    try {
-      const configIdText = toOptionalTrimmedString(affiliateSyncTaskConfigId)
-      const configId = configIdText == null ? Number.NaN : Number(configIdText)
-
-      if (!Number.isFinite(configId)) {
-        throw new Error('Ads Sync Config is required.')
-      }
-
-      const region = toCountryCode(affiliateSyncTaskRegion)
-      if (!region) {
-        throw new Error('Region is required.')
-      }
-
-      const syncType = toOptionalTrimmedString(affiliateSyncTaskType)
-      if (!syncType) {
-        throw new Error('Sync Type is required.')
-      }
-
-      const cron = syncType === 'SCHEDULER' ? toOptionalTrimmedString(affiliateSyncTaskCron) : undefined
-      if (syncType === 'SCHEDULER' && !cron) {
-        throw new Error('Cron is required when Sync Type is SCHEDULER.')
-      }
-
-      const payload = {
-        affiliateAdsSyncConfigId: configId,
-        region,
-        syncType,
-        cron,
-        totalCount: affiliateSyncTaskTotalCount,
-        successCount: affiliateSyncTaskSuccessCount,
-        failedCount: affiliateSyncTaskFailedCount,
-        status: affiliateSyncTaskStatus || 'WAITING',
-        adsOwner: toOptionalTrimmedString(affiliateSyncTaskAdsOwner),
-      }
-
-      if (editingAffiliateSyncTaskId) {
-        await requestApi(`/affiliate-ads-sync-task/${editingAffiliateSyncTaskId}`, {
-          method: 'PUT',
-          token,
-          body: payload,
-        })
-        setAffiliateSyncTasksMessage('Ads Sync Task updated successfully.')
-      } else {
-        await requestApi('/affiliate-ads-sync-task', {
-          method: 'POST',
-          token,
-          body: payload,
-        })
-        setAffiliateSyncTasksMessage('Ads Sync Task created successfully.')
-      }
-
-      clearAffiliateSyncTaskForm()
-      setShowAffiliateSyncTaskModal(false)
-      await loadAffiliateSyncTasks(
-        affiliateSyncTaskQueryApplied ? affiliateSyncTaskFiltersRef.current : {},
-        affiliateSyncTaskPaginationRef.current,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateSyncTasksError(message)
-    } finally {
-      setSavingAffiliateSyncTask(false)
-    }
-  }
-
-  async function handleSaveAffiliateTestTask(event) {
-    event.preventDefault()
-    setSavingAffiliateTestTask(true)
-    setAffiliateTestTasksError('')
-    setAffiliateTestTasksMessage('')
-
-    try {
-      const configIdText = toOptionalTrimmedString(affiliateTestTaskConfigId)
-      const configId = configIdText == null ? Number.NaN : Number(configIdText)
-      if (!Number.isFinite(configId)) {
-        throw new Error('Ads Sync Config is required.')
-      }
-
-      const region = toCountryCode(affiliateTestTaskRegion)
-      if (!region) {
-        throw new Error('Region is required.')
-      }
-
-      const ipProxyInfoIdText = toOptionalTrimmedString(affiliateTestTaskIpProxyInfoId)
-      const ipProxyInfoId = ipProxyInfoIdText == null ? Number.NaN : Number(ipProxyInfoIdText)
-      if (!Number.isFinite(ipProxyInfoId)) {
-        throw new Error('IP Proxy is required.')
-      }
-
-      const payload = {
-        affiliateAdsSyncConfigId: configId,
-        region,
-        ipProxyInfoId,
-        totalCount: affiliateTestTaskTotalCount,
-        successCount: affiliateTestTaskSuccessCount,
-        failedCount: affiliateTestTaskFailedCount,
-        status: affiliateTestTaskStatus || 'WAITING',
-        adsOwner: toOptionalTrimmedString(affiliateTestTaskAdsOwner),
-      }
-
-      if (editingAffiliateTestTaskId) {
-        await requestApi(`/affiliate-ads-test-task/${editingAffiliateTestTaskId}`, {
-          method: 'PUT',
-          token,
-          body: payload,
-        })
-        setAffiliateTestTasksMessage('Ads Test Task updated successfully.')
-      } else {
-        await requestApi('/affiliate-ads-test-task', {
-          method: 'POST',
-          token,
-          body: payload,
-        })
-        setAffiliateTestTasksMessage('Ads Test Task created successfully.')
-      }
-
-      clearAffiliateTestTaskForm()
-      setShowAffiliateTestTaskModal(false)
-      await loadAffiliateTestTasks(
-        affiliateTestTaskQueryApplied ? affiliateTestTaskFiltersRef.current : {},
-        affiliateTestTaskPaginationRef.current,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateTestTasksError(message)
-    } finally {
-      setSavingAffiliateTestTask(false)
-    }
-  }
-
-  async function handleSaveAffiliateTestResult(event) {
-    event.preventDefault()
-    setSavingAffiliateTestResult(true)
-    setAffiliateTestResultsError('')
-    setAffiliateTestResultsMessage('')
-
-    try {
-      const affiliateNetwork = toOptionalTrimmedString(affiliateTestResultNetwork)
-      const region = toCountryCode(affiliateTestResultRegion)
-      const siteName = toOptionalTrimmedString(affiliateTestResultSiteName)
-
-      if (!affiliateNetwork) {
-        throw new Error('Affiliate Network is required.')
-      }
-
-      if (!region) {
-        throw new Error('Region is required.')
-      }
-
-      if (!siteName) {
-        throw new Error('Site Name is required.')
-      }
-
-      const payload = {
-        affiliateNetwork,
-        region,
-        siteName,
-        siteUrl: toOptionalTrimmedString(affiliateTestResultSiteUrl),
-        trackingUrl: toOptionalTrimmedString(affiliateTestResultTrackingUrl),
-        finalUrl: toOptionalTrimmedString(affiliateTestResultFinalUrl),
-        status: toOptionalTrimmedString(affiliateTestResultStatus),
-        adsOwner: toOptionalTrimmedString(affiliateTestResultAdsOwner || loggedInAdsOwner),
-      }
-
-      if (editingAffiliateTestResultId) {
-        await requestApi(`/affiliate-ads-test-result/${editingAffiliateTestResultId}`, {
-          method: 'PUT',
-          token,
-          body: payload,
-        })
-        setAffiliateTestResultsMessage('Ads Test Result updated successfully.')
-      } else {
-        await requestApi('/affiliate-ads-test-result', {
-          method: 'POST',
-          token,
-          body: payload,
-        })
-        setAffiliateTestResultsMessage('Ads Test Result created successfully.')
-      }
-
-      clearAffiliateTestResultForm()
-      setShowAffiliateTestResultModal(false)
-      await loadAffiliateTestResults(
-        affiliateTestResultQueryApplied ? affiliateTestResultFiltersRef.current : {},
-        affiliateTestResultPaginationRef.current,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateTestResultsError(message)
-    } finally {
-      setSavingAffiliateTestResult(false)
+      setSavingAffiliateAutoTask(false)
     }
   }
 
@@ -4860,29 +4155,6 @@ function App() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       setIpProxiesError(message)
-    }
-  }
-
-  async function handleDeleteAffiliateSyncConfig(id) {
-    setAffiliateSyncConfigsError('')
-    setAffiliateSyncConfigsMessage('')
-
-    try {
-      await requestApi(`/affiliate-ads-sync-config/${id}`, {
-        method: 'DELETE',
-        token,
-      })
-      setAffiliateSyncConfigsMessage('Ads Sync Config deleted successfully.')
-      await loadAffiliateSyncConfigs(
-        affiliateSyncConfigQueryApplied ? affiliateSyncConfigFiltersRef.current : {},
-        affiliateSyncConfigPaginationRef.current,
-      )
-      if (editingAffiliateSyncConfigId === id) {
-        clearAffiliateSyncConfigForm()
-      }
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAffiliateSyncConfigsError(message)
     }
   }
 
@@ -5153,18 +4425,14 @@ function App() {
           ? 'Cash Bach Account'
         : activeMenu === 'ads-account-management'
           ? 'Ads Account Management'
+        : activeMenu === 'affiliate-auto-task'
+          ? 'Auto Task'
         : activeMenu === 'affiliate-job-detail'
           ? 'Auto Job'
-        : activeMenu === 'affiliate-sync-config'
-          ? 'API Config'
-        : activeMenu === 'affiliate-sync-task'
-          ? 'Auto Sync Task'
-        : activeMenu === 'affiliate-test-task'
-          ? 'Auto Test Task'
         : activeMenu === 'affiliate-test-result'
-          ? 'Auto Test Report'
+          ? 'Affiliate Test'
         : activeMenu === 'affiliate-sync-result'
-          ? 'Auto Sync Report'
+          ? 'Affiliate Ads'
         : activeMenu === 'affiliate-trigger'
           ? 'Auto Trigger'
         : activeMenu === 'affiliate-ip-proxy'
@@ -5177,6 +4445,8 @@ function App() {
           ? 'Expenditure Management'
         : activeMenu === 'ads-url-management'
           ? 'Shift Link'
+          : activeMenu === 'shift-link-dashboard'
+            ? 'Dashboard'
           : activeMenu === 'shift-link-log'
             ? 'Shift Link Log'
           : activeMenu === 'test-shift-link'
@@ -5309,7 +4579,6 @@ function App() {
         platformsError={platformsError}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
-        ownerOptionsLoading={ownerFilterOptionsLoading}
         onCreateAds={openCreateAds}
         onOpenBulkAdsUpload={openBulkAdsUpload}
         onOpenFolderImport={openFolderImport}
@@ -5374,6 +4643,14 @@ function App() {
         onPageSizeChange={handleAdsUrlPageSizeChange}
       />
     )
+  } else if (activeMenu === 'shift-link-dashboard') {
+    activeSection = (
+      <ShiftLinkDashboardSection
+        token={token}
+        showNormalChart={!isMatrixOnlyRole}
+        showMatrixChart={!isNormalOnlyRole}
+      />
+    )
   } else if (activeMenu === 'shift-link-log') {
     activeSection = (
       <ShiftLinkLogSection
@@ -5391,7 +4668,6 @@ function App() {
         pagination={shiftLinkLogPagination}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
-        ownerOptionsLoading={ownerFilterOptionsLoading}
         onFiltersChange={handleShiftLinkLogFiltersChange}
         onSearch={(event) => void handleShiftLinkLogSearch(event)}
         onReload={handleReloadShiftLinkLogs}
@@ -5413,10 +4689,18 @@ function App() {
         matrixAdsTestResponse={matrixAdsTestResponse}
         onTestNormalAds={() => void runTestShiftLink('normal')}
         onTestMatrixAds={() => void runTestShiftLink('matrix')}
+        showNormalTest={!isMatrixOnlyRole}
+        showMatrixTest={!isNormalOnlyRole}
       />
     )
   } else if (activeMenu === 'auto-script') {
-    activeSection = <GoogleAdsScriptPanel currentUserApiKey={currentUserRecord?.apiKey || ''} />
+    activeSection = (
+      <GoogleAdsScriptPanel
+        currentUserApiKey={currentUserRecord?.apiKey || ''}
+        showNormalTemplate={!isMatrixOnlyRole}
+        showMatrixTemplate={!isNormalOnlyRole}
+      />
+    )
   } else if (activeMenu === 'normal-ads-management') {
     activeSection = (
       <NormalAdsManagementSection
@@ -5427,12 +4711,10 @@ function App() {
         normalAdsColumns={normalAdsColumns}
         normalAdsFilters={normalAdsFilters}
         adsStatusOptions={adsStatusOptions}
+        filterPlatformOptions={normalAdsFilterPlatformOptions}
         countryOptions={COUNTRY_OPTIONS}
-        platformOptions={platformOptions}
-        platformsLoading={platformsLoading}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
-        ownerOptionsLoading={ownerFilterOptionsLoading}
         onCreateNormalAds={openCreateNormalAds}
         canCreateNormalAds={canCreateNormalAds}
         normalAdsQuotaMessage={normalAdsQuotaMessage}
@@ -5487,7 +4769,6 @@ function App() {
         platformsLoading={platformsLoading}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
-        ownerOptionsLoading={ownerFilterOptionsLoading}
         onCreateMatrixAds={openCreateMatrixAds}
         canCreateMatrixAds={canCreateMatrixAds}
         matrixAdsQuotaMessage={matrixAdsQuotaMessage}
@@ -5669,104 +4950,50 @@ function App() {
         affiliateJobDetailsLoading={affiliateJobDetailsLoading}
         affiliateJobDetailsError={affiliateJobDetailsError}
         affiliateJobDetailsMessage={affiliateJobDetailsMessage}
-        affiliateJobDetailFilters={affiliateJobDetailFilters}
-        onAffiliateJobDetailFiltersChange={setAffiliateJobDetailFilters}
-        onApplyAffiliateJobDetailFilters={applyAffiliateJobDetailFilters}
         onReloadAffiliateJobDetailFilters={reloadAffiliateJobDetailFilters}
         pagination={affiliateJobDetailPagination}
         onPageChange={handleAffiliateJobDetailPageChange}
         onPageSizeChange={handleAffiliateJobDetailPageSizeChange}
       />
     )
-  } else if (activeMenu === 'affiliate-sync-config') {
+  } else if (activeMenu === 'affiliate-auto-task') {
     activeSection = (
-      <AffiliateSyncConfigManagementSection
-        affiliateSyncConfigs={affiliateSyncConfigs}
-        affiliateSyncConfigsLoading={affiliateSyncConfigsLoading}
-        affiliateSyncConfigsError={affiliateSyncConfigsError}
-        affiliateSyncConfigsMessage={affiliateSyncConfigsMessage}
-        affiliateSyncConfigFilters={affiliateSyncConfigFilters}
-        onAffiliateSyncConfigFiltersChange={setAffiliateSyncConfigFilters}
-        onApplyAffiliateSyncConfigFilters={applyAffiliateSyncConfigFilters}
-        onReloadAffiliateSyncConfigFilters={reloadAffiliateSyncConfigFilters}
-        onCreateAffiliateSyncConfig={openCreateAffiliateSyncConfig}
-        onEditAffiliateSyncConfig={startEditAffiliateSyncConfig}
-        onDeleteAffiliateSyncConfig={handleDeleteAffiliateSyncConfig}
-        showAffiliateSyncConfigModal={showAffiliateSyncConfigModal}
-        editingAffiliateSyncConfigId={editingAffiliateSyncConfigId}
-        affiliateSyncConfigNetwork={affiliateSyncConfigNetwork}
-        onAffiliateSyncConfigNetworkChange={setAffiliateSyncConfigNetwork}
-        affiliateSyncConfigName={affiliateSyncConfigName}
-        onAffiliateSyncConfigNameChange={setAffiliateSyncConfigName}
-        affiliateSyncConfigUrl={affiliateSyncConfigUrl}
-        onAffiliateSyncConfigUrlChange={setAffiliateSyncConfigUrl}
-        affiliateSyncConfigMethod={affiliateSyncConfigMethod}
-        onAffiliateSyncConfigMethodChange={setAffiliateSyncConfigMethod}
-        affiliateSyncConfigRequestHeaderRows={affiliateSyncConfigRequestHeaderRows}
-        onAddAffiliateSyncConfigRequestHeaderRow={addAffiliateSyncConfigRequestHeaderRow}
-        onUpdateAffiliateSyncConfigRequestHeaderRow={updateAffiliateSyncConfigRequestHeaderRow}
-        onRemoveAffiliateSyncConfigRequestHeaderRow={removeAffiliateSyncConfigRequestHeaderRow}
-        affiliateSyncConfigRequestPayloadRows={affiliateSyncConfigRequestPayloadRows}
-        onAddAffiliateSyncConfigRequestPayloadRow={addAffiliateSyncConfigRequestPayloadRow}
-        onUpdateAffiliateSyncConfigRequestPayloadRow={updateAffiliateSyncConfigRequestPayloadRow}
-        onRemoveAffiliateSyncConfigRequestPayloadRow={removeAffiliateSyncConfigRequestPayloadRow}
-        affiliateSyncConfigResponsePayloadFormat={affiliateSyncConfigResponsePayloadFormat}
-        onAffiliateSyncConfigResponsePayloadFormatChange={setAffiliateSyncConfigResponsePayloadFormat}
-        affiliateSyncConfigResponsePayload={affiliateSyncConfigResponsePayload}
-        onAffiliateSyncConfigResponsePayloadChange={setAffiliateSyncConfigResponsePayload}
-        onSaveAffiliateSyncConfig={handleSaveAffiliateSyncConfig}
-        savingAffiliateSyncConfig={savingAffiliateSyncConfig}
-        onCloseAffiliateSyncConfigModal={() => setShowAffiliateSyncConfigModal(false)}
+      <AffiliateAutoTaskManagementSection
+        affiliateAutoTasks={affiliateAutoTasks}
+        affiliateAutoTasksLoading={affiliateAutoTasksLoading}
+        affiliateAutoTasksError={affiliateAutoTasksError}
+        affiliateAutoTasksMessage={affiliateAutoTasksMessage}
+        affiliateAutoTaskFilters={affiliateAutoTaskFilters}
+        onAffiliateAutoTaskFiltersChange={setAffiliateAutoTaskFilters}
+        onApplyAffiliateAutoTaskFilters={applyAffiliateAutoTaskFilters}
+        onReloadAffiliateAutoTaskFilters={reloadAffiliateAutoTaskFilters}
+        onCreateAffiliateAutoTask={openCreateAffiliateAutoTask}
+        onEditAffiliateAutoTask={startEditAffiliateAutoTask}
+        onDeleteAffiliateAutoTask={handleDeleteAffiliateAutoTask}
+        onRunAffiliateAutoTaskSync={handleRunAffiliateAutoTaskSync}
+        onRunAffiliateAutoTaskTest={handleRunAffiliateAutoTaskTest}
+        runningAffiliateAutoTaskId={runningAffiliateAutoTaskId}
+        showAffiliateAutoTaskModal={showAffiliateAutoTaskModal}
+        editingAffiliateAutoTaskId={editingAffiliateAutoTaskId}
+        affiliateAutoTaskNetwork={affiliateAutoTaskNetwork}
+        onAffiliateAutoTaskNetworkChange={setAffiliateAutoTaskNetwork}
+        affiliateAutoTaskType={affiliateAutoTaskType}
+        onAffiliateAutoTaskTypeChange={setAffiliateAutoTaskType}
+        affiliateAutoTaskRegion={affiliateAutoTaskRegion}
+        onAffiliateAutoTaskRegionChange={setAffiliateAutoTaskRegion}
+        onSaveAffiliateAutoTask={handleSaveAffiliateAutoTask}
+        savingAffiliateAutoTask={savingAffiliateAutoTask}
+        onCloseAffiliateAutoTaskModal={() => setShowAffiliateAutoTaskModal(false)}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
-        affiliateNetworkOptions={platformOptions}
-        methodOptions={affiliateSyncMethodOptions}
-        responseFormatOptions={affiliateSyncResponseFormatOptions}
-        formatDateDisplayValue={formatDateDisplayValue}
-        pagination={affiliateSyncConfigPagination}
-        onPageChange={handleAffiliateSyncConfigPageChange}
-        onPageSizeChange={handleAffiliateSyncConfigPageSizeChange}
-      />
-    )
-  } else if (activeMenu === 'affiliate-sync-task') {
-    activeSection = (
-      <AffiliateSyncTaskManagementSection
-        affiliateSyncTasks={affiliateSyncTasks}
-        affiliateSyncTasksLoading={affiliateSyncTasksLoading}
-        affiliateSyncTasksError={affiliateSyncTasksError}
-        affiliateSyncTasksMessage={affiliateSyncTasksMessage}
-        affiliateSyncTaskFilters={affiliateSyncTaskFilters}
-        onAffiliateSyncTaskFiltersChange={setAffiliateSyncTaskFilters}
-        onApplyAffiliateSyncTaskFilters={applyAffiliateSyncTaskFilters}
-        onReloadAffiliateSyncTaskFilters={reloadAffiliateSyncTaskFilters}
-        onCreateAffiliateSyncTask={openCreateAffiliateSyncTask}
-        onEditAffiliateSyncTask={startEditAffiliateSyncTask}
-        onDeleteAffiliateSyncTask={handleDeleteAffiliateSyncTask}
-        onRunAffiliateSyncTask={handleRunAffiliateSyncTask}
-        showAffiliateSyncTaskModal={showAffiliateSyncTaskModal}
-        editingAffiliateSyncTaskId={editingAffiliateSyncTaskId}
-        affiliateSyncTaskConfigId={affiliateSyncTaskConfigId}
-        onAffiliateSyncTaskConfigIdChange={setAffiliateSyncTaskConfigId}
-        affiliateSyncTaskRegion={affiliateSyncTaskRegion}
-        onAffiliateSyncTaskRegionChange={setAffiliateSyncTaskRegion}
-        affiliateSyncTaskType={affiliateSyncTaskType}
-        onAffiliateSyncTaskTypeChange={handleAffiliateSyncTaskTypeChange}
-        affiliateSyncTaskCron={affiliateSyncTaskCron}
-        onAffiliateSyncTaskCronChange={setAffiliateSyncTaskCron}
-        onSaveAffiliateSyncTask={handleSaveAffiliateSyncTask}
-        savingAffiliateSyncTask={savingAffiliateSyncTask}
-        runningAffiliateSyncTaskId={runningAffiliateSyncTaskId}
-        onCloseAffiliateSyncTaskModal={() => setShowAffiliateSyncTaskModal(false)}
-        showOwnerFilter={showAdminOwnerFilter}
-        ownerOptions={ownerFilterOptions}
-        affiliateSyncConfigOptions={affiliateSyncConfigOptions}
-        affiliateSyncConfigOptionsLoading={affiliateSyncConfigOptionsLoading}
+        affiliateAutoTaskNetworkOptions={affiliateAutoTaskNetworkOptions}
+        affiliateAutoTaskTypeOptions={affiliateAutoTaskTypeOptions}
+        affiliateAutoTaskStatusOptions={affiliateAutoTaskStatusOptions}
         countryOptions={COUNTRY_OPTIONS}
-        syncTypeOptions={affiliateSyncTypeOptions}
         formatDateDisplayValue={formatDateDisplayValue}
-        pagination={affiliateSyncTaskPagination}
-        onPageChange={handleAffiliateSyncTaskPageChange}
-        onPageSizeChange={handleAffiliateSyncTaskPageSizeChange}
+        pagination={affiliateAutoTaskPagination}
+        onPageChange={handleAffiliateAutoTaskPageChange}
+        onPageSizeChange={handleAffiliateAutoTaskPageSizeChange}
       />
     )
   } else if (activeMenu === 'affiliate-sync-result') {
@@ -5777,58 +5004,19 @@ function App() {
         affiliateSyncResultsError={affiliateSyncResultsError}
         affiliateSyncResultsMessage={affiliateSyncResultsMessage}
         affiliateSyncResultFilters={affiliateSyncResultFilters}
+        affiliateSyncResultStatusOptions={affiliateSyncResultStatusOptions}
         onAffiliateSyncResultFiltersChange={setAffiliateSyncResultFilters}
         onApplyAffiliateSyncResultFilters={applyAffiliateSyncResultFilters}
         onReloadAffiliateSyncResultFilters={reloadAffiliateSyncResultFilters}
+        onTestAffiliateSyncResult={handleTestAffiliateSyncResult}
+        testingAffiliateSyncResultId={testingAffiliateSyncResultId}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
-        affiliateNetworkOptions={platformOptions}
+        affiliateNetworkOptions={affiliateAutoTaskNetworkOptions}
         formatDateDisplayValue={formatDateDisplayValue}
         pagination={affiliateSyncResultPagination}
-        runningAffiliateSyncResultId={runningAffiliateSyncResultId}
-        onTestAffiliateSyncResult={handleTestAffiliateSyncResult}
         onPageChange={handleAffiliateSyncResultPageChange}
         onPageSizeChange={handleAffiliateSyncResultPageSizeChange}
-      />
-    )
-  } else if (activeMenu === 'affiliate-test-task') {
-    activeSection = (
-      <AffiliateTestTaskManagementSection
-        affiliateTestTasks={affiliateTestTasks}
-        affiliateTestTasksLoading={affiliateTestTasksLoading}
-        affiliateTestTasksError={affiliateTestTasksError}
-        affiliateTestTasksMessage={affiliateTestTasksMessage}
-        affiliateTestTaskFilters={affiliateTestTaskFilters}
-        onAffiliateTestTaskFiltersChange={setAffiliateTestTaskFilters}
-        onApplyAffiliateTestTaskFilters={applyAffiliateTestTaskFilters}
-        onReloadAffiliateTestTaskFilters={reloadAffiliateTestTaskFilters}
-        onCreateAffiliateTestTask={openCreateAffiliateTestTask}
-        onEditAffiliateTestTask={startEditAffiliateTestTask}
-        onDeleteAffiliateTestTask={handleDeleteAffiliateTestTask}
-        onRunAffiliateTestTask={handleRunAffiliateTestTask}
-        showAffiliateTestTaskModal={showAffiliateTestTaskModal}
-        editingAffiliateTestTaskId={editingAffiliateTestTaskId}
-        affiliateTestTaskConfigId={affiliateTestTaskConfigId}
-        onAffiliateTestTaskConfigIdChange={setAffiliateTestTaskConfigId}
-        affiliateTestTaskRegion={affiliateTestTaskRegion}
-        onAffiliateTestTaskRegionChange={setAffiliateTestTaskRegion}
-        affiliateTestTaskIpProxyInfoId={affiliateTestTaskIpProxyInfoId}
-        onAffiliateTestTaskIpProxyInfoIdChange={setAffiliateTestTaskIpProxyInfoId}
-        onSaveAffiliateTestTask={handleSaveAffiliateTestTask}
-        savingAffiliateTestTask={savingAffiliateTestTask}
-        runningAffiliateTestTaskId={runningAffiliateTestTaskId}
-        onCloseAffiliateTestTaskModal={() => setShowAffiliateTestTaskModal(false)}
-        showOwnerFilter={showAdminOwnerFilter}
-        ownerOptions={ownerFilterOptions}
-        affiliateSyncConfigOptions={affiliateSyncConfigOptions}
-        affiliateSyncConfigOptionsLoading={affiliateSyncConfigOptionsLoading}
-        ipProxyOptions={ipProxyOptions}
-        ipProxyOptionsLoading={ipProxyOptionsLoading}
-        countryOptions={COUNTRY_OPTIONS}
-        formatDateDisplayValue={formatDateDisplayValue}
-        pagination={affiliateTestTaskPagination}
-        onPageChange={handleAffiliateTestTaskPageChange}
-        onPageSizeChange={handleAffiliateTestTaskPageSizeChange}
       />
     )
   } else if (activeMenu === 'affiliate-test-result') {
@@ -5839,34 +5027,13 @@ function App() {
         affiliateTestResultsError={affiliateTestResultsError}
         affiliateTestResultsMessage={affiliateTestResultsMessage}
         affiliateTestResultFilters={affiliateTestResultFilters}
+        affiliateTestResultStatusOptions={affiliateTestResultStatusOptions}
         onAffiliateTestResultFiltersChange={setAffiliateTestResultFilters}
         onApplyAffiliateTestResultFilters={applyAffiliateTestResultFilters}
         onReloadAffiliateTestResultFilters={reloadAffiliateTestResultFilters}
-        onCreateAffiliateTestResult={openCreateAffiliateTestResult}
-        onEditAffiliateTestResult={startEditAffiliateTestResult}
-        onDeleteAffiliateTestResult={handleDeleteAffiliateTestResult}
-        showAffiliateTestResultModal={showAffiliateTestResultModal}
-        editingAffiliateTestResultId={editingAffiliateTestResultId}
-        affiliateTestResultNetwork={affiliateTestResultNetwork}
-        onAffiliateTestResultNetworkChange={setAffiliateTestResultNetwork}
-        affiliateTestResultRegion={affiliateTestResultRegion}
-        onAffiliateTestResultRegionChange={setAffiliateTestResultRegion}
-        affiliateTestResultSiteName={affiliateTestResultSiteName}
-        onAffiliateTestResultSiteNameChange={setAffiliateTestResultSiteName}
-        affiliateTestResultSiteUrl={affiliateTestResultSiteUrl}
-        onAffiliateTestResultSiteUrlChange={setAffiliateTestResultSiteUrl}
-        affiliateTestResultTrackingUrl={affiliateTestResultTrackingUrl}
-        onAffiliateTestResultTrackingUrlChange={setAffiliateTestResultTrackingUrl}
-        affiliateTestResultFinalUrl={affiliateTestResultFinalUrl}
-        onAffiliateTestResultFinalUrlChange={setAffiliateTestResultFinalUrl}
-        affiliateTestResultStatus={affiliateTestResultStatus}
-        onAffiliateTestResultStatusChange={setAffiliateTestResultStatus}
-        onSaveAffiliateTestResult={handleSaveAffiliateTestResult}
-        savingAffiliateTestResult={savingAffiliateTestResult}
-        onCloseAffiliateTestResultModal={() => setShowAffiliateTestResultModal(false)}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
-        affiliateNetworkOptions={platformOptions}
+        affiliateNetworkOptions={affiliateAutoTaskNetworkOptions}
         countryOptions={COUNTRY_OPTIONS}
         formatDateDisplayValue={formatDateDisplayValue}
         pagination={affiliateTestResultPagination}
@@ -5881,9 +5048,6 @@ function App() {
         affiliateTriggersLoading={affiliateTriggersLoading}
         affiliateTriggersError={affiliateTriggersError}
         affiliateTriggersMessage={affiliateTriggersMessage}
-        affiliateTriggerFilters={affiliateTriggerFilters}
-        onAffiliateTriggerFiltersChange={setAffiliateTriggerFilters}
-        onApplyAffiliateTriggerFilters={applyAffiliateTriggerFilters}
         onReloadAffiliateTriggerFilters={reloadAffiliateTriggerFilters}
         pagination={affiliateTriggerPagination}
         onPageChange={handleAffiliateTriggerPageChange}

@@ -59,7 +59,7 @@ export const ADS_ACCOUNT_STATUS_OPTIONS = [
 ]
 
 export const IP_PROXY_TYPE_OPTIONS = [
-  { value: 'DYNIMIC', label: 'DYNIMIC' },
+  { value: 'DYNAMIC', label: 'DYNAMIC' },
   { value: 'STATIC', label: 'STATIC' },
 ]
 
@@ -73,21 +73,33 @@ export const IP_PROXY_STATUS_OPTIONS = [
   { value: 'DISABLED', label: 'DISABLED' },
 ]
 
-export const AFFILIATE_SYNC_METHOD_OPTIONS = [
-  { value: 'POST', label: 'POST' },
-  { value: 'GET', label: 'GET' },
-  { value: 'PATCH', label: 'PATCH' },
-  { value: 'DELETE', label: 'DELETE' },
+export const AFFILIATE_AUTO_TASK_NETWORK_OPTIONS = [
+  { value: 'BonusArrive', label: 'BonusArrive' },
+  { value: 'Yeahpromos', label: 'Yeahpromos' },
+  { value: 'Partnerboost', label: 'Partnerboost' },
+  { value: 'Mylead', label: 'Mylead' },
 ]
 
-export const AFFILIATE_SYNC_RESPONSE_FORMAT_OPTIONS = [
-  { value: 'TEXT', label: 'Text' },
-  { value: 'JSON', label: 'Json' },
-  { value: 'XML', label: 'XML' },
-  { value: 'YAML', label: 'YAML' },
+export const AFFILIATE_AUTO_TASK_TYPE_OPTIONS = [
+  { value: 'SYNC', label: 'SYNC' },
+  { value: 'TEST', label: 'TEST' },
 ]
 
-export const AFFILIATE_SYNC_TYPE_OPTIONS = [
-  { value: 'SCHEDULER', label: 'SCHEDULER' },
-  { value: 'MANUAL', label: 'MANUAL' },
+export const AFFILIATE_AUTO_TASK_STATUS_OPTIONS = [
+  { value: 'NOT_RUN', label: 'NOT_RUN' },
+  { value: 'IN_PROGRESS', label: 'IN_PROGRESS' },
+  { value: 'SUCCESS', label: 'SUCCESS' },
+  { value: 'FAILED', label: 'FAILED' },
+]
+
+export const AFFILIATE_SYNC_RESULT_STATUS_OPTIONS = [
+  { value: 'TO_BE_TEST', label: 'TO_BE_TEST' },
+  { value: 'TEST_SUCCESS', label: 'TEST_SUCCESS' },
+  { value: 'TEST_FAILED', label: 'TEST_FAILED' },
+  { value: 'TESTING', label: 'TESTING' },
+]
+
+export const AFFILIATE_TEST_RESULT_STATUS_OPTIONS = [
+  { value: 'SUCCESS', label: 'SUCCESS' },
+  { value: 'FAILED', label: 'FAILED' },
 ]

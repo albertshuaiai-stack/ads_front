@@ -432,15 +432,15 @@ function isMatrixRole(roleName) {
 
 function getDefaultMenuForRole(roleName) {
   if (isAdminRole(roleName)) {
-    return 'user-management'
+    return 'shift-link-dashboard'
   }
 
   if (isNormalRole(roleName)) {
-    return 'normal-ads-management'
+    return 'shift-link-dashboard'
   }
 
   if (isMatrixRole(roleName)) {
-    return 'matrix-ads-management'
+    return 'shift-link-dashboard'
   }
 
   return ''

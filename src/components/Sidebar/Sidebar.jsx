@@ -84,20 +84,6 @@ function getIconFor(id) {
           <path d="M4 17h16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       )
-    case 'affiliate-sync-config':
-      return (
-        <svg {...common} aria-hidden focusable="false">
-          <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.2" />
-          <path d="M8 8h8M8 12h8M8 16h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-        </svg>
-      )
-    case 'affiliate-sync-task':
-      return (
-        <svg {...common} aria-hidden focusable="false">
-          <rect x="4" y="5" width="16" height="14" rx="2" stroke="currentColor" strokeWidth="1.2" />
-          <path d="M8 3v4M16 3v4M7 11h10M7 15h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-        </svg>
-      )
     case 'affiliate-sync-result':
       return (
         <svg {...common} aria-hidden focusable="false">
@@ -138,6 +124,15 @@ function getIconFor(id) {
           <path d="M7 14h6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
           <path d="M17 14l2 2-4 4-2-2 4-4z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
           <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" />
+        </svg>
+      )
+    case 'shift-link-dashboard':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <path d="M5 19V9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M12 19V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M19 19v-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M3 19h18" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       )
     case 'test-shift-link':

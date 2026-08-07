@@ -1,0 +1,130 @@
+.shift-link-dashboard {
+  display: grid;
+  gap: 16px;
+}
+
+.shift-link-dashboard__intro {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.shift-link-dashboard__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.shift-link-dashboard__card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--bg), #ffffff 10%);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+  min-width: 0;
+}
+
+.shift-link-dashboard__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.shift-link-dashboard__card-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.shift-link-dashboard__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-h);
+}
+
+.shift-link-dashboard__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.shift-link-dashboard__legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.shift-link-dashboard__legend-swatch--consumed {
+  background: #ef4444;
+}
+
+.shift-link-dashboard__legend-swatch--remaining {
+  background: #49b3ff;
+}
+
+.shift-link-dashboard__chart-wrap {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.shift-link-dashboard__empty {
+  margin: 0;
+  color: var(--muted);
+}
+
+.shift-link-dashboard__chart {
+  display: block;
+}
+
+.shift-link-dashboard__axis-label {
+  fill: var(--muted);
+  font-size: 12px;
+}
+
+.shift-link-dashboard__tick {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.shift-link-dashboard__bar-label {
+  fill: var(--text-h);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.shift-link-dashboard__campaign-label {
+  fill: var(--text-h);
+  font-size: 11px;
+}
+
+.shift-link-dashboard__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.shift-link-dashboard__summary-chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text-h);
+  background: rgba(108, 99, 255, 0.06);
+}
+
+.shift-link-dashboard__summary-chip--consumed {
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.28);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+@media (max-width: 1100px) {
+  .shift-link-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+}

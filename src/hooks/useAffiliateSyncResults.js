@@ -13,9 +13,8 @@ export function useAffiliateSyncResults(token, defaultAdsOwner, isAdminView) {
   const affiliateSyncResultPaginationRef = useRef(affiliateSyncResultPagination)
   const [affiliateSyncResultFilters, setAffiliateSyncResultFilters] = useState({
     affiliateNetwork: '',
-    siteName: '',
-    status: '',
     ownerPhoneNumber: '',
+    status: '',
   })
   const [affiliateSyncResultQueryApplied, setAffiliateSyncResultQueryApplied] = useState(false)
   const affiliateSyncResultFiltersRef = useRef(affiliateSyncResultFilters)
@@ -42,10 +41,9 @@ export function useAffiliateSyncResults(token, defaultAdsOwner, isAdminView) {
           : toOptionalTrimmedString(defaultAdsOwner)
 
         const response = await requestApi(
-          `/affiliate-ads-sync${buildQueryString({
+          `/affiliate-ads${buildQueryString({
             adsOwner: resolvedAdsOwner,
             affiliateNetwork: filters.affiliateNetwork,
-            siteName: filters.siteName,
             status: filters.status,
             page: pageConfig.page,
             size: pageConfig.size,

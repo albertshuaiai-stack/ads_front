@@ -24,6 +24,8 @@ function TestShiftLinkSection({
   matrixAdsTestResponse,
   onTestNormalAds,
   onTestMatrixAds,
+  showNormalTest = true,
+  showMatrixTest = true,
 }) {
   return (
     <div className="panel test-shift-link">
@@ -31,22 +33,26 @@ function TestShiftLinkSection({
         <div className="list-header">
           <h3>Shift Link Testing</h3>
           <div className="toolbar-actions">
-            <button
-              type="button"
-              className="primary"
-              onClick={onTestNormalAds}
-              disabled={normalAdsTestLoading}
-            >
-              {normalAdsTestLoading ? 'Testing Normal Ads...' : 'Test Normal Ads'}
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={onTestMatrixAds}
-              disabled={matrixAdsTestLoading}
-            >
-              {matrixAdsTestLoading ? 'Testing Matrix Ads...' : 'Test Matrix Ads'}
-            </button>
+            {showNormalTest ? (
+              <button
+                type="button"
+                className="primary"
+                onClick={onTestNormalAds}
+                disabled={normalAdsTestLoading}
+              >
+                {normalAdsTestLoading ? 'Testing Normal Ads...' : 'Test Normal Ads'}
+              </button>
+            ) : null}
+            {showMatrixTest ? (
+              <button
+                type="button"
+                className="secondary"
+                onClick={onTestMatrixAds}
+                disabled={matrixAdsTestLoading}
+              >
+                {matrixAdsTestLoading ? 'Testing Matrix Ads...' : 'Test Matrix Ads'}
+              </button>
+            ) : null}
           </div>
         </div>
 
@@ -75,8 +81,19 @@ function TestShiftLinkSection({
         </div>
 
         <p className="field-help">
-          Uses <code>/api/normal/ads</code> and <code>/api/matrix/ads</code> with
-          <code> campaign_name</code> and <code>api_key</code>.
+          Uses
+          {showNormalTest ? (
+            <>
+              {' '}<code>/api/normal/ads</code>
+            </>
+          ) : null}
+          {showNormalTest && showMatrixTest ? ' and ' : ' '}
+          {showMatrixTest ? (
+            <>
+              <code>/api/matrix/ads</code>
+            </>
+          ) : null}
+          with <code>campaign_name</code> and <code>api_key</code>.
         </p>
 
         {testError ? (
@@ -86,23 +103,27 @@ function TestShiftLinkSection({
         ) : null}
 
         <div className="test-shift-link__responses">
-          <section className="test-shift-link__response-card">
-            <h4>/api/normal/ads Response</h4>
-            {normalAdsTestResponse == null ? (
-              <p className="field-help">No response yet.</p>
-            ) : (
-              <pre>{formatResponseBody(normalAdsTestResponse)}</pre>
-            )}
-          </section>
+          {showNormalTest ? (
+            <section className="test-shift-link__response-card">
+              <h4>/api/normal/ads Response</h4>
+              {normalAdsTestResponse == null ? (
+                <p className="field-help">No response yet.</p>
+              ) : (
+                <pre>{formatResponseBody(normalAdsTestResponse)}</pre>
+              )}
+            </section>
+          ) : null}
 
-          <section className="test-shift-link__response-card">
-            <h4>/api/matrix/ads Response</h4>
-            {matrixAdsTestResponse == null ? (
-              <p className="field-help">No response yet.</p>
-            ) : (
-              <pre>{formatResponseBody(matrixAdsTestResponse)}</pre>
-            )}
-          </section>
+          {showMatrixTest ? (
+            <section className="test-shift-link__response-card">
+              <h4>/api/matrix/ads Response</h4>
+              {matrixAdsTestResponse == null ? (
+                <p className="field-help">No response yet.</p>
+              ) : (
+                <pre>{formatResponseBody(matrixAdsTestResponse)}</pre>
+              )}
+            </section>
+          ) : null}
         </div>
       </div>
     </div>

@@ -7,9 +7,6 @@ function AffiliateTriggerSection({
   affiliateTriggersLoading,
   affiliateTriggersError,
   affiliateTriggersMessage,
-  affiliateTriggerFilters,
-  onAffiliateTriggerFiltersChange,
-  onApplyAffiliateTriggerFilters,
   onReloadAffiliateTriggerFilters,
   pagination,
   onPageChange,
@@ -21,115 +18,6 @@ function AffiliateTriggerSection({
         <div className="list-header">
           <h3>Auto Trigger</h3>
         </div>
-
-        <form className="filter-form" onSubmit={onApplyAffiliateTriggerFilters}>
-          <div className="filter-item">
-            <label htmlFor="affiliateTriggerSchedNameFilter">Sched Name</label>
-            <input
-              id="affiliateTriggerSchedNameFilter"
-              value={affiliateTriggerFilters.schedName}
-              onChange={(event) =>
-                onAffiliateTriggerFiltersChange({
-                  ...affiliateTriggerFilters,
-                  schedName: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateTriggerNameFilter">Trigger Name</label>
-            <input
-              id="affiliateTriggerNameFilter"
-              value={affiliateTriggerFilters.triggerName}
-              onChange={(event) =>
-                onAffiliateTriggerFiltersChange({
-                  ...affiliateTriggerFilters,
-                  triggerName: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateTriggerGroupFilter">Trigger Group</label>
-            <input
-              id="affiliateTriggerGroupFilter"
-              value={affiliateTriggerFilters.triggerGroup}
-              onChange={(event) =>
-                onAffiliateTriggerFiltersChange({
-                  ...affiliateTriggerFilters,
-                  triggerGroup: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateTriggerJobNameFilter">Job Name</label>
-            <input
-              id="affiliateTriggerJobNameFilter"
-              value={affiliateTriggerFilters.jobName}
-              onChange={(event) =>
-                onAffiliateTriggerFiltersChange({
-                  ...affiliateTriggerFilters,
-                  jobName: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateTriggerJobGroupFilter">Job Group</label>
-            <input
-              id="affiliateTriggerJobGroupFilter"
-              value={affiliateTriggerFilters.jobGroup}
-              onChange={(event) =>
-                onAffiliateTriggerFiltersChange({
-                  ...affiliateTriggerFilters,
-                  jobGroup: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateTriggerStateFilter">Trigger State</label>
-            <input
-              id="affiliateTriggerStateFilter"
-              value={affiliateTriggerFilters.triggerState}
-              onChange={(event) =>
-                onAffiliateTriggerFiltersChange({
-                  ...affiliateTriggerFilters,
-                  triggerState: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="filter-item">
-            <label htmlFor="affiliateTriggerTypeFilter">Trigger Type</label>
-            <input
-              id="affiliateTriggerTypeFilter"
-              value={affiliateTriggerFilters.triggerType}
-              onChange={(event) =>
-                onAffiliateTriggerFiltersChange({
-                  ...affiliateTriggerFilters,
-                  triggerType: event.target.value,
-                })
-              }
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="primary">
-              Search
-            </button>
-            <button type="button" className="secondary" onClick={onReloadAffiliateTriggerFilters}>
-              Reload All
-            </button>
-          </div>
-        </form>
 
         {affiliateTriggersError ? (
           <p className="status error" role="alert">
