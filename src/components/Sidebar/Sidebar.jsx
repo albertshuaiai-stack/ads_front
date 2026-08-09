@@ -53,6 +53,26 @@ function getIconFor(id) {
           <path d="M9 9h6M9 15h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
       )
+    case 'cb-account-report':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <path d="M5 19V9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M10 19V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M15 19v-7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M20 19v-11" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M3 19h18" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
+    case 'income-expenditure-report':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <path d="M4 18h16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M7 18v-6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M12 18V8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M17 18v-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M5 10l4-3 3 2 6-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
     case 'ads-account-management':
       return (
         <svg {...common} aria-hidden focusable="false">
@@ -199,11 +219,21 @@ function Sidebar({
   const visibleGroups = useMemo(
     () =>
       menuGroups
-        .map((group) => ({
-          ...group,
-          visibleItems: group.items.filter((item) => accessibleMenus.includes(item.id)),
-        }))
-        .filter((group) => group.visibleItems.length > 0),
+        .map((group) => {
+          if (group.item) {
+            return {
+              ...group,
+              visibleItem: accessibleMenus.includes(group.item.id) ? group.item : null,
+              visibleItems: [],
+            }
+          }
+
+          return {
+            ...group,
+            visibleItems: group.items.filter((item) => accessibleMenus.includes(item.id)),
+          }
+        })
+        .filter((group) => group.visibleItem || group.visibleItems.length > 0),
     [accessibleMenus, menuGroups],
   )
 
@@ -214,6 +244,10 @@ function Sidebar({
       const next = {}
 
       visibleGroups.forEach((group) => {
+        if (group.visibleItem) {
+          return
+        }
+
         const hasActiveItem = group.visibleItems.some((item) => item.id === activeMenu)
         next[group.id] = hasActiveItem || current[group.id] !== false
       })
@@ -240,6 +274,22 @@ function Sidebar({
 
       <nav className="sidebar__nav">
         {visibleGroups.map((group) => {
+          if (group.visibleItem) {
+            const item = group.visibleItem
+            const icon = getIconFor(item.id)
+            return (
+              <button
+                className={`sidebar-item ${activeMenu === item.id ? 'sidebar-item--active' : ''}`}
+                key={group.id}
+                onClick={() => onSelectMenu(item.id)}
+                type="button"
+              >
+                <span className="sidebar-item__icon" aria-hidden>{icon}</span>
+                <span className="sidebar-item__label">{item.label}</span>
+              </button>
+            )
+          }
+
           const isExpanded = expandedGroups[group.id] !== false
           return (
             <section className="sidebar-group" key={group.id}>

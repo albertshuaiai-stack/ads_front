@@ -2,10 +2,7 @@
 export const MENU_GROUPS = [
   {
     id: 'dashboard',
-    title: 'Dashboard',
-    items: [
-      { id: 'shift-link-dashboard', label: 'Dashboard' },
-    ],
+    item: { id: 'shift-link-dashboard', label: 'Dashboard' },
   },
   {
     id: 'system',
@@ -35,11 +32,19 @@ export const MENU_GROUPS = [
     title: 'Tool',
     items: [
       { id: 'email-management', label: 'Email' },
-      { id: 'cash-bach-account', label: 'Cash Bach Account' },
+      { id: 'cash-bach-account', label: 'Cash Back Account' },
       { id: 'ads-account-management', label: 'Ads Account' },
       { id: 'paypal-management', label: 'PayPal' },
       { id: 'income-management', label: 'Income' },
       { id: 'outcome-management', label: 'Expenditure' },
+    ],
+  },
+  {
+    id: 'reports',
+    title: 'Reports',
+    items: [
+      { id: 'cb-account-report', label: 'CB Account' },
+      { id: 'income-expenditure-report', label: 'Income/Expenditure' },
     ],
   },
   {
@@ -65,6 +70,8 @@ export const TOOL_MENU_IDS = [
   'income-management',
   'outcome-management',
 ]
+
+export const REPORT_MENU_IDS = ['cb-account-report', 'income-expenditure-report']
 
 // Affiliate Ads 类菜单 id 集合 / Affiliate Ads menu ids
 export const AFFILIATE_ADS_MENU_IDS = [

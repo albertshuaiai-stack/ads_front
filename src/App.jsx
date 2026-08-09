@@ -9,10 +9,12 @@ import AffiliateTriggerSection from './components/AffiliateTriggerSection/Affili
 import IpProxyManagementSection from './components/IpProxyManagementSection/IpProxyManagementSection'
 import LoginForm from './components/LoginForm/LoginForm'
 import CashBachAccountManagementSection from './components/CashBachAccountManagementSection/CashBachAccountManagementSection'
+import CbAccountReportSection from './components/CbAccountReportSection/CbAccountReportSection'
 import ChangePasswordModal from './components/ChangePasswordModal/ChangePasswordModal'
 import EmailManagementSection from './components/EmailManagementSection/EmailManagementSection'
 import GoogleAdsScriptPanel from './components/GoogleAdsScriptPanel/GoogleAdsScriptPanel'
 import IncomeManagementSection from './components/IncomeManagementSection/IncomeManagementSection'
+import IncomeExpenditureReportSection from './components/IncomeExpenditureReportSection/IncomeExpenditureReportSection'
 import MatrixAdsManagementSection from './components/MatrixAdsManagementSection/MatrixAdsManagementSection'
 import NormalAdsManagementSection from './components/NormalAdsManagementSection/NormalAdsManagementSection'
 import OutcomeManagementSection from './components/OutcomeManagementSection/OutcomeManagementSection'
@@ -56,7 +58,12 @@ import {
   uploadApiFile,
 } from './lib/adsPortal'
 
-import { MENU_GROUPS, TOOL_MENU_IDS, SHIFT_LINK_TEMPLATE_FILE_URL } from './constants/menu'
+import {
+  MENU_GROUPS,
+  TOOL_MENU_IDS,
+  REPORT_MENU_IDS,
+  SHIFT_LINK_TEMPLATE_FILE_URL,
+} from './constants/menu'
 import { AFFILIATE_ADS_MENU_IDS } from './constants/menu'
 import {
   ADS_STATUS_OPTIONS,
@@ -1848,6 +1855,7 @@ function App() {
 
     const baseMenus = [
       'shift-link-dashboard',
+      ...REPORT_MENU_IDS,
       ...TOOL_MENU_IDS,
       'ads-task-log',
       'ads-url-management',
@@ -4007,14 +4015,14 @@ function App() {
           token,
           body: payload,
         })
-        setAccountsMessage('Cash Bach Account updated successfully.')
+        setAccountsMessage('Cash Back Account updated successfully.')
       } else {
         await requestApi('/tool-accounts', {
           method: 'POST',
           token,
           body: payload,
         })
-        setAccountsMessage('Cash Bach Account created successfully.')
+        setAccountsMessage('Cash Back Account created successfully.')
       }
 
       clearAccountForm()
@@ -4209,7 +4217,7 @@ function App() {
         method: 'DELETE',
         token,
       })
-      setAccountsMessage('Cash Bach Account deleted successfully.')
+      setAccountsMessage('Cash Back Account deleted successfully.')
       await loadToolAccounts(accountQueryApplied ? accountFiltersRef.current : {}, accountPaginationRef.current)
       if (editingAccountId === id) {
         clearAccountForm()
@@ -4527,7 +4535,11 @@ function App() {
         : activeMenu === 'email-management'
           ? 'Email Management'
         : activeMenu === 'cash-bach-account'
-          ? 'Cash Bach Account'
+          ? 'Cash Back Account'
+        : activeMenu === 'cb-account-report'
+          ? 'CB Account Report'
+        : activeMenu === 'income-expenditure-report'
+          ? 'Income / Expenditure Report'
         : activeMenu === 'ads-account-management'
           ? 'Ads Account Management'
         : activeMenu === 'affiliate-auto-task'
@@ -5028,6 +5040,10 @@ function App() {
         onPageSizeChange={handleAccountPageSizeChange}
       />
     )
+  } else if (activeMenu === 'cb-account-report') {
+    activeSection = <CbAccountReportSection token={token} />
+  } else if (activeMenu === 'income-expenditure-report') {
+    activeSection = <IncomeExpenditureReportSection token={token} />
   } else if (activeMenu === 'ads-account-management') {
     activeSection = (
       <AdsAccountManagementSection

@@ -55,7 +55,7 @@ function CashBachAccountManagementSection({
       <div className="panel cash-bach-account-management">
         <div className="user-list">
           <div className="list-header">
-            <h3>Cash Bach Account</h3>
+            <h3>Cash Back Account</h3>
             <div className="toolbar-actions">
               <button type="button" className="primary" onClick={onCreateAccount}>
                 Add Account
@@ -166,10 +166,10 @@ function CashBachAccountManagementSection({
             </p>
           ) : null}
           {accountsMessage ? <p className="status success">{accountsMessage}</p> : null}
-          {accountsLoading ? <p>Loading Cash Bach Accounts...</p> : null}
+          {accountsLoading ? <p>Loading Cash Back Accounts...</p> : null}
 
           {!accountsLoading && accounts.length === 0 ? (
-            <p>No Cash Bach Accounts found.</p>
+            <p>No Cash Back Accounts found.</p>
           ) : (
             <div className="table-wrap">
               <table>
