@@ -168,6 +168,14 @@ function getIconFor(id) {
           <rect x="13" y="13" width="8" height="8" stroke="currentColor" strokeWidth="1.2" />
         </svg>
       )
+    case 'ads-task-log':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M15.5 6.5l2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
     default:
       return (
         <svg {...common} aria-hidden focusable="false">

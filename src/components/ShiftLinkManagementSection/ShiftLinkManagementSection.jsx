@@ -119,8 +119,8 @@ function ShiftLinkManagementSection({
                     onAdsUrlFiltersChange({
                       ...adsUrlFilters,
                       ownerPhoneNumber: event.target.value,
-                      platformName: '',
                       adsName: '',
+                      platformName: '',
                     })
                   }
                 >
@@ -143,8 +143,8 @@ function ShiftLinkManagementSection({
                   onAdsUrlFiltersChange({
                     ...adsUrlFilters,
                     adsType: event.target.value,
-                    platformName: '',
                     adsName: '',
+                    platformName: '',
                   })
                 }
                 disabled={catalogLoading || adsTypeOptions.length === 0}
@@ -159,31 +159,6 @@ function ShiftLinkManagementSection({
             </div>
 
             <div className="filter-item">
-              <label htmlFor="adsUrlPlatformFilter">Platform Name</label>
-              <select
-                id="adsUrlPlatformFilter"
-                value={adsUrlFilters.platformName}
-                onChange={(event) =>
-                  onAdsUrlFiltersChange({
-                    ...adsUrlFilters,
-                    platformName: event.target.value,
-                    adsName: '',
-                  })
-                }
-                disabled={
-                  catalogLoading || !adsUrlFilters.adsType || filterPlatformOptions.length === 0
-                }
-              >
-                <option value="">All platforms</option>
-                {filterPlatformOptions.map((platformName) => (
-                  <option key={platformName} value={platformName}>
-                    {platformName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-item">
               <label htmlFor="adsUrlAdsNameFilter">Ads Name</label>
               <select
                 id="adsUrlAdsNameFilter"
@@ -192,19 +167,42 @@ function ShiftLinkManagementSection({
                   onAdsUrlFiltersChange({
                     ...adsUrlFilters,
                     adsName: event.target.value,
+                    platformName: '',
                   })
                 }
-                disabled={
-                  catalogLoading ||
-                  !adsUrlFilters.adsType ||
-                  !adsUrlFilters.platformName ||
-                  adsNameOptions.length === 0
-                }
+                disabled={catalogLoading || !adsUrlFilters.adsType || adsNameOptions.length === 0}
               >
                 <option value="">All ads names</option>
                 {adsNameOptions.map((adsName) => (
                   <option key={adsName} value={adsName}>
                     {adsName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-item">
+              <label htmlFor="adsUrlPlatformFilter">Platform Name</label>
+              <select
+                id="adsUrlPlatformFilter"
+                value={adsUrlFilters.platformName}
+                onChange={(event) =>
+                  onAdsUrlFiltersChange({
+                    ...adsUrlFilters,
+                    platformName: event.target.value,
+                  })
+                }
+                disabled={
+                  catalogLoading ||
+                  !adsUrlFilters.adsType ||
+                  !adsUrlFilters.adsName ||
+                  filterPlatformOptions.length === 0
+                }
+              >
+                <option value="">All platforms</option>
+                {filterPlatformOptions.map((platformName) => (
+                  <option key={platformName} value={platformName}>
+                    {platformName}
                   </option>
                 ))}
               </select>
@@ -221,7 +219,7 @@ function ShiftLinkManagementSection({
           </form>
 
           <p className="field-help">
-            Use <code>adsType</code>, <code>platformName</code>, and <code>adsName</code> to
+            Use <code>adsType</code>, <code>adsName</code>, and <code>platformName</code> to
             narrow Shift Links with cascading filters.
           </p>
 

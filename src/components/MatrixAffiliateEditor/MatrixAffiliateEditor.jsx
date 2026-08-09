@@ -29,16 +29,6 @@ function MatrixAffiliateEditor({ rows, platformOptions, onChangeRow, onRemoveRow
             />
           </label>
           <label className="form-field">
-            <span>Display Number</span>
-            <input
-              min="0"
-              onChange={(event) => onChangeRow(index, 'displayNumber', event.target.value)}
-              placeholder="0"
-              type="number"
-              value={row.displayNumber}
-            />
-          </label>
-          <label className="form-field">
             <span>Remarks</span>
             <input
               value={row.remarks}

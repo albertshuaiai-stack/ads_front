@@ -5,6 +5,36 @@ import { formatTableValue, getStatusToneClass, toFieldLabel } from '../../lib/ad
 import { toCountryCode } from '../../lib/countryOptions'
 import './MatrixAdsManagementSection.css'
 
+const MATRIX_TABLE_COLUMN_ORDER = [
+  'campainCountry',
+  'campainName',
+  'dynamicProxyInfo',
+  'landingPageUrl',
+  'intervalTime',
+  'affiliateInfos',
+  'lastExecuteTime',
+  'nextExecuteTime',
+  'lastSuccessDate',
+  'successCount',
+  'failedCount',
+  'status',
+]
+
+const MATRIX_TABLE_COLUMN_LABELS = {
+  campainCountry: 'Campaign Country',
+  campainName: 'Campaign Name',
+  dynamicProxyInfo: 'Dynamic Proxy Info',
+  landingPageUrl: 'Landing Page Url',
+  intervalTime: 'Interval Time(Mins)',
+  affiliateInfos: 'Affiliate Url Count',
+  lastExecuteTime: 'Last Execute Time',
+  nextExecuteTime: 'Next Execute Time',
+  lastSuccessDate: 'Last Success Date',
+  successCount: 'Success Count',
+  failedCount: 'Failed Count',
+  status: 'Status',
+}
+
 function MatrixAdsManagementSection({
   matrixAds,
   matrixAdsLoading,
@@ -39,8 +69,6 @@ function MatrixAdsManagementSection({
   onMatrixLandingPageUrlChange,
   matrixDynamicProxyInfo,
   onMatrixDynamicProxyInfoChange,
-  matrixDynamicProxyInfoBackup,
-  onMatrixDynamicProxyInfoBackupChange,
   matrixIntervalTime,
   onMatrixIntervalTimeChange,
   matrixStatus,
@@ -56,6 +84,10 @@ function MatrixAdsManagementSection({
   onPageChange,
   onPageSizeChange,
 }) {
+  const visibleMatrixAdsColumns = MATRIX_TABLE_COLUMN_ORDER.filter((column) =>
+    matrixAdsColumns.includes(column),
+  )
+
   return (
     <>
       <div className="panel matrix-ads-management">
@@ -178,9 +210,9 @@ function MatrixAdsManagementSection({
               <table>
                 <thead>
                   <tr>
-                    {matrixAdsColumns.map((column) => (
+                    {visibleMatrixAdsColumns.map((column) => (
                       <th key={column}>
-                        {column === 'affiliateInfos' ? 'Affiliate Url Count' : toFieldLabel(column)}
+                        {MATRIX_TABLE_COLUMN_LABELS[column] || toFieldLabel(column)}
                       </th>
                     ))}
                     <th>Actions</th>
@@ -189,7 +221,7 @@ function MatrixAdsManagementSection({
                 <tbody>
                   {matrixAds.map((item) => (
                     <tr key={item.id} className={getStatusToneClass(item?.status)}>
-                      {matrixAdsColumns.map((column) => (
+                      {visibleMatrixAdsColumns.map((column) => (
                         <td key={column}>
                           {column === 'status'
                             ? (
@@ -288,15 +320,11 @@ function MatrixAdsManagementSection({
               id="matrixDynamicProxyInfo"
               value={matrixDynamicProxyInfo}
               onChange={(event) => onMatrixDynamicProxyInfoChange(event.target.value)}
-              placeholder="Supported Format:username:password@host:port - Https"
+              placeholder="username:password@host:port"
             />
-
-            <label htmlFor="matrixDynamicProxyInfoBackup">Dynamic Proxy Info Backup</label>
-            <input
-              id="matrixDynamicProxyInfoBackup"
-              value={matrixDynamicProxyInfoBackup}
-              onChange={(event) => onMatrixDynamicProxyInfoBackupChange(event.target.value)}
-            />
+            <p className="field-help">
+              Support Format(<strong>Sockets5</strong>):username:password@host:port
+            </p>
 
             <label htmlFor="matrixIntervalTime">Interval Time</label>
             <input

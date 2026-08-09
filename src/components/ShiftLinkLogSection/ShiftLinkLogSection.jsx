@@ -51,8 +51,8 @@ function ShiftLinkLogSection({
                   onFiltersChange({
                     ...filters,
                     ownerPhoneNumber: event.target.value,
-                    platformName: '',
                     adsName: '',
+                    platformName: '',
                   })
                 }
               >
@@ -75,8 +75,8 @@ function ShiftLinkLogSection({
                 onFiltersChange({
                   ...filters,
                   adsType: event.target.value,
-                  platformName: '',
                   adsName: '',
+                  platformName: '',
                 })
               }
               disabled={catalogLoading || adsTypeOptions.length === 0}
@@ -91,29 +91,6 @@ function ShiftLinkLogSection({
           </div>
 
           <div className="filter-item">
-            <label htmlFor="shiftLinkLogPlatformName">Platform Name</label>
-            <select
-              id="shiftLinkLogPlatformName"
-              value={filters.platformName}
-              onChange={(event) =>
-                onFiltersChange({
-                  ...filters,
-                  platformName: event.target.value,
-                  adsName: '',
-                })
-              }
-              disabled={catalogLoading || !filters.adsType || platformOptions.length === 0}
-            >
-              <option value="">All platforms</option>
-              {platformOptions.map((platformName) => (
-                <option key={platformName} value={platformName}>
-                  {platformName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-item">
             <label htmlFor="shiftLinkLogAdsName">Ads Name</label>
             <select
               id="shiftLinkLogAdsName"
@@ -122,19 +99,42 @@ function ShiftLinkLogSection({
                 onFiltersChange({
                   ...filters,
                   adsName: event.target.value,
+                  platformName: '',
                 })
               }
-              disabled={
-                catalogLoading ||
-                !filters.adsType ||
-                !filters.platformName ||
-                adsNameOptions.length === 0
-              }
+              disabled={catalogLoading || !filters.adsType || adsNameOptions.length === 0}
             >
               <option value="">All ads names</option>
               {adsNameOptions.map((adsName) => (
                 <option key={adsName} value={adsName}>
                   {adsName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-item">
+            <label htmlFor="shiftLinkLogPlatformName">Platform Name</label>
+            <select
+              id="shiftLinkLogPlatformName"
+              value={filters.platformName}
+              onChange={(event) =>
+                onFiltersChange({
+                  ...filters,
+                  platformName: event.target.value,
+                })
+              }
+              disabled={
+                catalogLoading ||
+                !filters.adsType ||
+                !filters.adsName ||
+                platformOptions.length === 0
+              }
+            >
+              <option value="">All platforms</option>
+              {platformOptions.map((platformName) => (
+                <option key={platformName} value={platformName}>
+                  {platformName}
                 </option>
               ))}
             </select>
@@ -153,7 +153,7 @@ function ShiftLinkLogSection({
 
         <p className="field-help">
           Shows the current logged-in user&apos;s Shift Link Logs by default. Use
-          <code> adsType</code>, <code>platformName</code>, and <code>adsName</code> to narrow the
+          <code> adsType</code>, <code>adsName</code>, and <code>platformName</code> to narrow the
           results.
         </p>
 

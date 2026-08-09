@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AdsAccountManagementSection from './components/AdsAccountManagementSection/AdsAccountManagementSection'
+import AdsTaskLogSection from './components/AdsTaskLogSection/AdsTaskLogSection'
 import AffiliateAutoTaskManagementSection from './components/AffiliateAutoTaskManagementSection/AffiliateAutoTaskManagementSection'
 import AffiliateJobDetailSection from './components/AffiliateJobDetailSection/AffiliateJobDetailSection'
 import AffiliateSyncResultManagementSection from './components/AffiliateSyncResultManagementSection/AffiliateSyncResultManagementSection'
@@ -78,6 +79,7 @@ import {
 } from './constants/options'
 import {
   ADS_URL_COLUMNS,
+  ADS_TASK_LOG_COLUMNS,
   SHIFT_LINK_LOG_COLUMNS,
   NORMAL_ADS_PREFERRED_COLUMNS,
   NORMAL_ADS_EXCLUDED_COLUMNS,
@@ -123,6 +125,7 @@ import { useTestShiftLink } from './hooks/useTestShiftLink'
 import { useEmails } from './hooks/useEmails'
 import { useAccounts } from './hooks/useAccounts'
 import { useAdsAccounts } from './hooks/useAdsAccounts'
+import { useAdsTaskLogs } from './hooks/useAdsTaskLogs'
 import { usePaypals } from './hooks/usePaypals'
 import { useIncomes } from './hooks/useIncomes'
 import { useOutcomes } from './hooks/useOutcomes'
@@ -434,6 +437,19 @@ function App() {
   const loggedInAdsOwner = useMemo(() => getLoggedInAdsOwner(identifier, currentUser), [identifier, currentUser])
 
   const {
+    adsTaskLogs,
+    adsTaskLogsLoading,
+    adsTaskLogsError, setAdsTaskLogsError,
+    adsTaskLogsLoaded, setAdsTaskLogsLoaded,
+    adsTaskLogPagination, setAdsTaskLogPagination,
+    adsTaskLogPaginationRef,
+    adsTaskLogFilters, setAdsTaskLogFilters,
+    adsTaskLogQueryApplied, setAdsTaskLogQueryApplied,
+    adsTaskLogFiltersRef,
+    loadAdsTaskLogs,
+  } = useAdsTaskLogs(token, loggedInAdsOwner, showAdminOwnerFilter)
+
+  const {
     affiliateAutoTasks,
     affiliateAutoTasksLoading,
     affiliateAutoTasksError, setAffiliateAutoTasksError,
@@ -625,6 +641,8 @@ function App() {
 
   const adsUrlColumns = ADS_URL_COLUMNS
 
+  const adsTaskLogColumns = ADS_TASK_LOG_COLUMNS
+
   const shiftLinkLogColumns = SHIFT_LINK_LOG_COLUMNS
 
   const adsStatusOptions = ADS_STATUS_OPTIONS
@@ -721,9 +739,8 @@ function App() {
       collectCatalogFieldNames(availableShiftLinkLogCatalog, {
         field: CATALOG_ADS_NAME_FIELDS,
         adsType: shiftLinkLogFilters.adsType,
-        platformName: shiftLinkLogFilters.platformName,
       }),
-    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType, shiftLinkLogFilters.platformName],
+    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType],
   )
 
   const shiftLinkLogPlatformOptions = useMemo(
@@ -731,8 +748,9 @@ function App() {
       collectCatalogFieldNames(availableShiftLinkLogCatalog, {
         field: CATALOG_PLATFORM_NAME_FIELDS,
         adsType: shiftLinkLogFilters.adsType,
+        adsName: shiftLinkLogFilters.adsName,
       }),
-    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType],
+    [availableShiftLinkLogCatalog, shiftLinkLogFilters.adsType, shiftLinkLogFilters.adsName],
   )
 
   const adsUrlAdsNameOptions = useMemo(
@@ -740,9 +758,8 @@ function App() {
       collectCatalogFieldNames(availableAdsUrlCatalog, {
         field: CATALOG_ADS_NAME_FIELDS,
         adsType: adsUrlFilters.adsType,
-        platformName: adsUrlFilters.platformName,
       }),
-    [adsUrlFilters.adsType, adsUrlFilters.platformName, availableAdsUrlCatalog],
+    [adsUrlFilters.adsType, availableAdsUrlCatalog],
   )
 
   const adsUrlPlatformOptions = useMemo(
@@ -750,8 +767,9 @@ function App() {
       collectCatalogFieldNames(availableAdsUrlCatalog, {
         field: CATALOG_PLATFORM_NAME_FIELDS,
         adsType: adsUrlFilters.adsType,
+        adsName: adsUrlFilters.adsName,
       }),
-    [adsUrlFilters.adsType, availableAdsUrlCatalog],
+    [adsUrlFilters.adsType, adsUrlFilters.adsName, availableAdsUrlCatalog],
   )
 
   const toolEmailUserOptions = useMemo(() => {
@@ -931,6 +949,14 @@ function App() {
     setShiftLinkLogPagination((current) => createInitialPagination(current.size))
   }
 
+  function handleAdsTaskLogFiltersChange(nextFilters) {
+    setAdsTaskLogFilters(nextFilters)
+    setAdsTaskLogQueryApplied(false)
+    setAdsTaskLogsLoaded(false)
+    setAdsTaskLogsError('')
+    setAdsTaskLogPagination((current) => createInitialPagination(current.size))
+  }
+
   function handleUsersPageChange(page) {
     void loadUsers({
       page,
@@ -954,6 +980,29 @@ function App() {
 
   function handleAdsUrlPageSizeChange(size) {
     void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  function handleAdsTaskLogPageChange(page) {
+    if (!adsTaskLogQueryApplied) {
+      return
+    }
+
+    void loadAdsTaskLogs(adsTaskLogFiltersRef.current, {
+      page,
+      size: adsTaskLogPaginationRef.current.size,
+    })
+  }
+
+  function handleAdsTaskLogPageSizeChange(size) {
+    if (!adsTaskLogQueryApplied) {
+      setAdsTaskLogPagination(createInitialPagination(size))
+      return
+    }
+
+    void loadAdsTaskLogs(adsTaskLogFiltersRef.current, {
       page: 0,
       size,
     })
@@ -1800,6 +1849,7 @@ function App() {
     const baseMenus = [
       'shift-link-dashboard',
       ...TOOL_MENU_IDS,
+      'ads-task-log',
       'ads-url-management',
       'shift-link-log',
       'test-shift-link',
@@ -1841,6 +1891,25 @@ function App() {
   }, [hasAdminRole, hasMatrixRole, hasNormalRole, isAuthenticated, isMatrixOnlyRole, isNormalOnlyRole])
 
   useEffect(() => {
+    setAdsTaskLogFilters((current) => {
+      const nextAdsType =
+        current.adsType && allowedShiftLinkLogAdsTypes.has(current.adsType)
+          ? current.adsType
+          : defaultShiftLinkLogAdsType
+
+      if (current.adsType === nextAdsType) {
+        return current
+      }
+
+      return {
+        adsType: nextAdsType,
+        adsName: current.adsName || '',
+        ownerPhoneNumber: current.ownerPhoneNumber || '',
+      }
+    })
+  }, [defaultShiftLinkLogAdsType, allowedShiftLinkLogAdsTypes])
+
+  useEffect(() => {
     setShiftLinkLogFilters((current) => {
       const nextAdsType =
         current.adsType && allowedShiftLinkLogAdsTypes.has(current.adsType)
@@ -1853,8 +1922,8 @@ function App() {
 
       return {
         adsType: nextAdsType,
-        platformName: '',
         adsName: '',
+        platformName: '',
         ownerPhoneNumber: current.ownerPhoneNumber || '',
       }
     })
@@ -1873,14 +1942,23 @@ function App() {
 
       return {
         adsType: nextAdsType,
-        platformName: '',
         adsName: '',
+        platformName: '',
         ownerPhoneNumber: current.ownerPhoneNumber || '',
       }
     })
   }, [defaultShiftLinkLogAdsType, allowedShiftLinkLogAdsTypes])
 
   useEffect(() => {
+    if (adsUrlFilters.adsName && !adsUrlAdsNameOptions.includes(adsUrlFilters.adsName)) {
+      setAdsUrlFilters((current) => ({
+        ...current,
+        adsName: '',
+        platformName: '',
+      }))
+      return
+    }
+
     if (
       adsUrlFilters.platformName &&
       !adsUrlPlatformOptions.includes(adsUrlFilters.platformName)
@@ -1888,37 +1966,16 @@ function App() {
       setAdsUrlFilters((current) => ({
         ...current,
         platformName: '',
-        adsName: '',
-      }))
-      return
-    }
-
-    if (adsUrlFilters.adsName && !adsUrlAdsNameOptions.includes(adsUrlFilters.adsName)) {
-      setAdsUrlFilters((current) => ({
-        ...current,
-        adsName: '',
       }))
     }
   }, [
+    adsUrlFilters.adsName,
+    adsUrlAdsNameOptions,
     adsUrlFilters.platformName,
     adsUrlPlatformOptions,
-    adsUrlAdsNameOptions,
-    adsUrlFilters.adsName,
   ])
 
   useEffect(() => {
-    if (
-      shiftLinkLogFilters.platformName &&
-      !shiftLinkLogPlatformOptions.includes(shiftLinkLogFilters.platformName)
-    ) {
-      setShiftLinkLogFilters((current) => ({
-        ...current,
-        platformName: '',
-        adsName: '',
-      }))
-      return
-    }
-
     if (
       shiftLinkLogFilters.adsName &&
       !shiftLinkLogAdsNameOptions.includes(shiftLinkLogFilters.adsName)
@@ -1926,13 +1983,25 @@ function App() {
       setShiftLinkLogFilters((current) => ({
         ...current,
         adsName: '',
+        platformName: '',
+      }))
+      return
+    }
+
+    if (
+      shiftLinkLogFilters.platformName &&
+      !shiftLinkLogPlatformOptions.includes(shiftLinkLogFilters.platformName)
+    ) {
+      setShiftLinkLogFilters((current) => ({
+        ...current,
+        platformName: '',
       }))
     }
   }, [
+    shiftLinkLogFilters.adsName,
+    shiftLinkLogAdsNameOptions,
     shiftLinkLogFilters.platformName,
     shiftLinkLogPlatformOptions,
-    shiftLinkLogAdsNameOptions,
-    shiftLinkLogFilters.adsName,
   ])
 
   useEffect(() => {
@@ -2049,6 +2118,14 @@ function App() {
       return
     }
 
+    if (activeMenu === 'ads-task-log') {
+      void loadAdsTaskLogs(
+        adsTaskLogQueryApplied ? adsTaskLogFiltersRef.current : {},
+        adsTaskLogPaginationRef.current,
+      )
+      return
+    }
+
     if (activeMenu === 'normal-ads-management') {
       void loadNormalAds(normalAdsQueryApplied ? normalAdsFiltersRef.current : {})
       void loadPlatformOptions()
@@ -2152,7 +2229,9 @@ function App() {
     loadAdsUrls,
     loadShiftLinkLogCatalog,
     loadShiftLinkLogs,
+    loadAdsTaskLogs,
     shiftLinkLogQueryApplied,
+    adsTaskLogQueryApplied,
     loadNormalAds,
     loadMatrixAds,
     loadPlatformList,
@@ -2631,8 +2710,8 @@ function App() {
     setBulkAdsMessage('')
     setAdsUrlFilters({
       adsType: defaultShiftLinkLogAdsType,
-      platformName: '',
       adsName: '',
+      platformName: '',
       ownerPhoneNumber: '',
     })
     setAdsUrlQueryApplied(false)
@@ -3144,21 +3223,22 @@ function App() {
               throw new Error(`Affiliate row ${index + 1}: Affiliate URL is required.`)
             }
 
-            if (!row.displayNumber) {
-              throw new Error(`Affiliate row ${index + 1}: Display Number is required.`)
-            }
-
-            const displayNumber = Number(row.displayNumber)
-            if (!Number.isFinite(displayNumber)) {
-              throw new Error(`Affiliate row ${index + 1}: Display Number must be a number.`)
-            }
-
-            return {
+            const affiliateInfo = {
               platformName: row.platformName,
               affiliteUrl: row.affiliteUrl,
-              displayNumber,
               remarks: row.remarks || undefined,
             }
+
+            if (row.displayNumber) {
+              const displayNumber = Number(row.displayNumber)
+              if (!Number.isFinite(displayNumber)) {
+                throw new Error(`Affiliate row ${index + 1}: Display Number must be a number.`)
+              }
+
+              affiliateInfo.displayNumber = displayNumber
+            }
+
+            return affiliateInfo
           }),
       }
 
@@ -3237,6 +3317,19 @@ function App() {
     setAdsUrlQueryApplied(false)
     void loadShiftLinkLogCatalog()
     void loadAdsUrls({}, { page: 0, size: adsUrlPaginationRef.current.size })
+  }
+
+  function reloadAdsTaskLogFilters() {
+    setAdsTaskLogFilters({
+      adsType: defaultShiftLinkLogAdsType,
+      adsName: '',
+      ownerPhoneNumber: '',
+    })
+    setAdsTaskLogQueryApplied(false)
+    setAdsTaskLogsLoaded(false)
+    setAdsTaskLogsError('')
+    setAdsTaskLogPagination((current) => createInitialPagination(current.size))
+    void loadAdsTaskLogs({}, { page: 0, size: adsTaskLogPaginationRef.current.size })
   }
 
   function applyNormalAdsFilters(event) {
@@ -3633,8 +3726,8 @@ function App() {
     setShiftLinkLogCatalogError('')
     await loadShiftLinkLogs({
       adsType: toOptionalTrimmedString(shiftLinkLogFilters.adsType),
-      platformName: toOptionalTrimmedString(shiftLinkLogFilters.platformName),
       adsName: toOptionalTrimmedString(shiftLinkLogFilters.adsName),
+      platformName: toOptionalTrimmedString(shiftLinkLogFilters.platformName),
       ownerPhoneNumber: toOptionalTrimmedString(shiftLinkLogFilters.ownerPhoneNumber),
     }, {
       page: 0,
@@ -3645,8 +3738,8 @@ function App() {
   function handleReloadShiftLinkLogs() {
     setShiftLinkLogFilters({
       adsType: defaultShiftLinkLogAdsType,
-      platformName: '',
       adsName: '',
+      platformName: '',
       ownerPhoneNumber: '',
     })
     setShiftLinkLogQueryApplied(false)
@@ -3679,6 +3772,18 @@ function App() {
     void loadShiftLinkLogs(shiftLinkLogFiltersRef.current, {
       page: 0,
       size,
+    })
+  }
+
+  async function handleAdsTaskLogSearch(event) {
+    event.preventDefault()
+    await loadAdsTaskLogs({
+      adsType: toOptionalTrimmedString(adsTaskLogFilters.adsType),
+      adsName: toOptionalTrimmedString(adsTaskLogFilters.adsName),
+      ownerPhoneNumber: toOptionalTrimmedString(adsTaskLogFilters.ownerPhoneNumber),
+    }, {
+      page: 0,
+      size: adsTaskLogPaginationRef.current.size,
     })
   }
 
@@ -4449,6 +4554,8 @@ function App() {
             ? 'Dashboard'
           : activeMenu === 'shift-link-log'
             ? 'Shift Link Log'
+          : activeMenu === 'ads-task-log'
+            ? 'Ads Task Log'
           : activeMenu === 'test-shift-link'
             ? 'Shift Link Testing'
           : activeMenu === 'normal-ads-management'
@@ -4675,6 +4782,27 @@ function App() {
         onPageSizeChange={handleShiftLinkLogPageSizeChange}
       />
     )
+  } else if (activeMenu === 'ads-task-log') {
+    activeSection = (
+      <AdsTaskLogSection
+        filters={adsTaskLogFilters}
+        adsTypeOptions={adsTypeOptions}
+        logs={adsTaskLogs}
+        logsLoading={adsTaskLogsLoading}
+        logsError={adsTaskLogsError}
+        hasLoadedLogs={adsTaskLogsLoaded}
+        logColumns={adsTaskLogColumns}
+        pagination={adsTaskLogPagination}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
+        formatDateDisplayValue={formatDateDisplayValue}
+        onFiltersChange={handleAdsTaskLogFiltersChange}
+        onSearch={(event) => void handleAdsTaskLogSearch(event)}
+        onReload={reloadAdsTaskLogFilters}
+        onPageChange={handleAdsTaskLogPageChange}
+        onPageSizeChange={handleAdsTaskLogPageSizeChange}
+      />
+    )
   } else if (activeMenu === 'test-shift-link') {
     activeSection = (
       <TestShiftLinkSection
@@ -4790,8 +4918,6 @@ function App() {
         onMatrixLandingPageUrlChange={setMatrixLandingPageUrl}
         matrixDynamicProxyInfo={matrixDynamicProxyInfo}
         onMatrixDynamicProxyInfoChange={setMatrixDynamicProxyInfo}
-        matrixDynamicProxyInfoBackup={matrixDynamicProxyInfoBackup}
-        onMatrixDynamicProxyInfoBackupChange={setMatrixDynamicProxyInfoBackup}
         matrixIntervalTime={matrixIntervalTime}
         onMatrixIntervalTimeChange={setMatrixIntervalTime}
         matrixStatus={matrixStatus}

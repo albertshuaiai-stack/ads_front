@@ -24,6 +24,7 @@ export const MENU_GROUPS = [
       { id: 'auto-script', label: 'Auto Script' },
       { id: 'normal-ads-management', label: 'Normal Ads Tasks' },
       { id: 'matrix-ads-management', label: 'Matrix Ads Tasks' },
+      { id: 'ads-task-log', label: 'Ads Task Log' },
       { id: 'ads-url-management', label: 'Shift Link' },
       { id: 'shift-link-log', label: 'Shift Link Log' },
       { id: 'test-shift-link', label: 'Shift Link Testing' },

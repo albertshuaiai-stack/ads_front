@@ -4,6 +4,36 @@ import { formatTableValue, getStatusToneClass, toFieldLabel } from '../../lib/ad
 import { toCountryCode } from '../../lib/countryOptions'
 import './NormalAdsManagementSection.css'
 
+const NORMAL_TABLE_COLUMN_ORDER = [
+  'campainCountry',
+  'campainName',
+  'dynamicProxyInfo',
+  'landingPageUrl',
+  'intervalTime',
+  'affiliteUrl',
+  'lastExecuteTime',
+  'nextExecuteTime',
+  'lastSuccessDate',
+  'successCount',
+  'failedCount',
+  'status',
+]
+
+const NORMAL_TABLE_COLUMN_LABELS = {
+  campainCountry: 'Campaign Country',
+  campainName: 'Campaign Name',
+  dynamicProxyInfo: 'Dynamic Proxy Info',
+  landingPageUrl: 'Landing Page Url',
+  intervalTime: 'Interval Time(Mins)',
+  affiliteUrl: 'Affiliate Url',
+  lastExecuteTime: 'Last Execute Time',
+  nextExecuteTime: 'Next Execute Time',
+  lastSuccessDate: 'Last Success Date',
+  successCount: 'Success Count',
+  failedCount: 'Failed Count',
+  status: 'Status',
+}
+
 function NormalAdsManagementSection({
   normalAds,
   normalAdsLoading,
@@ -54,6 +84,10 @@ function NormalAdsManagementSection({
   onPageChange,
   onPageSizeChange,
 }) {
+  const visibleNormalAdsColumns = NORMAL_TABLE_COLUMN_ORDER.filter((column) =>
+    normalAdsColumns.includes(column),
+  )
+
   return (
     <>
       <div className="panel normal-ads-management">
@@ -175,8 +209,8 @@ function NormalAdsManagementSection({
               <table>
                 <thead>
                   <tr>
-                    {normalAdsColumns.map((column) => (
-                      <th key={column}>{toFieldLabel(column)}</th>
+                    {visibleNormalAdsColumns.map((column) => (
+                      <th key={column}>{NORMAL_TABLE_COLUMN_LABELS[column] || toFieldLabel(column)}</th>
                     ))}
                     <th>Actions</th>
                   </tr>
@@ -184,7 +218,7 @@ function NormalAdsManagementSection({
                 <tbody>
                   {normalAds.map((item) => (
                     <tr key={item.id} className={getStatusToneClass(item?.status)}>
-                      {normalAdsColumns.map((column) => (
+                      {visibleNormalAdsColumns.map((column) => (
                         <td key={column}>
                           {column === 'status'
                             ? (
@@ -301,8 +335,11 @@ function NormalAdsManagementSection({
               id="normalDynamicProxyInfo"
               value={normalDynamicProxyInfo}
               onChange={(event) => onNormalDynamicProxyInfoChange(event.target.value)}
-              placeholder="Supported Format:username:password@host:port - Sockets5"
+              placeholder="username:password@host:port"
             />
+            <p className="field-help">
+              Support Format(<strong>Sockets5</strong>):username:password@host:port
+            </p>
 
             <label htmlFor="normalDynamicProxyInfoBackup">Dynamic Proxy Info Backup</label>
             <input
