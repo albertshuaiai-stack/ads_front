@@ -94,9 +94,9 @@ export const AFFILIATE_AUTO_TASK_STATUS_OPTIONS = [
 
 export const AFFILIATE_SYNC_RESULT_STATUS_OPTIONS = [
   { value: 'TO_BE_TEST', label: 'TO_BE_TEST' },
-  { value: 'TEST_SUCCESS', label: 'TEST_SUCCESS' },
-  { value: 'TEST_FAILED', label: 'TEST_FAILED' },
-  { value: 'TESTING', label: 'TESTING' },
+  { value: 'SUCCESS', label: 'SUCCESS' },
+  { value: 'FAILED', label: 'FAILED' },
+  { value: 'IN_PROGRESS', label: 'IN_PROGRESS' },
 ]
 
 export const AFFILIATE_TEST_RESULT_STATUS_OPTIONS = [

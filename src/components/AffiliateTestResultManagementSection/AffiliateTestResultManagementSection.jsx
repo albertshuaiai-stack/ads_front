@@ -15,6 +15,8 @@ function AffiliateTestResultManagementSection({
   onAffiliateTestResultFiltersChange,
   onApplyAffiliateTestResultFilters,
   onReloadAffiliateTestResultFilters,
+  onConvertAffiliateTestResultToNormal,
+  convertingAffiliateTestResultId,
   showOwnerFilter,
   ownerOptions,
   affiliateNetworkOptions,
@@ -171,8 +173,13 @@ function AffiliateTestResultManagementSection({
                     <td>{formatDateDisplayValue(item.updateDate)}</td>
                     <td className="actions">
                       {isSuccessStatus(item.status) ? (
-                        <button type="button" className="secondary" onClick={() => {}}>
-                          Normal
+                        <button
+                           type="button"
+                           className="secondary"
+                           onClick={() => onConvertAffiliateTestResultToNormal(item.id)}
+                           disabled={convertingAffiliateTestResultId === item.id}
+                        >
+                           {convertingAffiliateTestResultId === item.id ? 'Converting...' : 'Normal'}
                         </button>
                       ) : null}
                     </td>

@@ -72,6 +72,11 @@ export function formatDateTimeDisplayValue(value) {
   return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`
 }
 
+export function formatDateTimeDisplayValueWithDashedDate(value) {
+  const formattedValue = formatDateTimeDisplayValue(value)
+  return formattedValue === formatTableValue(value) ? formattedValue : formattedValue.replace(/\//g, '-')
+}
+
 // 归一化广告状态（ACTIVE -> RUNNING）/ Normalize ads status
 export function normalizeAdsStatusValue(value) {
   const text = String(value ?? '').trim().toUpperCase()

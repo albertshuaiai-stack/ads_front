@@ -7,6 +7,7 @@ import AffiliateSyncResultManagementSection from './components/AffiliateSyncResu
 import AffiliateTestResultManagementSection from './components/AffiliateTestResultManagementSection/AffiliateTestResultManagementSection'
 import AffiliateTriggerSection from './components/AffiliateTriggerSection/AffiliateTriggerSection'
 import IpProxyManagementSection from './components/IpProxyManagementSection/IpProxyManagementSection'
+import HouseKeepingSection from './components/HouseKeepingSection/HouseKeepingSection'
 import LoginForm from './components/LoginForm/LoginForm'
 import CashBachAccountManagementSection from './components/CashBachAccountManagementSection/CashBachAccountManagementSection'
 import CbAccountReportSection from './components/CbAccountReportSection/CbAccountReportSection'
@@ -87,6 +88,7 @@ import {
 import {
   ADS_URL_COLUMNS,
   ADS_TASK_LOG_COLUMNS,
+  HOUSE_KEEPING_COLUMNS,
   SHIFT_LINK_LOG_COLUMNS,
   NORMAL_ADS_PREFERRED_COLUMNS,
   NORMAL_ADS_EXCLUDED_COLUMNS,
@@ -133,6 +135,7 @@ import { useEmails } from './hooks/useEmails'
 import { useAccounts } from './hooks/useAccounts'
 import { useAdsAccounts } from './hooks/useAdsAccounts'
 import { useAdsTaskLogs } from './hooks/useAdsTaskLogs'
+import { useHouseKeepingLogs } from './hooks/useHouseKeepingLogs'
 import { usePaypals } from './hooks/usePaypals'
 import { useIncomes } from './hooks/useIncomes'
 import { useOutcomes } from './hooks/useOutcomes'
@@ -435,6 +438,19 @@ function App() {
     loadAffiliateJobDetails,
   } = useAffiliateJobDetails(token)
 
+  const {
+    houseKeepingLogs,
+    houseKeepingLogsLoading,
+    houseKeepingLogsError,
+    setHouseKeepingLogsError,
+    houseKeepingLogsLoaded,
+    setHouseKeepingLogsLoaded,
+    houseKeepingPagination,
+    setHouseKeepingPagination,
+    houseKeepingPaginationRef,
+    loadHouseKeepingLogs,
+  } = useHouseKeepingLogs(token)
+
   const hasAdminRole = useMemo(() => isAdminRole(currentUserRole), [currentUserRole])
   const hasNormalRole = useMemo(() => isNormalRole(currentUserRole), [currentUserRole])
   const hasMatrixRole = useMemo(() => isMatrixRole(currentUserRole), [currentUserRole])
@@ -478,6 +494,7 @@ function App() {
   } = useAffiliateAutoTasks(token, loggedInAdsOwner, showAdminOwnerFilter)
   const [runningAffiliateAutoTaskId, setRunningAffiliateAutoTaskId] = useState(null)
   const [testingAffiliateSyncResultId, setTestingAffiliateSyncResultId] = useState(null)
+  const [convertingAffiliateTestResultId, setConvertingAffiliateTestResultId] = useState(null)
 
   const {
     affiliateSyncResults, setAffiliateSyncResults,
@@ -533,6 +550,7 @@ function App() {
     ipProxyProtocol, setIpProxyProtocol,
     ipProxyInfo, setIpProxyInfo,
     ipProxyStatus, setIpProxyStatus,
+    ipProxyTargetCountry, setIpProxyTargetCountry,
     ipProxyAdsOwner, setIpProxyAdsOwner,
     savingIpProxy, setSavingIpProxy,
     showIpProxyModal, setShowIpProxyModal,
@@ -649,6 +667,8 @@ function App() {
   const adsUrlColumns = ADS_URL_COLUMNS
 
   const adsTaskLogColumns = ADS_TASK_LOG_COLUMNS
+
+  const houseKeepingColumns = HOUSE_KEEPING_COLUMNS
 
   const shiftLinkLogColumns = SHIFT_LINK_LOG_COLUMNS
 
@@ -973,6 +993,20 @@ function App() {
 
   function handleUsersPageSizeChange(size) {
     void loadUsers({
+      page: 0,
+      size,
+    })
+  }
+
+  function handleHouseKeepingPageChange(page) {
+    void loadHouseKeepingLogs({
+      page,
+      size: houseKeepingPaginationRef.current.size,
+    })
+  }
+
+  function handleHouseKeepingPageSizeChange(size) {
+    void loadHouseKeepingLogs({
       page: 0,
       size,
     })
@@ -1303,6 +1337,29 @@ function App() {
     }
   }
 
+  async function handleConvertAffiliateTestResultToNormal(id) {
+    setConvertingAffiliateTestResultId(id)
+    setAffiliateTestResultsError('')
+    setAffiliateTestResultsMessage('')
+
+    try {
+      await requestApi(`/affiliate-test/normal${buildQueryString({ testAdId: id })}`, {
+        method: 'POST',
+        token,
+      })
+      setAffiliateTestResultsMessage('Affiliate test converted to Normal successfully.')
+      await loadAffiliateTestResults(
+        affiliateTestResultQueryApplied ? affiliateTestResultFiltersRef.current : {},
+        affiliateTestResultPaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAffiliateTestResultsError(message)
+    } finally {
+      setConvertingAffiliateTestResultId(null)
+    }
+  }
+
   function startEditAffiliateAutoTask(item) {
     setEditingAffiliateAutoTaskId(item.id)
     setEditingAffiliateAutoTaskOriginal(item)
@@ -1523,6 +1580,7 @@ function App() {
     setIpProxyProtocol('')
     setIpProxyInfo('')
     setIpProxyStatus('')
+    setIpProxyTargetCountry('')
     setIpProxyAdsOwner('')
   }
 
@@ -1870,6 +1928,7 @@ function App() {
         'role-management',
         'ads-platform-management',
         'user-agent-management',
+        'house-keeping',
         ...AFFILIATE_ADS_MENU_IDS,
         'auto-script',
         'normal-ads-management',
@@ -2152,6 +2211,11 @@ function App() {
       return
     }
 
+    if (activeMenu === 'house-keeping') {
+      void loadHouseKeepingLogs(houseKeepingPaginationRef.current)
+      return
+    }
+
     if (activeMenu === 'user-agent-management') {
       void loadUserAgents()
       return
@@ -2244,6 +2308,7 @@ function App() {
     loadMatrixAds,
     loadPlatformList,
     loadPlatformOptions,
+    loadHouseKeepingLogs,
     loadToolEmails,
     loadToolAccounts,
     loadAdsAccounts,
@@ -2854,6 +2919,7 @@ function App() {
       proxyType: '',
       proxyProtocol: '',
       status: '',
+      targetCountry: '',
       ownerPhoneNumber: '',
     })
     setIpProxyQueryApplied(false)
@@ -3338,6 +3404,13 @@ function App() {
     setAdsTaskLogsError('')
     setAdsTaskLogPagination((current) => createInitialPagination(current.size))
     void loadAdsTaskLogs({}, { page: 0, size: adsTaskLogPaginationRef.current.size })
+  }
+
+  function reloadHouseKeepingLogs() {
+    setHouseKeepingLogsError('')
+    setHouseKeepingLogsLoaded(false)
+    setHouseKeepingPagination((current) => createInitialPagination(current.size))
+    void loadHouseKeepingLogs({ page: 0, size: houseKeepingPaginationRef.current.size })
   }
 
   function applyNormalAdsFilters(event) {
@@ -3974,6 +4047,7 @@ function App() {
     setIpProxyProtocol(item.proxyProtocol || '')
     setIpProxyInfo(item.proxyInfo || '')
     setIpProxyStatus(item.status || '')
+    setIpProxyTargetCountry(toCountryCode(item.targetCountry || ''))
     setIpProxyAdsOwner(item.adsOwner || '')
     setShowIpProxyModal(true)
   }
@@ -4104,6 +4178,7 @@ function App() {
         proxyProtocol: toOptionalTrimmedString(ipProxyProtocol),
         proxyInfo: normalizedProxyInfo,
         status: toOptionalTrimmedString(ipProxyStatus),
+        targetCountry: toOptionalTrimmedString(toCountryCode(ipProxyTargetCountry)),
         adsOwner: toOptionalTrimmedString(ipProxyAdsOwner),
       }
 
@@ -4530,6 +4605,8 @@ function App() {
         ? 'User Role'
         : activeMenu === 'user-agent-management'
           ? 'User Agent'
+         : activeMenu === 'house-keeping'
+           ? 'House Keeping'
         : activeMenu === 'auto-script'
           ? 'Auto Script'
         : activeMenu === 'email-management'
@@ -4658,6 +4735,20 @@ function App() {
         onSaveUserAgent={handleSaveUserAgent}
         savingUserAgent={savingUserAgent}
         onCloseUserAgentModal={() => setShowUserAgentModal(false)}
+      />
+    )
+  } else if (activeMenu === 'house-keeping') {
+    activeSection = (
+      <HouseKeepingSection
+        logs={houseKeepingLogs}
+        logsLoading={houseKeepingLogsLoading}
+        logsError={houseKeepingLogsError}
+        hasLoadedLogs={houseKeepingLogsLoaded}
+        logColumns={houseKeepingColumns}
+        pagination={houseKeepingPagination}
+        onReload={reloadHouseKeepingLogs}
+        onPageChange={handleHouseKeepingPageChange}
+        onPageSizeChange={handleHouseKeepingPageSizeChange}
       />
     )
   } else if (activeMenu === 'role-management') {
@@ -5173,6 +5264,8 @@ function App() {
         onAffiliateTestResultFiltersChange={setAffiliateTestResultFilters}
         onApplyAffiliateTestResultFilters={applyAffiliateTestResultFilters}
         onReloadAffiliateTestResultFilters={reloadAffiliateTestResultFilters}
+        onConvertAffiliateTestResultToNormal={handleConvertAffiliateTestResultToNormal}
+        convertingAffiliateTestResultId={convertingAffiliateTestResultId}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
         affiliateNetworkOptions={affiliateAutoTaskNetworkOptions}
@@ -5220,6 +5313,8 @@ function App() {
         onIpProxyInfoChange={setIpProxyInfo}
         ipProxyStatus={ipProxyStatus}
         onIpProxyStatusChange={setIpProxyStatus}
+        ipProxyTargetCountry={ipProxyTargetCountry}
+        onIpProxyTargetCountryChange={setIpProxyTargetCountry}
         onSaveIpProxy={handleSaveIpProxy}
         savingIpProxy={savingIpProxy}
         onCloseIpProxyModal={() => setShowIpProxyModal(false)}
@@ -5228,6 +5323,7 @@ function App() {
         ipProxyTypeOptions={IP_PROXY_TYPE_OPTIONS}
         ipProxyProtocolOptions={IP_PROXY_PROTOCOL_OPTIONS}
         ipProxyStatusOptions={IP_PROXY_STATUS_OPTIONS}
+        countryOptions={COUNTRY_OPTIONS}
         formatDateDisplayValue={formatDateDisplayValue}
         pagination={ipProxyPagination}
         onPageChange={handleIpProxyPageChange}

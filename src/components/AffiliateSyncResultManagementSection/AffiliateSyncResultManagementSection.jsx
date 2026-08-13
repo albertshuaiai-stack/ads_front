@@ -9,6 +9,15 @@ function isActiveMerchantStatus(value) {
   return String(value ?? '').trim().toUpperCase() === 'ACTIVE'
 }
 
+function isInProgressStatus(value) {
+  const normalized = String(value ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s_-]+/g, '')
+
+  return normalized === 'INPROGRESS' || normalized === 'TESTING'
+}
+
 function AffiliateSyncResultManagementSection({
   affiliateSyncResults,
   affiliateSyncResultsLoading,
@@ -165,7 +174,9 @@ function AffiliateSyncResultManagementSection({
                           type="button"
                           className="secondary"
                           onClick={() => onTestAffiliateSyncResult(item.id)}
-                          disabled={testingAffiliateSyncResultId === item.id}
+                          disabled={
+                            testingAffiliateSyncResultId === item.id || isInProgressStatus(item.status)
+                          }
                         >
                           {testingAffiliateSyncResultId === item.id ? 'Testing...' : 'Test'}
                         </button>

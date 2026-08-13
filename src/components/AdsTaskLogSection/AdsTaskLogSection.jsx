@@ -1,4 +1,5 @@
 import { firstDefinedValue, formatTableValue } from '../../lib/adsPortal'
+import { formatDateTimeDisplayValueWithDashedDate } from '../../utils/formatters'
 import PaginationControls from '../PaginationControls/PaginationControls'
 
 function AdsTaskLogSection({
@@ -12,7 +13,6 @@ function AdsTaskLogSection({
   pagination,
   showOwnerFilter,
   ownerOptions,
-  formatDateDisplayValue,
   onFiltersChange,
   onSearch,
   onReload,
@@ -133,7 +133,7 @@ function AdsTaskLogSection({
 
                         return (
                           <td key={column.key} className={isLongTextColumn ? 'truncate' : ''}>
-                            {isDateColumn ? formatDateDisplayValue(value) : formatTableValue(value)}
+                            {isDateColumn ? formatDateTimeDisplayValueWithDashedDate(value) : formatTableValue(value)}
                           </td>
                         )
                       })}

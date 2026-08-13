@@ -24,6 +24,8 @@ function IpProxyManagementSection({
   onIpProxyInfoChange,
   ipProxyStatus,
   onIpProxyStatusChange,
+  ipProxyTargetCountry,
+  onIpProxyTargetCountryChange,
   onSaveIpProxy,
   savingIpProxy,
   onCloseIpProxyModal,
@@ -32,6 +34,7 @@ function IpProxyManagementSection({
   ipProxyTypeOptions,
   ipProxyProtocolOptions,
   ipProxyStatusOptions,
+  countryOptions,
   formatDateDisplayValue,
   pagination,
   onPageChange,
@@ -117,6 +120,27 @@ function IpProxyManagementSection({
             </div>
 
             <div className="filter-item">
+              <label htmlFor="ipProxyManagementTargetCountryFilter">Target Country</label>
+              <select
+                id="ipProxyManagementTargetCountryFilter"
+                value={ipProxyFilters.targetCountry}
+                onChange={(event) =>
+                  onIpProxyFiltersChange({
+                    ...ipProxyFilters,
+                    targetCountry: event.target.value,
+                  })
+                }
+              >
+                <option value="">All target countries</option>
+                {countryOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-item">
               <label htmlFor="ipProxyManagementStatusFilter">Status</label>
               <select
                 id="ipProxyManagementStatusFilter"
@@ -166,6 +190,7 @@ function IpProxyManagementSection({
                     <th>Proxy Type</th>
                     <th>Proxy Protocol</th>
                     <th>Proxy Info</th>
+                    <th>Target Country</th>
                     <th>Status</th>
                     <th>Create Date</th>
                     <th>Update Date</th>
@@ -179,6 +204,7 @@ function IpProxyManagementSection({
                       <td>{formatTableValue(item.proxyType)}</td>
                       <td>{formatTableValue(item.proxyProtocol)}</td>
                       <td>{formatTableValue(item.proxyInfo)}</td>
+                      <td>{formatTableValue(item.targetCountry)}</td>
                       <td>{formatTableValue(item.status)}</td>
                       <td>{formatDateDisplayValue(item.createDate)}</td>
                       <td>{formatDateDisplayValue(item.updateDate)}</td>
@@ -256,6 +282,20 @@ function IpProxyManagementSection({
               required
             />
             <p className="field-help">Tips: username:password@host:port</p>
+
+            <label htmlFor="ipProxyManagementTargetCountry">Target Country</label>
+            <select
+              id="ipProxyManagementTargetCountry"
+              value={ipProxyTargetCountry}
+              onChange={(event) => onIpProxyTargetCountryChange(event.target.value)}
+            >
+              <option value="">Select a country</option>
+              {countryOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
 
             <label htmlFor="ipProxyManagementStatus">Status</label>
             <select

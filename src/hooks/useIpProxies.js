@@ -13,6 +13,7 @@ export function useIpProxies(token) {
     proxyType: '',
     proxyProtocol: '',
     status: '',
+    targetCountry: '',
     ownerPhoneNumber: '',
   })
   const [ipProxyQueryApplied, setIpProxyQueryApplied] = useState(false)
@@ -22,6 +23,7 @@ export function useIpProxies(token) {
   const [ipProxyProtocol, setIpProxyProtocol] = useState('')
   const [ipProxyInfo, setIpProxyInfo] = useState('')
   const [ipProxyStatus, setIpProxyStatus] = useState('')
+  const [ipProxyTargetCountry, setIpProxyTargetCountry] = useState('')
   const [ipProxyAdsOwner, setIpProxyAdsOwner] = useState('')
   const [savingIpProxy, setSavingIpProxy] = useState(false)
   const [showIpProxyModal, setShowIpProxyModal] = useState(false)
@@ -45,6 +47,7 @@ export function useIpProxies(token) {
             proxyType: filters.proxyType,
             proxyProtocol: filters.proxyProtocol,
             status: filters.status,
+            targetCountry: filters.targetCountry,
             ...buildOwnerQueryParams(filters.ownerPhoneNumber),
             page: pageConfig.page,
             size: pageConfig.size,
@@ -78,6 +81,7 @@ export function useIpProxies(token) {
     ipProxyProtocol, setIpProxyProtocol,
     ipProxyInfo, setIpProxyInfo,
     ipProxyStatus, setIpProxyStatus,
+    ipProxyTargetCountry, setIpProxyTargetCountry,
     ipProxyAdsOwner, setIpProxyAdsOwner,
     savingIpProxy, setSavingIpProxy,
     showIpProxyModal, setShowIpProxyModal,

@@ -57,6 +57,18 @@ export const ADS_TASK_LOG_COLUMNS = [
   { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
 ]
 
+export const HOUSE_KEEPING_COLUMNS = [
+  { key: 'id', label: 'ID', fields: ['id'] },
+  { key: 'houseKeepingDate', label: 'House Keeping Date', fields: ['houseKeepingDate'] },
+  { key: 'purgeShiftLinkLog', label: 'Purge Shift Link Log', fields: ['purgeShiftLinkLog'] },
+  { key: 'purgeNormalShiftLink', label: 'Purge Normal Shift Link', fields: ['purgeNormalShiftLink'] },
+  { key: 'purgeMatrixShiftLing', label: 'Purge Matrix Shift Link', fields: ['purgeMatrixShiftLing'] },
+  { key: 'purgeAdsTaskLog', label: 'Purge Ads Task Log', fields: ['purgeAdsTaskLog'] },
+  { key: 'startDate', label: 'Start Date', fields: ['startDate'] },
+  { key: 'endDate', label: 'End Date', fields: ['endDate'] },
+  { key: 'duration', label: 'Duration', fields: ['duration'] },
+]
+
 // 动态列排序偏好 / preferred ordering for dynamically discovered columns
 export const NORMAL_ADS_PREFERRED_COLUMNS = [
   'campainCountry',
