@@ -39,7 +39,6 @@ export function buildAdsTypeOptions(role) {
 
 // 基于数据行动态推导列（按偏好排序，排除指定字段）/ derive columns dynamically from rows
 export function buildDynamicColumns(rows, preferredOrder, excludedFields = []) {
-  debugger;
   const fieldNames = new Set()
 
   rows.forEach((item) => {

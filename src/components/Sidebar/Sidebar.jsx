@@ -112,6 +112,14 @@ function getIconFor(id) {
           <path d="M16 7l2 2-4 4-2-2 4-4z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
+    case 'affiliate-post-back':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="4" y="3" width="16" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M8 8h8M8 12h8M8 16h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M15 6l3 3-3 3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
     case 'paypal-management':
       return (
         <svg {...common} aria-hidden focusable="false">

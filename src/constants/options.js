@@ -103,3 +103,10 @@ export const AFFILIATE_TEST_RESULT_STATUS_OPTIONS = [
   { value: 'SUCCESS', label: 'SUCCESS' },
   { value: 'FAILED', label: 'FAILED' },
 ]
+
+export const AFFILIATE_POST_BACK_STATUS_OPTIONS = [
+  { value: 'Approved', label: 'Approved' },
+  { value: 'Pending', label: 'Pending' },
+  { value: 'Rejected', label: 'Rejected' },
+  { value: 'Paid by advertiser', label: 'Paid by advertiser' },
+]

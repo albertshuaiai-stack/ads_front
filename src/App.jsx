@@ -3,6 +3,7 @@ import AdsAccountManagementSection from './components/AdsAccountManagementSectio
 import AdsTaskLogSection from './components/AdsTaskLogSection/AdsTaskLogSection'
 import AffiliateAutoTaskManagementSection from './components/AffiliateAutoTaskManagementSection/AffiliateAutoTaskManagementSection'
 import AffiliateJobDetailSection from './components/AffiliateJobDetailSection/AffiliateJobDetailSection'
+import AffiliatePostBackManagementSection from './components/AffiliatePostBackManagementSection/AffiliatePostBackManagementSection'
 import AffiliateSyncResultManagementSection from './components/AffiliateSyncResultManagementSection/AffiliateSyncResultManagementSection'
 import AffiliateTestResultManagementSection from './components/AffiliateTestResultManagementSection/AffiliateTestResultManagementSection'
 import AffiliateTriggerSection from './components/AffiliateTriggerSection/AffiliateTriggerSection'
@@ -79,6 +80,7 @@ import {
   AFFILIATE_AUTO_TASK_NETWORK_OPTIONS,
   AFFILIATE_AUTO_TASK_TYPE_OPTIONS,
   AFFILIATE_AUTO_TASK_STATUS_OPTIONS,
+  AFFILIATE_POST_BACK_STATUS_OPTIONS,
   AFFILIATE_SYNC_RESULT_STATUS_OPTIONS,
   AFFILIATE_TEST_RESULT_STATUS_OPTIONS,
   IP_PROXY_TYPE_OPTIONS,
@@ -141,6 +143,7 @@ import { useIncomes } from './hooks/useIncomes'
 import { useOutcomes } from './hooks/useOutcomes'
 import { useAffiliateAutoTasks } from './hooks/useAffiliateAutoTasks'
 import { useAffiliateJobDetails } from './hooks/useAffiliateJobDetails'
+import { useAffiliatePostBacks } from './hooks/useAffiliatePostBacks'
 import { useAffiliateSyncResults } from './hooks/useAffiliateSyncResults'
 import { useAffiliateTestResults } from './hooks/useAffiliateTestResults'
 import { useAffiliateTriggers } from './hooks/useAffiliateTriggers'
@@ -523,6 +526,19 @@ function App() {
   } = useAffiliateTestResults(token, loggedInAdsOwner, showAdminOwnerFilter)
 
   const {
+    affiliatePostBacks, setAffiliatePostBacks,
+    affiliatePostBacksLoading, setAffiliatePostBacksLoading,
+    affiliatePostBacksError, setAffiliatePostBacksError,
+    affiliatePostBacksMessage, setAffiliatePostBacksMessage,
+    affiliatePostBackPagination, setAffiliatePostBackPagination,
+    affiliatePostBackPaginationRef,
+    affiliatePostBackFilters, setAffiliatePostBackFilters,
+    affiliatePostBackQueryApplied, setAffiliatePostBackQueryApplied,
+    affiliatePostBackFiltersRef,
+    loadAffiliatePostBacks,
+  } = useAffiliatePostBacks(token, loggedInAdsOwner, showAdminOwnerFilter)
+
+  const {
     affiliateTriggers, setAffiliateTriggers,
     affiliateTriggersLoading, setAffiliateTriggersLoading,
     affiliateTriggersError, setAffiliateTriggersError,
@@ -700,6 +716,8 @@ function App() {
   const affiliateAutoTaskTypeOptions = AFFILIATE_AUTO_TASK_TYPE_OPTIONS
 
   const affiliateAutoTaskStatusOptions = AFFILIATE_AUTO_TASK_STATUS_OPTIONS
+
+  const affiliatePostBackStatusOptions = AFFILIATE_POST_BACK_STATUS_OPTIONS
 
   const affiliateSyncResultStatusOptions = AFFILIATE_SYNC_RESULT_STATUS_OPTIONS
 
@@ -1186,6 +1204,26 @@ function App() {
   function handleAffiliateSyncResultPageSizeChange(size) {
     void loadAffiliateSyncResults(
       affiliateSyncResultQueryApplied ? affiliateSyncResultFiltersRef.current : {},
+      {
+        page: 0,
+        size,
+      },
+    )
+  }
+
+  function handleAffiliatePostBackPageChange(page) {
+    void loadAffiliatePostBacks(
+      affiliatePostBackQueryApplied ? affiliatePostBackFiltersRef.current : {},
+      {
+        page,
+        size: affiliatePostBackPaginationRef.current.size,
+      },
+    )
+  }
+
+  function handleAffiliatePostBackPageSizeChange(size) {
+    void loadAffiliatePostBacks(
+      affiliatePostBackQueryApplied ? affiliatePostBackFiltersRef.current : {},
       {
         page: 0,
         size,
@@ -2266,6 +2304,13 @@ function App() {
       return
     }
 
+    if (activeMenu === 'affiliate-post-back') {
+      void loadAffiliatePostBacks(
+        affiliatePostBackQueryApplied ? affiliatePostBackFiltersRef.current : {},
+      )
+      return
+    }
+
     if (activeMenu === 'affiliate-trigger') {
       void loadAffiliateTriggers({})
       return
@@ -2316,6 +2361,7 @@ function App() {
     loadAffiliateAutoTasks,
     loadAffiliateTestResults,
     loadAffiliateSyncResults,
+    loadAffiliatePostBacks,
     loadAffiliateTriggers,
     loadIpProxies,
     loadToolPaypals,
@@ -2330,6 +2376,7 @@ function App() {
     affiliateAutoTaskQueryApplied,
     affiliateTestResultQueryApplied,
     affiliateSyncResultQueryApplied,
+    affiliatePostBackQueryApplied,
     affiliateTriggerQueryApplied,
     ipProxyQueryApplied,
     paypalQueryApplied,
@@ -2893,6 +2940,18 @@ function App() {
       ownerPhoneNumber: '',
     })
     setAffiliateTestResultQueryApplied(false)
+    setAffiliatePostBacks([])
+    setAffiliatePostBacksLoading(false)
+    setAffiliatePostBacksError('')
+    setAffiliatePostBacksMessage('')
+    setAffiliatePostBackPagination(createInitialPagination())
+    setAffiliatePostBackFilters({
+      affiliateSite: '',
+      orderNo: '',
+      status: '',
+      ownerPhoneNumber: '',
+    })
+    setAffiliatePostBackQueryApplied(false)
     setIpProxyOptionsSource([])
     setIpProxyOptionsLoading(false)
     setAffiliateTriggers([])
@@ -3542,6 +3601,26 @@ function App() {
     })
     setAffiliateSyncResultQueryApplied(false)
     void loadAffiliateSyncResults({}, { page: 0, size: affiliateSyncResultPaginationRef.current.size })
+  }
+
+  function applyAffiliatePostBackFilters(event) {
+    event.preventDefault()
+    setAffiliatePostBackQueryApplied(true)
+    void loadAffiliatePostBacks(affiliatePostBackFilters, {
+      page: 0,
+      size: affiliatePostBackPaginationRef.current.size,
+    })
+  }
+
+  function reloadAffiliatePostBackFilters() {
+    setAffiliatePostBackFilters({
+      affiliateSite: '',
+      orderNo: '',
+      status: '',
+      ownerPhoneNumber: '',
+    })
+    setAffiliatePostBackQueryApplied(false)
+    void loadAffiliatePostBacks({}, { page: 0, size: affiliatePostBackPaginationRef.current.size })
   }
 
   function reloadAffiliateJobDetailFilters() {
@@ -4627,6 +4706,8 @@ function App() {
           ? 'Affiliate Test'
         : activeMenu === 'affiliate-sync-result'
           ? 'Affiliate Ads'
+        : activeMenu === 'affiliate-post-back'
+          ? 'Post Back'
         : activeMenu === 'affiliate-trigger'
           ? 'Auto Trigger'
         : activeMenu === 'affiliate-ip-proxy'
@@ -5250,6 +5331,27 @@ function App() {
         pagination={affiliateSyncResultPagination}
         onPageChange={handleAffiliateSyncResultPageChange}
         onPageSizeChange={handleAffiliateSyncResultPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'affiliate-post-back') {
+    activeSection = (
+      <AffiliatePostBackManagementSection
+        affiliatePostBacks={affiliatePostBacks}
+        affiliatePostBacksLoading={affiliatePostBacksLoading}
+        affiliatePostBacksError={affiliatePostBacksError}
+        affiliatePostBacksMessage={affiliatePostBacksMessage}
+        affiliatePostBackFilters={affiliatePostBackFilters}
+        affiliatePostBackStatusOptions={affiliatePostBackStatusOptions}
+        affiliateSiteOptions={affiliateAutoTaskNetworkOptions}
+        onAffiliatePostBackFiltersChange={setAffiliatePostBackFilters}
+        onApplyAffiliatePostBackFilters={applyAffiliatePostBackFilters}
+        onReloadAffiliatePostBackFilters={reloadAffiliatePostBackFilters}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={affiliatePostBackPagination}
+        onPageChange={handleAffiliatePostBackPageChange}
+        onPageSizeChange={handleAffiliatePostBackPageSizeChange}
       />
     )
   } else if (activeMenu === 'affiliate-test-result') {

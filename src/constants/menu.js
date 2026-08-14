@@ -58,6 +58,7 @@ export const MENU_GROUPS = [
       { id: 'affiliate-ip-proxy', label: 'Proxy Config' },
       { id: 'affiliate-test-result', label: 'Affiliate Test' },
       { id: 'affiliate-sync-result', label: 'Affiliate Ads' },
+      { id: 'affiliate-post-back', label: 'Post Back' },
     ],
   },
 ]
@@ -82,6 +83,7 @@ export const AFFILIATE_ADS_MENU_IDS = [
   'affiliate-ip-proxy',
   'affiliate-test-result',
   'affiliate-sync-result',
+  'affiliate-post-back',
 ]
 
 // Shift Link 批量导入模板下载地址 / Shift Link bulk-upload template url
