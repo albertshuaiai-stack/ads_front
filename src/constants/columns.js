@@ -71,6 +71,7 @@ export const HOUSE_KEEPING_COLUMNS = [
 
 // 动态列排序偏好 / preferred ordering for dynamically discovered columns
 export const NORMAL_ADS_PREFERRED_COLUMNS = [
+  'platformName',
   'campainCountry',
   'campainName',
   'dynamicProxyInfo',
@@ -88,13 +89,13 @@ export const NORMAL_ADS_PREFERRED_COLUMNS = [
 export const NORMAL_ADS_EXCLUDED_COLUMNS = [
   'id',
   'adsOwner',
-  'platformName',
   'dynamicProxyInfoBackup',
   'createDate',
   'updateDate',
 ]
 
 export const MATRIX_ADS_PREFERRED_COLUMNS = [
+  'platformName',
   'campainCountry',
   'campainName',
   'dynamicProxyInfo',

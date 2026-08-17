@@ -6,6 +6,7 @@ import { toCountryCode } from '../../lib/countryOptions'
 import './MatrixAdsManagementSection.css'
 
 const MATRIX_TABLE_COLUMN_ORDER = [
+  'platformName',
   'campainCountry',
   'campainName',
   'dynamicProxyInfo',
@@ -21,6 +22,7 @@ const MATRIX_TABLE_COLUMN_ORDER = [
 ]
 
 const MATRIX_TABLE_COLUMN_LABELS = {
+  platformName: 'Platform',
   campainCountry: 'Campaign Country',
   campainName: 'Campaign Name',
   dynamicProxyInfo: 'Dynamic Proxy Info',
@@ -233,6 +235,8 @@ function MatrixAdsManagementSection({
                               ? Array.isArray(item?.[column])
                                 ? item[column].length
                                 : 0
+                            : column === 'platformName'
+                              ? formatTableValue(item?.platformName || item?.platform)
                             : column === 'campainCountry'
                               ? formatTableValue(toCountryCode(item?.[column]))
                               : formatTableValue(item?.[column])}

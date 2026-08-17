@@ -5,6 +5,7 @@ import { toCountryCode } from '../../lib/countryOptions'
 import './NormalAdsManagementSection.css'
 
 const NORMAL_TABLE_COLUMN_ORDER = [
+  'platformName',
   'campainCountry',
   'campainName',
   'dynamicProxyInfo',
@@ -20,6 +21,7 @@ const NORMAL_TABLE_COLUMN_ORDER = [
 ]
 
 const NORMAL_TABLE_COLUMN_LABELS = {
+  platformName: 'Platform',
   campainCountry: 'Campaign Country',
   campainName: 'Campaign Name',
   dynamicProxyInfo: 'Dynamic Proxy Info',
@@ -228,6 +230,8 @@ function NormalAdsManagementSection({
                               )
                             : column === 'campainCountry'
                               ? formatTableValue(toCountryCode(item?.[column]))
+                              : column === 'platformName'
+                               ? formatTableValue(item?.platformName || item?.platform)
                               : formatTableValue(item?.[column])}
                         </td>
                       ))}
