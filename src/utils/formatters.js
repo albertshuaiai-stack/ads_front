@@ -43,16 +43,25 @@ export function formatDateTimeDisplayValue(value) {
 
   let parsedDate = null
 
+  const normalizeEpochValue = (epochValue) => {
+    if (!Number.isInteger(epochValue)) {
+      return epochValue
+    }
+
+    const digitCount = String(Math.abs(epochValue)).length
+    return digitCount === 10 ? epochValue * 1000 : epochValue
+  }
+
   if (typeof value === 'number' && Number.isFinite(value)) {
-    parsedDate = new Date(value)
+    parsedDate = new Date(normalizeEpochValue(value))
   } else {
     const text = toOptionalTrimmedString(value)
     if (!text) {
       return formatTableValue(value)
     }
 
-    if (/^\d+$/.test(text)) {
-      parsedDate = new Date(Number(text))
+    if (/^-?\d+$/.test(text)) {
+      parsedDate = new Date(normalizeEpochValue(Number(text)))
     } else {
       parsedDate = new Date(text)
     }
