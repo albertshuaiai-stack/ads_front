@@ -1,5 +1,6 @@
 import PaginationControls from '../PaginationControls/PaginationControls'
 import { formatTableValue } from '../../lib/adsPortal'
+import { formatDateTimeDisplayValueWithDashedDate } from '../../utils/formatters'
 
 function AffiliatePostBackManagementSection({
   affiliatePostBacks,
@@ -14,7 +15,6 @@ function AffiliatePostBackManagementSection({
   onReloadAffiliatePostBackFilters,
   showOwnerFilter,
   ownerOptions,
-  formatDateDisplayValue,
   pagination,
   onPageChange,
   onPageSizeChange,
@@ -134,7 +134,6 @@ function AffiliatePostBackManagementSection({
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Ads Owner</th>
                   <th>Affiliate Site</th>
                   <th>Advertiser Shop ID</th>
                   <th>Advertiser Shop Name</th>
@@ -153,19 +152,18 @@ function AffiliatePostBackManagementSection({
                 {affiliatePostBacks.map((item) => (
                   <tr key={item.id}>
                     <td>{item.id}</td>
-                    <td>{formatTableValue(item.adsOwner)}</td>
                     <td>{formatTableValue(item.affiliateSite)}</td>
                     <td>{formatTableValue(item.advertiserShopId)}</td>
                     <td>{formatTableValue(item.advertiserShopName)}</td>
                     <td>{formatTableValue(item.signId)}</td>
                     <td>{formatTableValue(item.orderNo)}</td>
-                    <td>{formatDateDisplayValue(item.orderTime)}</td>
+                    <td>{formatDateTimeDisplayValueWithDashedDate(item.orderTime)}</td>
                     <td>{formatTableValue(item.orderAmount)}</td>
                     <td>{formatTableValue(item.userCommissionAmount)}</td>
                     <td>{formatTableValue(item.status)}</td>
                     <td>{formatTableValue(item.subId)}</td>
                     <td>{formatTableValue(item.subId2)}</td>
-                    <td>{formatDateDisplayValue(item.clickTime)}</td>
+                    <td>{formatDateTimeDisplayValueWithDashedDate(item.clickTime)}</td>
                   </tr>
                 ))}
               </tbody>

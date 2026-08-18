@@ -5348,7 +5348,6 @@ function App() {
         onReloadAffiliatePostBackFilters={reloadAffiliatePostBackFilters}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
-        formatDateDisplayValue={formatDateDisplayValue}
         pagination={affiliatePostBackPagination}
         onPageChange={handleAffiliatePostBackPageChange}
         onPageSizeChange={handleAffiliatePostBackPageSizeChange}
