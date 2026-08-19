@@ -149,6 +149,91 @@ import { useAffiliateTestResults } from './hooks/useAffiliateTestResults'
 import { useAffiliateTriggers } from './hooks/useAffiliateTriggers'
 import { useIpProxies } from './hooks/useIpProxies'
 
+const DEFAULT_CURRENCY_EXCHANGE_RATE_PAIR = 'USD:CNY'
+
+function normalizeCurrencyExchangeRateResponse(response) {
+  const responseItem =
+    Array.isArray(response) ? response[0]
+      : Array.isArray(response?.content) ? response.content[0]
+      : Array.isArray(response?.data) ? response.data[0]
+      : response?.data && typeof response.data === 'object' ? response.data
+      : response
+
+  if (!responseItem || typeof responseItem !== 'object') {
+    return {
+      currencyPair: DEFAULT_CURRENCY_EXCHANGE_RATE_PAIR,
+      exchangeRate: '—',
+      updatedTime: '—',
+    }
+  }
+
+  const baseCurrency = toOptionalTrimmedString(
+    firstDefinedValue(responseItem, [
+      'baseCurrency',
+      'base_currency',
+      'fromCurrency',
+      'from_currency',
+      'sourceCurrency',
+      'currencyFrom',
+      'from',
+    ]),
+  )
+  const quoteCurrency = toOptionalTrimmedString(
+    firstDefinedValue(responseItem, [
+      'quoteCurrency',
+      'quote_currency',
+      'targetCurrency',
+      'target_currency',
+      'toCurrency',
+      'to_currency',
+      'currencyTo',
+      'to',
+    ]),
+  )
+  const currencyPair =
+    toOptionalTrimmedString(
+      firstDefinedValue(responseItem, [
+        'currencyPair',
+        'currency_pair',
+        'pair',
+        'symbol',
+      ]),
+    ) || (baseCurrency && quoteCurrency ? `${baseCurrency}:${quoteCurrency}` : DEFAULT_CURRENCY_EXCHANGE_RATE_PAIR)
+  const exchangeRateValue = firstDefinedValue(responseItem, [
+    'exchangeRate',
+    'exchange_rate',
+    'rate',
+    'value',
+    'price',
+  ])
+  const updatedTime =
+    toOptionalTrimmedString(
+      firstDefinedValue(responseItem, [
+        'createDate',
+        'create_date',
+        'updatedTime',
+        'updated_time',
+        'updateTime',
+        'update_time',
+        'updatedAt',
+        'updated_at',
+        'lastUpdatedTime',
+        'last_updated_time',
+        'lastUpdated',
+        'last_updated',
+      ]),
+    ) || '—'
+
+  return {
+    currencyPair,
+    exchangeRate:
+      exchangeRateValue === undefined || exchangeRateValue === null || exchangeRateValue === ''
+        ? '—'
+        : String(exchangeRateValue),
+    updatedTime,
+  }
+}
+
 function App() {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -166,6 +251,9 @@ function App() {
   )
   const [runningNormalAdsCount, setRunningNormalAdsCount] = useState(0)
   const [runningMatrixAdsCount, setRunningMatrixAdsCount] = useState(0)
+  const [currencyExchangeRate, setCurrencyExchangeRate] = useState(() =>
+    normalizeCurrencyExchangeRateResponse(null),
+  )
 
   const [activeMenu, setActiveMenu] = useState('shift-link-dashboard')
   const {
@@ -1944,6 +2032,21 @@ function App() {
     setRunningMatrixAdsCount(matrixItems.length)
   }, [currentUser, currentUserProfile, identifier, token])
 
+  const loadCurrencyExchangeRate = useCallback(async () => {
+    if (!token) {
+      setCurrencyExchangeRate(normalizeCurrencyExchangeRateResponse(null))
+      return
+    }
+
+    try {
+      const response = await requestApi('/currency-exchange-rate', { token })
+      setCurrencyExchangeRate(normalizeCurrencyExchangeRateResponse(response))
+    } catch (error) {
+      console.error('Failed to load currency exchange rate.', error)
+      setCurrencyExchangeRate(normalizeCurrencyExchangeRateResponse(null))
+    }
+  }, [token])
+
   const accessibleMenus = useMemo(() => {
     if (!isAuthenticated) {
       return []
@@ -2165,6 +2268,15 @@ function App() {
 
     void loadRunningAdsCounts()
   }, [currentUser, currentUserProfile, isAuthenticated, loadRunningAdsCounts])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setCurrencyExchangeRate(normalizeCurrencyExchangeRateResponse(null))
+      return
+    }
+
+    void loadCurrencyExchangeRate()
+  }, [isAuthenticated, loadCurrencyExchangeRate])
 
   useEffect(() => {
     if (!isAuthenticated || !showAdminOwnerFilter) {
@@ -5215,7 +5327,12 @@ function App() {
   } else if (activeMenu === 'cb-account-report') {
     activeSection = <CbAccountReportSection token={token} />
   } else if (activeMenu === 'income-expenditure-report') {
-    activeSection = <IncomeExpenditureReportSection token={token} />
+    activeSection = (
+      <IncomeExpenditureReportSection
+        token={token}
+        currencyExchangeRateValue={currencyExchangeRate.exchangeRate}
+      />
+    )
   } else if (activeMenu === 'ads-account-management') {
     activeSection = (
       <AdsAccountManagementSection
@@ -5609,6 +5726,9 @@ function App() {
           normalAdsTotalCount={normalAdsTotalCount}
           runningMatrixAdsCount={runningMatrixAdsCount}
           matrixAdsTotalCount={matrixAdsTotalCount}
+          currencyExchangeRatePair={currencyExchangeRate.currencyPair}
+          currencyExchangeRateValue={currencyExchangeRate.exchangeRate}
+          currencyExchangeRateUpdatedTime={currencyExchangeRate.updatedTime}
         />
 
         {activeSection}

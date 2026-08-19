@@ -23,9 +23,7 @@ export const OUTCOME_TYPE_OPTIONS = [
 
 export const ACCOUNT_STATUS_OPTIONS = [
   { value: 'RUNNING', label: 'RUNNING' },
-  { value: 'PAUSED', label: 'PAUSED' },
   { value: 'LOCKED', label: 'LOCKED' },
-  { value: 'OTHER', label: 'OTHER' },
 ]
 
 export const ACCOUNT_PAYMENT_STATUS_OPTIONS = [

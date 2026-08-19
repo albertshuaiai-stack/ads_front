@@ -10,6 +10,9 @@ function PageHeader({
   normalAdsTotalCount,
   runningMatrixAdsCount,
   matrixAdsTotalCount,
+  currencyExchangeRatePair,
+  currencyExchangeRateValue,
+  currencyExchangeRateUpdatedTime,
 }) {
   return (
     <header className="page-header">
@@ -28,6 +31,11 @@ function PageHeader({
           </div>
           <div>
             <strong>Expire Date:</strong> {currentUserExpireDate || '—'}
+          </div>
+          <div className="page-header__exchange-rate">
+            <strong>Currency Exchange Rate({currencyExchangeRatePair || 'USD:CNY'}):</strong>{' '}
+            {currencyExchangeRateValue || '—'}, <strong>Update Time:</strong>{' '}
+            {currencyExchangeRateUpdatedTime || '—'}
           </div>
         </div>
         <div className="page-header__meta-right">

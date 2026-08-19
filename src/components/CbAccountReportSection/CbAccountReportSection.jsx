@@ -4,12 +4,13 @@ import './CbAccountReportSection.css'
 
 const STATUS_SERIES = [
   { key: 'Running', label: 'Running', color: '#22c55e' },
-  { key: 'Paused', label: 'Paused', color: '#f59e0b' },
   { key: 'Locked', label: 'Locked', color: '#ef4444' },
-  { key: 'Others', label: 'Others', color: '#64748b' },
 ]
 
-const BALANCE_SERIES = [{ key: 'value', label: 'Total Balance', color: '#6c63ff' }]
+const BALANCE_SERIES = [
+  { key: 'lockedBalance', label: 'Locked Balance', color: '#ef4444' },
+  { key: 'validBalance', label: 'Valid Balance (Running)', color: '#22c55e' },
+]
 
 function normalizeMetricKey(value) {
   return String(value ?? '')
@@ -55,14 +56,14 @@ function normalizeAccountStatus(value) {
   }
 
   if (normalized.includes('pause')) {
-    return 'Paused'
+    return null
   }
 
   if (normalized.includes('lock')) {
     return 'Locked'
   }
 
-  return 'Others'
+  return null
 }
 
 function sortChartItems(items) {
@@ -79,13 +80,15 @@ function aggregateAccountCounts(accounts, labelAliases) {
     }
 
     const status = normalizeAccountStatus(getMetricValue(account, ['status', 'Status']))
+    if (!status) {
+      return
+    }
+
     const current = grouped.get(name) || {
       name,
       series: {
         Running: 0,
-        Paused: 0,
         Locked: 0,
-        Others: 0,
       },
     }
 
@@ -108,11 +111,21 @@ function aggregateAccountBalances(accounts, labelAliases) {
     const current = grouped.get(name) || {
       name,
       series: {
-        value: 0,
+        lockedBalance: 0,
+        validBalance: 0,
       },
     }
 
-    current.series.value += toNumber(getMetricValue(account, ['balance', 'Balance', 'accountBalance']))
+    const balance = toNumber(getMetricValue(account, ['balance', 'Balance', 'accountBalance']))
+    const status = normalizeAccountStatus(getMetricValue(account, ['status', 'Status']))
+
+    if (status === 'Locked') {
+      current.series.lockedBalance += balance
+    }
+    if (status === 'Running') {
+      current.series.validBalance += balance
+    }
+
     grouped.set(name, current)
   })
 
@@ -160,7 +173,7 @@ function PieChartCard({ segments }) {
       <div className="cb-account-report__card-header">
         <div>
           <h3>CB Account Status Overview</h3>
-          <p>Running, paused, locked, and other account statuses across the report data.</p>
+          <p>Running and locked account statuses across the report data.</p>
         </div>
       </div>
 
@@ -284,7 +297,7 @@ function GroupedColumnChartCard({
   const chartBottom = 110
   const chartRight = 24
   const barWidth = series.length === 1 ? 56 : 22
-  const barGap = 10
+  const barGap = 0
   const groupGap = 24
   const groupWidth = series.length * barWidth + (series.length - 1) * barGap
   const plotWidth = Math.max(items.length * (groupWidth + groupGap), 360)
@@ -538,17 +551,17 @@ function CbAccountReportSection({ token }) {
           <div className="cb-account-report__row">
             <GroupedColumnChartCard
               title="Balance By User Name"
-              description="Total balance aggregated by user."
+              description="Locked and valid running balances aggregated by user."
               xAxisLabel="User Name"
-              yAxisLabel="Total Balance"
+              yAxisLabel="Balance"
               items={balanceByUserName}
               series={BALANCE_SERIES}
             />
             <GroupedColumnChartCard
               title="Balance By Platform"
-              description="Total balance aggregated by platform."
+              description="Locked and valid running balances aggregated by platform."
               xAxisLabel="Platform Name"
-              yAxisLabel="Total Balance"
+              yAxisLabel="Balance"
               items={balanceByUserPlatform}
               series={BALANCE_SERIES}
             />

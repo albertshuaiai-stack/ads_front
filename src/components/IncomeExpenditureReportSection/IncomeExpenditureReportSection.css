@@ -17,6 +17,34 @@
   margin-top: 12px;
 }
 
+.income-expenditure-report__chart-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.income-expenditure-report__control-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.income-expenditure-report__control-label {
+  color: var(--text-h);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.income-expenditure-report__control-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 .income-expenditure-report__toggle {
   display: inline-flex;
   align-items: center;
@@ -29,7 +57,33 @@
   margin: 0;
 }
 
-.income-expenditure-report__visible-types {
+.income-expenditure-report__currency-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.income-expenditure-report__currency-label {
+  color: var(--text-h);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.income-expenditure-report__radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.income-expenditure-report__radio input {
+  margin: 0;
+}
+
+.income-expenditure-report__rate-note {
+  margin: 0;
   color: var(--muted);
   font-size: 13px;
 }
@@ -49,6 +103,27 @@
 
 .income-expenditure-report__chart {
   display: block;
+}
+
+.income-expenditure-report__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: var(--text-h);
+  font-size: 13px;
+}
+
+.income-expenditure-report__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.income-expenditure-report__legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
 }
 
 .income-expenditure-report__tick {

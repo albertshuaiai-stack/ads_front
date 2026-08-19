@@ -28,6 +28,10 @@
   max-width: 100%;
 }
 
+.page-header__exchange-rate {
+  max-width: 100%;
+}
+
 .page-header__api-key span {
   display: inline-block;
   max-width: min(100%, 520px);
@@ -36,6 +40,13 @@
   background: rgba(15, 23, 42, 0.04);
   word-break: break-all;
   vertical-align: middle;
+}
+
+.page-header__exchange-rate {
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.04);
+  word-break: break-word;
 }
 
 .page-header__meta-right div {
