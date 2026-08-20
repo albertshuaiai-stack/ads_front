@@ -63,6 +63,7 @@ import {
 import {
   MENU_GROUPS,
   TOOL_MENU_IDS,
+  NON_ADMIN_AFFILIATE_ADS_MENU_IDS,
   REPORT_MENU_IDS,
   SHIFT_LINK_TEMPLATE_FILE_URL,
 } from './constants/menu'
@@ -2080,7 +2081,7 @@ function App() {
     const menus = [...baseMenus]
 
     if (hasNormalRole && !isMatrixOnlyRole) {
-      menus.push(...AFFILIATE_ADS_MENU_IDS)
+      menus.push(...NON_ADMIN_AFFILIATE_ADS_MENU_IDS)
     }
 
     if (hasNormalRole) {

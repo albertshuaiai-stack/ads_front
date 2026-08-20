@@ -13,6 +13,8 @@ export const MENU_GROUPS = [
       { id: 'ads-platform-management', label: 'Platform' },
       { id: 'user-agent-management', label: 'User Agent' },
       { id: 'house-keeping', label: 'House Keeping' },
+      { id: 'affiliate-job-detail', label: 'Auto Job' },
+      { id: 'affiliate-trigger', label: 'Auto Trigger' },
     ],
   },
   {
@@ -53,8 +55,6 @@ export const MENU_GROUPS = [
     title: 'AFFILIATE',
     items: [
       { id: 'affiliate-auto-task', label: 'Auto Task' },
-      { id: 'affiliate-job-detail', label: 'Auto Job' },
-      { id: 'affiliate-trigger', label: 'Auto Trigger' },
       { id: 'affiliate-ip-proxy', label: 'Proxy Config' },
       { id: 'affiliate-test-result', label: 'Affiliate Test' },
       { id: 'affiliate-sync-result', label: 'Affiliate Ads' },
@@ -80,6 +80,14 @@ export const AFFILIATE_ADS_MENU_IDS = [
   'affiliate-auto-task',
   'affiliate-job-detail',
   'affiliate-trigger',
+  'affiliate-ip-proxy',
+  'affiliate-test-result',
+  'affiliate-sync-result',
+  'affiliate-post-back',
+]
+
+export const NON_ADMIN_AFFILIATE_ADS_MENU_IDS = [
+  'affiliate-auto-task',
   'affiliate-ip-proxy',
   'affiliate-test-result',
   'affiliate-sync-result',
