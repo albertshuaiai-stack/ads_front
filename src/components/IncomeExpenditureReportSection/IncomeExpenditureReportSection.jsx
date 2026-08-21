@@ -109,6 +109,63 @@ function normalizeItems(incomes, outcomes, displayCurrency, exchangeRate) {
     .sort((left, right) => left.month.localeCompare(right.month))
 }
 
+function normalizeGroupName(value) {
+  const name = String(value ?? '').trim()
+  return name || 'Unknown'
+}
+
+function buildIncomeTotalsByGroup(incomes, groupKey, displayCurrency, exchangeRate) {
+  const groupedTotals = new Map()
+
+  ;(Array.isArray(incomes) ? incomes : []).forEach((item) => {
+    const groupName = normalizeGroupName(item?.[groupKey])
+    const amount = convertCurrencyAmount(
+      item?.incomeAmount,
+      item?.currency,
+      displayCurrency,
+      exchangeRate,
+    )
+
+    groupedTotals.set(groupName, toNumber(groupedTotals.get(groupName)) + amount)
+  })
+
+  return Array.from(groupedTotals.entries())
+    .sort((left, right) => {
+      return left[0].localeCompare(right[0])
+    })
+    .map(([label, value]) => ({
+      label,
+      value,
+    }))
+}
+
+function buildMonthlyIncomeTotals(incomes, displayCurrency, exchangeRate) {
+  const monthlyTotals = new Map()
+
+  ;(Array.isArray(incomes) ? incomes : []).forEach((item) => {
+    const month = toMonthKey(item?.payoutDate || item?.createDate)
+    if (!month) {
+      return
+    }
+
+    const amount = convertCurrencyAmount(
+      item?.incomeAmount,
+      item?.currency,
+      displayCurrency,
+      exchangeRate,
+    )
+
+    monthlyTotals.set(month, toNumber(monthlyTotals.get(month)) + amount)
+  })
+
+  return Array.from(monthlyTotals.entries())
+    .sort((left, right) => left[0].localeCompare(right[0]))
+    .map(([label, value]) => ({
+      label,
+      value,
+    }))
+}
+
 async function loadAllPagedItems(path, token) {
   const size = 200
   const firstResponse = await requestApi(`${path}${buildQueryString({ page: 0, size })}`, { token })
@@ -326,18 +383,27 @@ function CombinedFinanceChart({
                         const valueBaseY = toY(Math.min(value, 0))
 
                         return (
-                          <rect
-                            key={`${item.month}-${series.key}`}
-                            x={groupX + seriesIndex * (barWidth + barGap)}
-                            y={Math.min(valueY, valueBaseY)}
-                            width={barWidth}
-                            height={Math.max(Math.abs(valueBaseY - valueY), 1)}
-                            fill={series.color}
-                          >
-                            <title>{`${item.month}\n${series.label}: ${formatValue(value)}`}</title>
-                          </rect>
-                        )
-                      })}
+                             <g key={`${item.month}-${series.key}`}>
+                               <rect
+                                 x={groupX + seriesIndex * (barWidth + barGap)}
+                                 y={Math.min(valueY, valueBaseY)}
+                                 width={barWidth}
+                                 height={Math.max(Math.abs(valueBaseY - valueY), 1)}
+                                 fill={series.color}
+                               >
+                                 <title>{`${item.month}\n${series.label}: ${formatValue(value)}`}</title>
+                               </rect>
+                               <text
+                                 x={groupX + seriesIndex * (barWidth + barGap) + barWidth / 2}
+                                 y={value >= 0 ? Math.max(valueY - 6, chartTop + 12) : Math.min(valueBaseY + 14, chartTop + chartHeight - 6)}
+                                 textAnchor="middle"
+                                 className="income-expenditure-report__bar-label"
+                               >
+                                 {formatValue(value)}
+                               </text>
+                             </g>
+                           )
+                         })}
                     </g>
                   )
                 })
@@ -444,6 +510,234 @@ function CombinedFinanceChart({
   )
 }
 
+function IncomeValueChart({
+  title,
+  description,
+  items,
+  displayCurrency,
+  xAxisLabel,
+  showColumns = true,
+  showLine = false,
+}) {
+  if (items.length === 0) {
+    return (
+      <div className="income-expenditure-report__card">
+        <div className="income-expenditure-report__card-header">
+          <div>
+            <h3>{title}</h3>
+            <p>{description}</p>
+          </div>
+        </div>
+        <p className="income-expenditure-report__empty">No income data available.</p>
+      </div>
+    )
+  }
+
+  const chartHeight = 300
+  const chartTop = 20
+  const chartLeft = 64
+  const chartBottom = 110
+  const chartRight = 24
+  const itemGap = 28
+  const barWidth = 32
+  const plotWidth = Math.max(items.length * (barWidth + itemGap), 380)
+  const svgWidth = chartLeft + chartRight + plotWidth
+  const svgHeight = chartTop + chartHeight + chartBottom
+  const maxValue = Math.max(...items.map((item) => toNumber(item.value)), 1)
+  const yTicks = 5
+  const overallTotal = items.reduce((sum, item) => sum + toNumber(item.value), 0)
+  const linePoints = items.map((item, index) => {
+    const x = chartLeft + index * (barWidth + itemGap) + itemGap / 2 + barWidth / 2
+    const y = chartTop + chartHeight - (toNumber(item.value) / maxValue) * chartHeight
+    return `${x},${y}`
+  })
+
+  return (
+    <div className="income-expenditure-report__card">
+      <div className="income-expenditure-report__card-header">
+        <div>
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </div>
+      </div>
+
+      <div className="income-expenditure-report__chart-wrap">
+        <svg
+          className="income-expenditure-report__chart"
+          width={svgWidth}
+          height={svgHeight}
+          role="img"
+          aria-label={`${title} grouped income chart in ${displayCurrency}`}
+        >
+          <line
+            x1={chartLeft}
+            y1={chartTop}
+            x2={chartLeft}
+            y2={chartTop + chartHeight}
+            stroke="var(--border)"
+            strokeWidth="1"
+          />
+          <line
+            x1={chartLeft}
+            y1={chartTop + chartHeight}
+            x2={svgWidth - chartRight}
+            y2={chartTop + chartHeight}
+            stroke="var(--border)"
+            strokeWidth="1"
+          />
+
+          {Array.from({ length: yTicks + 1 }, (_, index) => {
+            const tickValue = (maxValue / yTicks) * (yTicks - index)
+            const y = chartTop + (chartHeight / yTicks) * index
+
+            return (
+              <g key={`${title}-tick-${tickValue}`}>
+                <line
+                  x1={chartLeft}
+                  y1={y}
+                  x2={svgWidth - chartRight}
+                  y2={y}
+                  stroke="rgba(148, 163, 184, 0.2)"
+                  strokeWidth="1"
+                />
+                <text
+                  x={chartLeft - 8}
+                  y={y + 4}
+                  textAnchor="end"
+                  className="income-expenditure-report__tick"
+                >
+                  {formatValue(tickValue)}
+                </text>
+              </g>
+            )
+          })}
+
+          {showColumns
+            ? items.map((item, itemIndex) => {
+                const value = toNumber(item.value)
+                const barHeight = (value / maxValue) * chartHeight
+                const x = chartLeft + itemIndex * (barWidth + itemGap) + itemGap / 2
+                const y = chartTop + chartHeight - barHeight
+
+                return (
+                  <g key={`${title}-bar-${item.label}`}>
+                    <rect
+                      x={x}
+                      y={y}
+                      width={barWidth}
+                      height={Math.max(barHeight, 1)}
+                      rx="6"
+                      ry="6"
+                      fill="rgba(37, 99, 235, 0.35)"
+                      stroke="#2563eb"
+                      strokeWidth="1"
+                    >
+                      <title>{`${item.label}\nIncome: ${formatValue(value)} ${displayCurrency}`}</title>
+                    </rect>
+                    <text
+                      x={x + barWidth / 2}
+                      y={Math.max(y - 6, chartTop + 12)}
+                      textAnchor="middle"
+                      className="income-expenditure-report__bar-label"
+                    >
+                      {value > 0 ? formatValue(value) : ''}
+                    </text>
+                  </g>
+                )
+              })
+            : null}
+
+          {showLine ? (
+            <>
+            <polyline
+              fill="none"
+              stroke="#2563eb"
+              strokeWidth="3"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              points={linePoints.join(' ')}
+            />
+            {items.map((item, itemIndex) => {
+              const value = toNumber(item.value)
+              const x = chartLeft + itemIndex * (barWidth + itemGap) + itemGap / 2 + barWidth / 2
+              const y = chartTop + chartHeight - (value / maxValue) * chartHeight
+
+              return (
+                <g key={`${title}-line-${item.label}`}>
+                  <circle cx={x} cy={y} r="5" fill="#2563eb">
+                    <title>{`${item.label}\nIncome: ${formatValue(value)} ${displayCurrency}`}</title>
+                  </circle>
+                  <text
+                    x={x}
+                    y={Math.max(y - 8, chartTop + 12)}
+                    textAnchor="middle"
+                    className="income-expenditure-report__bar-label"
+                  >
+                    {value > 0 ? formatValue(value) : ''}
+                  </text>
+                  <text
+                    x={x}
+                    y={chartTop + chartHeight + 18}
+                    textAnchor="end"
+                    transform={`rotate(-32 ${x} ${chartTop + chartHeight + 18})`}
+                    className="income-expenditure-report__x-label"
+                  >
+                    {item.label}
+                  </text>
+                </g>
+              )
+            })}
+            </>
+          ) : null}
+
+          {!showLine
+            ? items.map((item, itemIndex) => {
+                const x = chartLeft + itemIndex * (barWidth + itemGap) + itemGap / 2 + barWidth / 2
+
+                return (
+                  <text
+                    key={`${title}-label-${item.label}`}
+                    x={x}
+                    y={chartTop + chartHeight + 18}
+                    textAnchor="end"
+                    transform={`rotate(-32 ${x} ${chartTop + chartHeight + 18})`}
+                    className="income-expenditure-report__x-label"
+                  >
+                    {item.label}
+                  </text>
+                )
+              })
+            : null}
+
+          <text
+          x={18}
+            y={chartTop + chartHeight / 2}
+            textAnchor="middle"
+            transform={`rotate(-90 18 ${chartTop + chartHeight / 2})`}
+            className="income-expenditure-report__axis-label"
+          >
+            Income ({displayCurrency})
+          </text>
+          <text
+            x={chartLeft + plotWidth / 2}
+            y={svgHeight - 18}
+            textAnchor="middle"
+            className="income-expenditure-report__axis-label"
+          >
+            {xAxisLabel}
+          </text>
+        </svg>
+      </div>
+
+      <div className="income-expenditure-report__summary">
+        <span className="income-expenditure-report__summary-chip">
+          Total Income: {formatValue(overallTotal)} {displayCurrency}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function IncomeExpenditureReportSection({ token, currencyExchangeRateValue }) {
   const [incomes, setIncomes] = useState([])
   const [outcomes, setOutcomes] = useState([])
@@ -464,6 +758,18 @@ function IncomeExpenditureReportSection({ token, currencyExchangeRateValue }) {
   const items = useMemo(
     () => normalizeItems(incomes, outcomes, displayCurrency, exchangeRate),
     [displayCurrency, exchangeRate, incomes, outcomes],
+  )
+  const incomeByUser = useMemo(
+    () => buildIncomeTotalsByGroup(incomes, 'userName', displayCurrency, exchangeRate),
+    [displayCurrency, exchangeRate, incomes],
+  )
+  const incomeByPlatform = useMemo(
+    () => buildIncomeTotalsByGroup(incomes, 'platformName', displayCurrency, exchangeRate),
+    [displayCurrency, exchangeRate, incomes],
+  )
+  const incomeByMonth = useMemo(
+    () => buildMonthlyIncomeTotals(incomes, displayCurrency, exchangeRate),
+    [displayCurrency, exchangeRate, incomes],
   )
 
   const loadReport = useCallback(async () => {
@@ -557,6 +863,32 @@ function IncomeExpenditureReportSection({ token, currencyExchangeRateValue }) {
             onShowIncomeChange={setShowIncome}
             onShowExpenditureChange={setShowExpenditure}
             onShowEarningChange={setShowEarning}
+          />
+        </div>
+
+        <div className="income-expenditure-report__chart-grid">
+          <IncomeValueChart
+            title="Income By Month"
+            description="Monthly income trend grouped by month."
+            items={incomeByMonth}
+            displayCurrency={displayCurrency}
+            xAxisLabel="Month"
+            showColumns
+            showLine
+          />
+          <IncomeValueChart
+            title="Income By User Name"
+            description="Total income aggregated by user name."
+            items={incomeByUser}
+            displayCurrency={displayCurrency}
+            xAxisLabel="User Name"
+          />
+          <IncomeValueChart
+            title="Income By Platform"
+            description="Total income aggregated by platform."
+            items={incomeByPlatform}
+            displayCurrency={displayCurrency}
+            xAxisLabel="Platform"
           />
         </div>
       </div>

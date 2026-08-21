@@ -96,6 +96,25 @@
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
 }
 
+.income-expenditure-report__card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.income-expenditure-report__card-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.income-expenditure-report__card-header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .income-expenditure-report__chart-wrap {
   overflow-x: auto;
   padding-bottom: 4px;
@@ -141,6 +160,11 @@
   font-size: 11px;
 }
 
+.income-expenditure-report__bar-label {
+  fill: var(--text-h);
+  font-size: 10px;
+}
+
 .income-expenditure-report__summary {
   display: flex;
   flex-wrap: wrap;
@@ -160,4 +184,10 @@
 .income-expenditure-report__empty {
   margin: 0;
   color: var(--muted);
+}
+
+.income-expenditure-report__chart-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
 }

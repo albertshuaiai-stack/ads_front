@@ -1803,14 +1803,30 @@ function App() {
     setShowOutcomeModal(true)
   }
 
+  function findEmailAddressByUserName(value) {
+    const matchedUser = toolEmailUserOptions.find((item) => item.userName === value)
+    return matchedUser?.emailAddress || ''
+  }
+
   function handleAccountUserNameSelection(value) {
     setAccountUserName(value)
 
-    const matchedUser = toolEmailUserOptions.find((item) => item.userName === value)
-    if (matchedUser) {
-      setAccountEmailAddress(matchedUser.emailAddress || '')
+    const matchedEmailAddress = findEmailAddressByUserName(value)
+    if (matchedEmailAddress) {
+      setAccountEmailAddress(matchedEmailAddress)
     } else if (!value) {
       setAccountEmailAddress('')
+    }
+  }
+
+  function handleIncomeUserNameSelection(value) {
+    setIncomeUserName(value)
+
+    const matchedEmailAddress = findEmailAddressByUserName(value)
+    if (matchedEmailAddress) {
+      setIncomePaypalAccount(matchedEmailAddress)
+    } else if (!value) {
+      setIncomePaypalAccount('')
     }
   }
 
@@ -5602,7 +5618,7 @@ function App() {
         incomePlatformName={incomePlatformName}
         onIncomePlatformNameChange={setIncomePlatformName}
         incomeUserName={incomeUserName}
-        onIncomeUserNameChange={setIncomeUserName}
+        onIncomeUserNameChange={handleIncomeUserNameSelection}
         incomeAmount={incomeAmount}
         onIncomeAmountChange={setIncomeAmount}
         incomeCurrency={incomeCurrency}
