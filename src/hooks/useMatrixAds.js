@@ -22,7 +22,7 @@ export function useMatrixAds(token) {
   const [matrixLandingPageUrl, setMatrixLandingPageUrl] = useState('')
   const [matrixDynamicProxyInfo, setMatrixDynamicProxyInfo] = useState('')
   const [matrixDynamicProxyInfoBackup, setMatrixDynamicProxyInfoBackup] = useState('')
-  const [matrixIntervalTime, setMatrixIntervalTime] = useState('')
+  const [matrixIntervalTime, setMatrixIntervalTime] = useState('5')
   const [matrixStatus, setMatrixStatus] = useState('RUNNING')
   const [matrixAffiliateRows, setMatrixAffiliateRows] = useState([createEmptyAffiliateRow()])
   const [savingMatrixAds, setSavingMatrixAds] = useState(false)

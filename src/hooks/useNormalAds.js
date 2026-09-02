@@ -17,8 +17,7 @@ export function useNormalAds(token) {
   const [normalAffiliteUrl, setNormalAffiliteUrl] = useState('')
   const [normalLandingPageUrl, setNormalLandingPageUrl] = useState('')
   const [normalDynamicProxyInfo, setNormalDynamicProxyInfo] = useState('')
-  const [normalDynamicProxyInfoBackup, setNormalDynamicProxyInfoBackup] = useState('')
-  const [normalIntervalTime, setNormalIntervalTime] = useState('')
+  const [normalIntervalTime, setNormalIntervalTime] = useState('5')
   const [normalStatus, setNormalStatus] = useState('RUNNING')
   const [savingNormalAds, setSavingNormalAds] = useState(false)
   const [showNormalAdsModal, setShowNormalAdsModal] = useState(false)
@@ -79,7 +78,6 @@ export function useNormalAds(token) {
     normalAffiliteUrl, setNormalAffiliteUrl,
     normalLandingPageUrl, setNormalLandingPageUrl,
     normalDynamicProxyInfo, setNormalDynamicProxyInfo,
-    normalDynamicProxyInfoBackup, setNormalDynamicProxyInfoBackup,
     normalIntervalTime, setNormalIntervalTime,
     normalStatus, setNormalStatus,
     savingNormalAds, setSavingNormalAds,

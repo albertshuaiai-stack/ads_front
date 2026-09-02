@@ -119,6 +119,7 @@ import {
 } from './utils/formatters'
 import {
   getUserExpireDate,
+  isUserExpired,
   validateUserName,
   validateUserEmail,
   validateUserPhoneNumber,
@@ -232,6 +233,19 @@ function normalizeCurrencyExchangeRateResponse(response) {
         ? '—'
         : String(exchangeRateValue),
     updatedTime,
+  }
+}
+
+function ensureHttpsUrl(value, fieldLabel) {
+  if (!value.startsWith('https://')) {
+    throw new Error(`${fieldLabel} must start with https://.`)
+  }
+
+  try {
+    new URL(value)
+    return value
+  } catch {
+    throw new Error(`${fieldLabel} must be a valid URL.`)
   }
 }
 
@@ -390,7 +404,6 @@ function App() {
     normalAffiliteUrl, setNormalAffiliteUrl,
     normalLandingPageUrl, setNormalLandingPageUrl,
     normalDynamicProxyInfo, setNormalDynamicProxyInfo,
-    normalDynamicProxyInfoBackup, setNormalDynamicProxyInfoBackup,
     normalIntervalTime, setNormalIntervalTime,
     normalStatus, setNormalStatus,
     savingNormalAds, setSavingNormalAds,
@@ -1003,21 +1016,35 @@ function App() {
     [matrixAds],
   )
 
+  const currentUserRecord = users.find(
+    (user) => user.userName === currentUser || user.userEmail === currentUser,
+  ) || currentUserProfile
+
+  const isCurrentUserExpired = useMemo(() => isUserExpired(currentUserRecord), [currentUserRecord])
+
   const canCreateNormalAds = useMemo(() => {
+    if (isCurrentUserExpired) {
+      return false
+    }
+
     if (normalAdsTotalCount == null) {
       return true
     }
 
     return runningNormalAdsCount < normalAdsTotalCount
-  }, [normalAdsTotalCount, runningNormalAdsCount])
+  }, [isCurrentUserExpired, normalAdsTotalCount, runningNormalAdsCount])
 
   const canCreateMatrixAds = useMemo(() => {
+    if (isCurrentUserExpired) {
+      return false
+    }
+
     if (matrixAdsTotalCount == null) {
       return true
     }
 
     return runningMatrixAdsCount < matrixAdsTotalCount
-  }, [matrixAdsTotalCount, runningMatrixAdsCount])
+  }, [isCurrentUserExpired, matrixAdsTotalCount, runningMatrixAdsCount])
 
   const normalAdsQuotaMessage = useMemo(() => {
     if (normalAdsTotalCount == null) {
@@ -1064,6 +1091,10 @@ function App() {
   }
 
   function openCreateAds() {
+    if (isCurrentUserExpired) {
+      return
+    }
+
     clearAdsForm()
     setAdsError('')
     setShowAdsModal(true)
@@ -1617,6 +1648,10 @@ function App() {
   }
 
   function openBulkAdsUpload() {
+    if (isCurrentUserExpired) {
+      return
+    }
+
     setBulkAdsFile(null)
     setBulkAdsSaving(false)
     setBulkAdsError('')
@@ -1625,6 +1660,10 @@ function App() {
   }
 
   function openFolderImport() {
+    if (isCurrentUserExpired) {
+      return
+    }
+
     setFolderImportFiles(null)
     setFolderImportAdsType(defaultShiftLinkLogAdsType)
     setFolderImportDisplayNumber('100')
@@ -1635,6 +1674,10 @@ function App() {
   }
 
   function openBulkDelete() {
+    if (isCurrentUserExpired) {
+      return
+    }
+
     setBulkDeleteMode('campaign')
     setBulkDeleteValue('')
     setBulkDeleteSaving(false)
@@ -1849,12 +1892,15 @@ function App() {
     setNormalAffiliteUrl('')
     setNormalLandingPageUrl('')
     setNormalDynamicProxyInfo('')
-    setNormalDynamicProxyInfoBackup('')
-    setNormalIntervalTime('')
+    setNormalIntervalTime('5')
     setNormalStatus('RUNNING')
   }
 
   function openCreateNormalAds() {
+    if (isCurrentUserExpired) {
+      return
+    }
+
     clearNormalAdsForm()
     setNormalAdsError('')
     setShowNormalAdsModal(true)
@@ -1867,7 +1913,7 @@ function App() {
     setMatrixLandingPageUrl('')
     setMatrixDynamicProxyInfo('')
     setMatrixDynamicProxyInfoBackup('')
-    setMatrixIntervalTime('')
+    setMatrixIntervalTime('5')
     setMatrixStatus('RUNNING')
     setMatrixAffiliateRows([createEmptyAffiliateRow()])
   }
@@ -1895,6 +1941,10 @@ function App() {
   }
 
   function openCreateMatrixAds() {
+    if (isCurrentUserExpired) {
+      return
+    }
+
     clearMatrixAdsForm()
     setMatrixAdsError('')
     setShowMatrixAdsModal(true)
@@ -3356,8 +3406,7 @@ function App() {
     setNormalAffiliteUrl(item.affiliteUrl || '')
     setNormalLandingPageUrl(item.landingPageUrl || '')
     setNormalDynamicProxyInfo(item.dynamicProxyInfo || '')
-    setNormalDynamicProxyInfoBackup(item.dynamicProxyInfoBackup || '')
-    setNormalIntervalTime(item.intervalTime != null ? String(item.intervalTime) : '')
+    setNormalIntervalTime(item.intervalTime != null ? String(item.intervalTime) : '5')
     setNormalStatus(normalizeAdsStatusValue(item.status) || 'RUNNING')
     setShowNormalAdsModal(true)
   }
@@ -3369,15 +3418,49 @@ function App() {
     setNormalAdsMessage('')
 
     try {
+      const campainName = toOptionalTrimmedString(normalCampainName)
+      if (!campainName) {
+        throw new Error('Campaign Name is required.')
+      }
+
+      const campainCountry = toOptionalTrimmedString(normalCampainCountry)
+      if (!campainCountry) {
+        throw new Error('Campaign Country is required.')
+      }
+
+      const platformName = toOptionalTrimmedString(normalPlatformName)
+      if (!platformName) {
+        throw new Error('Platform Name is required.')
+      }
+
+      const affiliteUrl = toOptionalTrimmedString(normalAffiliteUrl)
+      if (!affiliteUrl) {
+        throw new Error('Affiliate URL is required.')
+      }
+
+      const landingPageUrl = toOptionalTrimmedString(normalLandingPageUrl)
+      if (!landingPageUrl) {
+        throw new Error('Landing Page URL is required.')
+      }
+
+      const intervalTimeText = toOptionalTrimmedString(normalIntervalTime)
+      if (!intervalTimeText) {
+        throw new Error('Interval Time(Mins) is required.')
+      }
+
+      const intervalTime = Number(intervalTimeText)
+      if (!Number.isInteger(intervalTime) || intervalTime < 5 || intervalTime > 120) {
+        throw new Error('Interval Time(Mins) must be a whole number between 5 and 120.')
+      }
+
       const payload = {
-        campainName: normalCampainName,
-        campainCountry: normalCampainCountry || undefined,
-        platformName: normalPlatformName || undefined,
-        affiliteUrl: normalAffiliteUrl || undefined,
-        landingPageUrl: normalLandingPageUrl || undefined,
-        dynamicProxyInfo: normalDynamicProxyInfo || undefined,
-        dynamicProxyInfoBackup: normalDynamicProxyInfoBackup || undefined,
-        intervalTime: normalIntervalTime ? Number(normalIntervalTime) : undefined,
+        campainName,
+        campainCountry,
+        platformName,
+        affiliteUrl: ensureHttpsUrl(affiliteUrl, 'Affiliate URL'),
+        landingPageUrl,
+        dynamicProxyInfo: toOptionalTrimmedString(normalDynamicProxyInfo),
+        intervalTime,
         status: normalStatus || undefined,
         adsOwner: getLoggedInAdsOwner(identifier, currentUser) || undefined,
       }
@@ -3444,7 +3527,7 @@ function App() {
     setMatrixLandingPageUrl(item.landingPageUrl || '')
     setMatrixDynamicProxyInfo(item.dynamicProxyInfo || '')
     setMatrixDynamicProxyInfoBackup(item.dynamicProxyInfoBackup || '')
-    setMatrixIntervalTime(item.intervalTime != null ? String(item.intervalTime) : '')
+    setMatrixIntervalTime(item.intervalTime != null ? String(item.intervalTime) : '5')
     setMatrixStatus(normalizeAdsStatusValue(item.status) || 'RUNNING')
     setMatrixAffiliateRows(
       Array.isArray(item.affiliateInfos) && item.affiliateInfos.length > 0
@@ -3461,13 +3544,38 @@ function App() {
     setMatrixAdsMessage('')
 
     try {
+      const campainName = toOptionalTrimmedString(matrixCampainName)
+      if (!campainName) {
+        throw new Error('Campaign Name is required.')
+      }
+
+      const campainCountry = toOptionalTrimmedString(matrixCampainCountry)
+      if (!campainCountry) {
+        throw new Error('Campaign Country is required.')
+      }
+
+      const landingPageUrl = toOptionalTrimmedString(matrixLandingPageUrl)
+      if (!landingPageUrl) {
+        throw new Error('Landing Page URL is required.')
+      }
+
+      const intervalTimeText = toOptionalTrimmedString(matrixIntervalTime)
+      if (!intervalTimeText) {
+        throw new Error('Interval Time(Mins) is required.')
+      }
+
+      const intervalTime = Number(intervalTimeText)
+      if (!Number.isInteger(intervalTime) || intervalTime < 5 || intervalTime > 120) {
+        throw new Error('Interval Time(Mins) must be a whole number between 5 and 120.')
+      }
+
       const payload = {
-        campainName: matrixCampainName,
-        campainCountry: matrixCampainCountry || undefined,
-        landingPageUrl: matrixLandingPageUrl || undefined,
+        campainName,
+        campainCountry,
+        landingPageUrl,
         dynamicProxyInfo: matrixDynamicProxyInfo || undefined,
         dynamicProxyInfoBackup: matrixDynamicProxyInfoBackup || undefined,
-        intervalTime: matrixIntervalTime ? Number(matrixIntervalTime) : undefined,
+        intervalTime,
         status: matrixStatus || undefined,
         adsOwner: getLoggedInAdsOwner(identifier, currentUser) || undefined,
         affiliateInfos: matrixAffiliateRows
@@ -4863,10 +4971,6 @@ function App() {
               ? 'Matrix Ads Tasks'
               : 'Platform'
 
-  const currentUserRecord = users.find(
-    (user) => user.userName === currentUser || user.userEmail === currentUser,
-  ) || currentUserProfile
-
   if (!isAuthenticated) {
     return (
       <LoginForm
@@ -4999,6 +5103,7 @@ function App() {
         platformsError={platformsError}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
+        canManageShiftLinks={!isCurrentUserExpired}
         onCreateAds={openCreateAds}
         onOpenBulkAdsUpload={openBulkAdsUpload}
         onOpenFolderImport={openFolderImport}
@@ -5181,8 +5286,6 @@ function App() {
         onNormalLandingPageUrlChange={setNormalLandingPageUrl}
         normalDynamicProxyInfo={normalDynamicProxyInfo}
         onNormalDynamicProxyInfoChange={setNormalDynamicProxyInfo}
-        normalDynamicProxyInfoBackup={normalDynamicProxyInfoBackup}
-        onNormalDynamicProxyInfoBackupChange={setNormalDynamicProxyInfoBackup}
         normalIntervalTime={normalIntervalTime}
         onNormalIntervalTimeChange={setNormalIntervalTime}
         normalStatus={normalStatus}

@@ -290,7 +290,7 @@ function MatrixAdsManagementSection({
           onClose={onCloseMatrixAdsModal}
         >
           <form className="modal-form" onSubmit={onSaveMatrixAds}>
-            <label htmlFor="matrixCampainName">Campaign Name</label>
+            <label htmlFor="matrixCampainName">Campaign Name *</label>
             <input
               id="matrixCampainName"
               value={matrixCampainName}
@@ -298,11 +298,12 @@ function MatrixAdsManagementSection({
               required
             />
 
-            <label htmlFor="matrixCampainCountry">Campaign Country</label>
+            <label htmlFor="matrixCampainCountry">Campaign Country *</label>
             <select
               id="matrixCampainCountry"
               value={matrixCampainCountry}
               onChange={(event) => onMatrixCampainCountryChange(event.target.value)}
+              required
             >
               <option value="">Select a country</option>
               {countryOptions.map((option) => (
@@ -311,12 +312,15 @@ function MatrixAdsManagementSection({
                 </option>
               ))}
             </select>
+            <p className="field-help">Tips: Target region you want to apply</p>
 
-            <label htmlFor="matrixLandingPageUrl">Landing Page URL</label>
+            <label htmlFor="matrixLandingPageUrl">Landing Page URL *</label>
             <input
               id="matrixLandingPageUrl"
+              type="url"
               value={matrixLandingPageUrl}
               onChange={(event) => onMatrixLandingPageUrlChange(event.target.value)}
+              required
             />
 
             <label htmlFor="matrixDynamicProxyInfo">Dynamic Proxy Info</label>
@@ -330,13 +334,18 @@ function MatrixAdsManagementSection({
               Support Format(<strong>Sockets5</strong>):username:password@host:port
             </p>
 
-            <label htmlFor="matrixIntervalTime">Interval Time</label>
+            <label htmlFor="matrixIntervalTime">Interval Time(Mins) *</label>
             <input
               id="matrixIntervalTime"
               type="number"
               value={matrixIntervalTime}
               onChange={(event) => onMatrixIntervalTimeChange(event.target.value)}
+              min="5"
+              max="120"
+              step="1"
+              required
             />
+            <p className="field-help">Tips: Min:5,Max:120</p>
 
             <label htmlFor="matrixStatus">Status</label>
             <select
@@ -354,9 +363,6 @@ function MatrixAdsManagementSection({
             <div className="matrix-ads-management__affiliate-section">
               <div className="matrix-ads-management__affiliate-header">
                 <label>Affiliate Infos</label>
-                <button type="button" className="secondary" onClick={onAddMatrixAffiliateRow}>
-                  Add Affiliate Row
-                </button>
               </div>
               <MatrixAffiliateEditor
                 onChangeRow={onUpdateMatrixAffiliateRow}
@@ -364,6 +370,9 @@ function MatrixAdsManagementSection({
                 platformOptions={platformOptions}
                 rows={matrixAffiliateRows}
               />
+              <button type="button" className="secondary" onClick={onAddMatrixAffiliateRow}>
+                Add Affiliate Row
+              </button>
             </div>
 
             <div className="form-actions">

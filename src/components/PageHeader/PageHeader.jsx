@@ -33,9 +33,13 @@ function PageHeader({
             <strong>Expire Date:</strong> {currentUserExpireDate || '—'}
           </div>
           <div className="page-header__exchange-rate">
-            <strong>Currency Exchange Rate({currencyExchangeRatePair || 'USD:CNY'}):</strong>{' '}
-            {currencyExchangeRateValue || '—'}, <strong>Update Time:</strong>{' '}
-            {currencyExchangeRateUpdatedTime || '—'}
+            <div>
+              <strong>Current Exchange Rate({currencyExchangeRatePair || 'USD:CNY'}):</strong>{' '}
+              {currencyExchangeRateValue || '—'}
+            </div>
+            <div>
+              <strong>Update Time:</strong> {currencyExchangeRateUpdatedTime || '—'}
+            </div>
           </div>
         </div>
         <div className="page-header__meta-right">

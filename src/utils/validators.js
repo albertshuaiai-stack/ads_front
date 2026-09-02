@@ -6,6 +6,30 @@ export function getUserExpireDate(user) {
   return firstDefinedValue(user, ['expireDate', 'expireAt', 'expiry', 'expire'])
 }
 
+// 判断用户是否已过期；纯日期按当天结束时间处理 / Check whether user access has expired
+export function isUserExpired(user, now = new Date()) {
+  const expireValue = toOptionalTrimmedString(getUserExpireDate(user))
+  if (!expireValue) {
+    return false
+  }
+
+  const dateOnlyMatch = expireValue.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/)
+  let expireDate = null
+
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch
+    expireDate = new Date(Number(year), Number(month) - 1, Number(day), 23, 59, 59, 999)
+  } else {
+    expireDate = new Date(expireValue)
+  }
+
+  if (!(expireDate instanceof Date) || Number.isNaN(expireDate.getTime())) {
+    return false
+  }
+
+  return expireDate.getTime() < now.getTime()
+}
+
 // 校验用户名 / Validate user name
 export function validateUserName(value) {
   const text = toOptionalTrimmedString(value)

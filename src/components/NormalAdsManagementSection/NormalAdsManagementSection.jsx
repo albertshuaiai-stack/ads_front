@@ -73,8 +73,6 @@ function NormalAdsManagementSection({
   onNormalLandingPageUrlChange,
   normalDynamicProxyInfo,
   onNormalDynamicProxyInfoChange,
-  normalDynamicProxyInfoBackup,
-  onNormalDynamicProxyInfoBackupChange,
   normalIntervalTime,
   onNormalIntervalTimeChange,
   normalStatus,
@@ -283,7 +281,7 @@ function NormalAdsManagementSection({
           onClose={onCloseNormalAdsModal}
         >
           <form className="modal-form" onSubmit={onSaveNormalAds}>
-            <label htmlFor="normalCampainName">Campaign Name</label>
+            <label htmlFor="normalCampainName">Campaign Name *</label>
             <input
               id="normalCampainName"
               value={normalCampainName}
@@ -291,11 +289,12 @@ function NormalAdsManagementSection({
               required
             />
 
-            <label htmlFor="normalCampainCountry">Campaign Country</label>
+            <label htmlFor="normalCampainCountry">Campaign Country *</label>
             <select
               id="normalCampainCountry"
               value={normalCampainCountry}
               onChange={(event) => onNormalCampainCountryChange(event.target.value)}
+              required
             >
               <option value="">Select a country</option>
               {countryOptions.map((option) => (
@@ -304,13 +303,15 @@ function NormalAdsManagementSection({
                 </option>
               ))}
             </select>
+            <p className="field-help">Tips: Target region you want to apply</p>
 
-            <label htmlFor="normalPlatformName">Platform Name</label>
+            <label htmlFor="normalPlatformName">Platform Name *</label>
             <select
               id="normalPlatformName"
               value={normalPlatformName}
               onChange={(event) => onNormalPlatformNameChange(event.target.value)}
               disabled={filterPlatformOptions.length === 0}
+              required
             >
               <option value="">Select a platform</option>
               {filterPlatformOptions.map((platformName) => (
@@ -320,18 +321,25 @@ function NormalAdsManagementSection({
               ))}
             </select>
 
-            <label htmlFor="normalAffiliteUrl">Affiliate URL</label>
+            <label htmlFor="normalAffiliteUrl">Affiliate URL *</label>
             <input
               id="normalAffiliteUrl"
+              type="url"
               value={normalAffiliteUrl}
               onChange={(event) => onNormalAffiliteUrlChange(event.target.value)}
+              placeholder="https://..."
+              pattern="https://.*"
+              required
             />
+            <p className="field-help">Tips: Affiliate net offer link</p>
 
-            <label htmlFor="normalLandingPageUrl">Landing Page URL</label>
+            <label htmlFor="normalLandingPageUrl">Landing Page URL *</label>
             <input
               id="normalLandingPageUrl"
+              type="url"
               value={normalLandingPageUrl}
               onChange={(event) => onNormalLandingPageUrlChange(event.target.value)}
+              required
             />
 
             <label htmlFor="normalDynamicProxyInfo">Dynamic Proxy Info</label>
@@ -345,20 +353,18 @@ function NormalAdsManagementSection({
               Support Format(<strong>Sockets5</strong>):username:password@host:port
             </p>
 
-            <label htmlFor="normalDynamicProxyInfoBackup">Dynamic Proxy Info Backup</label>
-            <input
-              id="normalDynamicProxyInfoBackup"
-              value={normalDynamicProxyInfoBackup}
-              onChange={(event) => onNormalDynamicProxyInfoBackupChange(event.target.value)}
-            />
-
-            <label htmlFor="normalIntervalTime">Interval Time</label>
+            <label htmlFor="normalIntervalTime">Interval Time(Mins) *</label>
             <input
               id="normalIntervalTime"
               type="number"
               value={normalIntervalTime}
               onChange={(event) => onNormalIntervalTimeChange(event.target.value)}
+              min="5"
+              max="120"
+              step="1"
+              required
             />
+            <p className="field-help">Tips: Min:5,Max:120</p>
 
             <label htmlFor="normalStatus">Status</label>
             <select

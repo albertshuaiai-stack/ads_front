@@ -20,6 +20,7 @@ function ShiftLinkManagementSection({
   platformsError,
   showOwnerFilter,
   ownerOptions,
+  canManageShiftLinks,
   onCreateAds,
   onOpenBulkAdsUpload,
   onOpenFolderImport,
@@ -90,16 +91,16 @@ function ShiftLinkManagementSection({
           <div className="list-header">
             <h3>Shift Links</h3>
             <div className="toolbar-actions">
-              <button type="button" className="primary" onClick={onCreateAds}>
+              <button type="button" className="primary" onClick={onCreateAds} disabled={!canManageShiftLinks}>
                 Add Shift Link
               </button>
-              <button type="button" className="secondary" onClick={onOpenBulkAdsUpload}>
+              <button type="button" className="secondary" onClick={onOpenBulkAdsUpload} disabled={!canManageShiftLinks}>
                 Bulk Upload Excel
               </button>
-              <button type="button" className="secondary" onClick={onOpenFolderImport}>
+              <button type="button" className="secondary" onClick={onOpenFolderImport} disabled={!canManageShiftLinks}>
                 Import from Folder
               </button>
-              <button type="button" className="secondary" onClick={onOpenBulkDelete}>
+              <button type="button" className="secondary" onClick={onOpenBulkDelete} disabled={!canManageShiftLinks}>
                 Bulk Delete
               </button>
               <button type="button" className="secondary" onClick={onDownloadAdsTemplate}>
