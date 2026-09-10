@@ -45,6 +45,7 @@ function AdsAccountManagementSection({
 }) {
   const shouldShowAgencyPlatformFilter = adsAccountFilters.accountType === 'Agency'
   const shouldShowAgencyPlatformField = adsAccountType === 'Agency'
+  const shouldShowMccField = adsAccountType !== 'MCC'
 
   return (
     <>
@@ -276,6 +277,20 @@ function AdsAccountManagementSection({
               required
             />
 
+            <label htmlFor="adsAccountManagementAccountType">Account Type</label>
+            <select
+              id="adsAccountManagementAccountType"
+              value={adsAccountType}
+              onChange={(event) => onAdsAccountTypeChange(event.target.value)}
+            >
+              <option value="">Select account type</option>
+              {adsAccountTypeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+
             <label htmlFor="adsAccountManagementEmailAddress">Email Address</label>
             <select
               id="adsAccountManagementEmailAddress"
@@ -290,33 +305,23 @@ function AdsAccountManagementSection({
               ))}
             </select>
 
-            <label htmlFor="adsAccountManagementMccAccount">MCC Account</label>
-            <select
-              id="adsAccountManagementMccAccount"
-              value={adsAccountMccAccount}
-              onChange={(event) => onAdsAccountMccAccountChange(event.target.value)}
-            >
-              <option value="">Select MCC Account</option>
-              {mccAccountOptions && mccAccountOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-
-            <label htmlFor="adsAccountManagementAccountType">Account Type</label>
-            <select
-              id="adsAccountManagementAccountType"
-              value={adsAccountType}
-              onChange={(event) => onAdsAccountTypeChange(event.target.value)}
-            >
-              <option value="">Select account type</option>
-              {adsAccountTypeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {shouldShowMccField ? (
+              <>
+                <label htmlFor="adsAccountManagementMccAccount">MCC Account</label>
+                <select
+                  id="adsAccountManagementMccAccount"
+                  value={adsAccountMccAccount}
+                  onChange={(event) => onAdsAccountMccAccountChange(event.target.value)}
+                >
+                  <option value="">Select MCC Account</option>
+                  {mccAccountOptions && mccAccountOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : null}
 
             {shouldShowAgencyPlatformField ? (
               <>

@@ -1806,6 +1806,9 @@ function App() {
     if (value !== 'Agency') {
       setAdsAccountAgencyPlatform('')
     }
+    if (value === 'MCC') {
+      setAdsAccountMccAccount('')
+    }
   }
 
   function handleAdsAccountFiltersChange(nextFilters) {
