@@ -25,6 +25,7 @@ export function useAdsAccounts(token) {
   const [adsAccountType, setAdsAccountType] = useState('')
   const [adsAccountAgencyPlatform, setAdsAccountAgencyPlatform] = useState('')
   const [adsAccountMccAccount, setAdsAccountMccAccount] = useState('')
+  const [adsAccountEmailAddress, setAdsAccountEmailAddress] = useState('')
   const [adsAccountStatus, setAdsAccountStatus] = useState('')
   const [savingAdsAccount, setSavingAdsAccount] = useState(false)
   const [showAdsAccountModal, setShowAdsAccountModal] = useState(false)
@@ -86,6 +87,7 @@ export function useAdsAccounts(token) {
     adsAccountType, setAdsAccountType,
     adsAccountAgencyPlatform, setAdsAccountAgencyPlatform,
     adsAccountMccAccount, setAdsAccountMccAccount,
+    adsAccountEmailAddress, setAdsAccountEmailAddress,
     adsAccountStatus, setAdsAccountStatus,
     savingAdsAccount, setSavingAdsAccount,
     showAdsAccountModal, setShowAdsAccountModal,

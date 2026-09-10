@@ -524,6 +524,7 @@ function App() {
     adsAccountType, setAdsAccountType,
     adsAccountAgencyPlatform, setAdsAccountAgencyPlatform,
     adsAccountMccAccount, setAdsAccountMccAccount,
+    adsAccountEmailAddress, setAdsAccountEmailAddress,
     adsAccountStatus, setAdsAccountStatus,
     savingAdsAccount, setSavingAdsAccount,
     showAdsAccountModal, setShowAdsAccountModal,
@@ -812,6 +813,24 @@ function App() {
   const adsAccountAgencyPlatformOptions = ADS_ACCOUNT_AGENCY_PLATFORM_OPTIONS
 
   const adsAccountStatusOptions = ADS_ACCOUNT_STATUS_OPTIONS
+
+  const adsAccountMccOptions = useMemo(() => {
+    return adsAccounts
+      .filter((item) => (item?.accountType || '').toUpperCase() === 'MCC')
+      .map((item) => ({ value: item.adsAccount || item.id || '', label: item.adsAccount || item.id || '' }))
+  }, [adsAccounts])
+
+  const emailOptions = useMemo(() => {
+    const ownerPhone = toOptionalTrimmedString(adsAccountFilters.ownerPhoneNumber)
+    const normalizedOwner = ownerPhone || ''
+    return emails
+      .filter((e) => {
+        if (!normalizedOwner) return true
+        const ownerField = e?.ownerPhoneNumber || e?.userPhoneNumber || e?.owner || ''
+        return ownerField === normalizedOwner
+      })
+      .map((e) => ({ value: e.emailAddress || '', label: e.emailAddress || '' }))
+  }, [emails, adsAccountFilters.ownerPhoneNumber])
 
   const affiliateAutoTaskNetworkOptions = AFFILIATE_AUTO_TASK_NETWORK_OPTIONS
 
@@ -1741,6 +1760,7 @@ function App() {
     setAdsAccountType('')
     setAdsAccountAgencyPlatform('')
     setAdsAccountMccAccount('')
+    setAdsAccountEmailAddress('')
     setAdsAccountStatus('')
   }
 
@@ -1789,7 +1809,7 @@ function App() {
   }
 
   function handleAdsAccountFiltersChange(nextFilters) {
-    if (nextFilters.accountType === 'Self') {
+    if (nextFilters.accountType === 'Normal') {
       setAdsAccountFilters({
         ...nextFilters,
         agencyPlatform: '',
@@ -2452,6 +2472,7 @@ function App() {
 
     if (activeMenu === 'ads-account-management') {
       void loadAdsAccounts(adsAccountQueryApplied ? adsAccountFiltersRef.current : {})
+      void loadToolEmails(emailQueryApplied ? emailFiltersRef.current : {}, emailPaginationRef.current)
       return
     }
 
@@ -4353,6 +4374,7 @@ function App() {
     setAdsAccountType(item.accountType || '')
     setAdsAccountAgencyPlatform(item.agencyPlatform || '')
     setAdsAccountMccAccount(item.mccAccount || '')
+    setAdsAccountEmailAddress(item.emailAddress || '')
     setAdsAccountStatus(item.status || '')
     setShowAdsAccountModal(true)
   }
@@ -4444,6 +4466,7 @@ function App() {
         agencyPlatform:
           adsAccountType === 'Agency' ? toOptionalTrimmedString(adsAccountAgencyPlatform) : undefined,
         mccAccount: toOptionalTrimmedString(adsAccountMccAccount),
+        emailAddress: toOptionalTrimmedString(adsAccountEmailAddress),
         status: toOptionalTrimmedString(adsAccountStatus),
       }
 
@@ -5477,6 +5500,10 @@ function App() {
         onAdsAccountAgencyPlatformChange={setAdsAccountAgencyPlatform}
         adsAccountMccAccount={adsAccountMccAccount}
         onAdsAccountMccAccountChange={setAdsAccountMccAccount}
+        adsAccountEmailAddress={adsAccountEmailAddress}
+        onAdsAccountEmailAddressChange={setAdsAccountEmailAddress}
+        emailOptions={emailOptions}
+        mccAccountOptions={adsAccountMccOptions}
         adsAccountStatus={adsAccountStatus}
         onAdsAccountStatusChange={setAdsAccountStatus}
         onSaveAdsAccount={handleSaveAdsAccount}

@@ -38,7 +38,8 @@ export const ACCOUNT_CURRENCY_OPTIONS = [
 ]
 
 export const ADS_ACCOUNT_TYPE_OPTIONS = [
-  { value: 'Self', label: 'Self' },
+  { value: 'MCC', label: 'MCC' },
+  { value: 'Normal', label: 'Normal' },
   { value: 'Agency', label: 'Agency' },
 ]
 

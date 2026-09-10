@@ -24,6 +24,8 @@ function AdsAccountManagementSection({
   onAdsAccountAgencyPlatformChange,
   adsAccountMccAccount,
   onAdsAccountMccAccountChange,
+  adsAccountEmailAddress,
+  onAdsAccountEmailAddressChange,
   adsAccountStatus,
   onAdsAccountStatusChange,
   onSaveAdsAccount,
@@ -34,6 +36,8 @@ function AdsAccountManagementSection({
   adsAccountTypeOptions,
   adsAccountAgencyPlatformOptions,
   adsAccountStatusOptions,
+  emailOptions,
+  mccAccountOptions,
   formatDateDisplayValue,
   pagination,
   onPageChange,
@@ -146,7 +150,7 @@ function AdsAccountManagementSection({
 
             <div className="filter-item">
               <label htmlFor="adsAccountManagementMccAccountFilter">MCC Account</label>
-              <input
+              <select
                 id="adsAccountManagementMccAccountFilter"
                 value={adsAccountFilters.mccAccount}
                 onChange={(event) =>
@@ -155,7 +159,14 @@ function AdsAccountManagementSection({
                     mccAccount: event.target.value,
                   })
                 }
-              />
+              >
+                <option value="">All MCC Accounts</option>
+                {mccAccountOptions && mccAccountOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="filter-item">
@@ -265,12 +276,33 @@ function AdsAccountManagementSection({
               required
             />
 
+            <label htmlFor="adsAccountManagementEmailAddress">Email Address</label>
+            <select
+              id="adsAccountManagementEmailAddress"
+              value={adsAccountEmailAddress}
+              onChange={(event) => onAdsAccountEmailAddressChange(event.target.value)}
+            >
+              <option value="">Select email address</option>
+              {emailOptions && emailOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+
             <label htmlFor="adsAccountManagementMccAccount">MCC Account</label>
-            <input
+            <select
               id="adsAccountManagementMccAccount"
               value={adsAccountMccAccount}
               onChange={(event) => onAdsAccountMccAccountChange(event.target.value)}
-            />
+            >
+              <option value="">Select MCC Account</option>
+              {mccAccountOptions && mccAccountOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
 
             <label htmlFor="adsAccountManagementAccountType">Account Type</label>
             <select
