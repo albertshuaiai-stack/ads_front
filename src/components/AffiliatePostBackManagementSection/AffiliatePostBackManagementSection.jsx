@@ -72,22 +72,6 @@ function AffiliatePostBackManagementSection({
           </div>
 
           <div className="filter-item">
-            <label htmlFor="affiliatePostBackOrderNoFilter">Order No</label>
-            <input
-              id="affiliatePostBackOrderNoFilter"
-              type="text"
-              value={affiliatePostBackFilters.orderNo}
-              onChange={(event) =>
-                onAffiliatePostBackFiltersChange({
-                  ...affiliatePostBackFilters,
-                  orderNo: event.target.value,
-                })
-              }
-              placeholder="Search order no"
-            />
-          </div>
-
-          <div className="filter-item">
             <label htmlFor="affiliatePostBackStatusFilter">Status</label>
             <select
               id="affiliatePostBackStatusFilter"
@@ -106,6 +90,22 @@ function AffiliatePostBackManagementSection({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="filter-item">
+            <label htmlFor="affiliatePostBackOrderNoFilter">Order No</label>
+            <input
+              id="affiliatePostBackOrderNoFilter"
+              type="text"
+              value={affiliatePostBackFilters.orderNo}
+              onChange={(event) =>
+                onAffiliatePostBackFiltersChange({
+                  ...affiliatePostBackFilters,
+                  orderNo: event.target.value,
+                })
+              }
+              placeholder="Search order no"
+            />
           </div>
 
           <div className="form-actions">
@@ -138,11 +138,11 @@ function AffiliatePostBackManagementSection({
                   <th>Advertiser Shop ID</th>
                   <th>Advertiser Shop Name</th>
                   <th>Sign ID</th>
+                  <th>Status</th>
                   <th>Order No</th>
                   <th>Order Time</th>
                   <th>Order Amount</th>
                   <th>User Commission Amount</th>
-                  <th>Status</th>
                   <th>Sub ID</th>
                   <th>Sub ID2</th>
                   <th>Click Time</th>
@@ -156,11 +156,11 @@ function AffiliatePostBackManagementSection({
                     <td>{formatTableValue(item.advertiserShopId)}</td>
                     <td>{formatTableValue(item.advertiserShopName)}</td>
                     <td>{formatTableValue(item.signId)}</td>
+                    <td>{formatTableValue(item.status)}</td>
                     <td>{formatTableValue(item.orderNo)}</td>
                     <td>{formatDateTimeDisplayValueWithDashedDate(item.orderTime)}</td>
                     <td>{formatTableValue(item.orderAmount)}</td>
                     <td>{formatTableValue(item.userCommissionAmount)}</td>
-                    <td>{formatTableValue(item.status)}</td>
                     <td>{formatTableValue(item.subId)}</td>
                     <td>{formatTableValue(item.subId2)}</td>
                     <td>{formatDateTimeDisplayValueWithDashedDate(item.clickTime)}</td>

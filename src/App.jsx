@@ -334,6 +334,8 @@ function App() {
     userAgentsLoading,
     userAgentsError, setUserAgentsError,
     userAgentsMessage, setUserAgentsMessage,
+    userAgentsPagination, setUserAgentsPagination,
+    userAgentsPaginationRef,
     editingUserAgentId, setEditingUserAgentId,
     userAgentDevice, setUserAgentDevice,
     userAgentValue, setUserAgentValue,
@@ -2995,6 +2997,14 @@ function App() {
     }
   }
 
+  function handleUserAgentPageChange(page) {
+    void loadUserAgents({}, { page, size: userAgentsPaginationRef.current.size })
+  }
+
+  function handleUserAgentPageSizeChange(size) {
+    void loadUserAgents({}, { page: 0, size })
+  }
+
   function handleLogout() {
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     localStorage.removeItem(USER_STORAGE_KEY)
@@ -5075,6 +5085,9 @@ function App() {
         onSaveUserAgent={handleSaveUserAgent}
         savingUserAgent={savingUserAgent}
         onCloseUserAgentModal={() => setShowUserAgentModal(false)}
+        pagination={userAgentsPagination}
+        onPageChange={handleUserAgentPageChange}
+        onPageSizeChange={handleUserAgentPageSizeChange}
       />
     )
   } else if (activeMenu === 'house-keeping') {

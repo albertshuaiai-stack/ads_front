@@ -1,6 +1,7 @@
 // User Agent module state and data loading
-import { useCallback, useState } from 'react'
-import { extractItems, requestApi } from '../lib/adsPortal'
+import { useCallback, useState, useRef, useEffect } from 'react'
+import { buildQueryString, extractItems, requestApi } from '../lib/adsPortal'
+import { createInitialPagination, buildPaginationState } from '../utils/pagination'
 
 export function useUserAgents(token) {
   const [userAgents, setUserAgents] = useState([])
@@ -13,27 +14,43 @@ export function useUserAgents(token) {
   const [savingUserAgent, setSavingUserAgent] = useState(false)
   const [showUserAgentModal, setShowUserAgentModal] = useState(false)
 
-  const loadUserAgents = useCallback(async () => {
-    setUserAgentsLoading(true)
-    setUserAgentsError('')
+  const [userAgentsPagination, setUserAgentsPagination] = useState(() => createInitialPagination())
+  const userAgentsPaginationRef = useRef(userAgentsPagination)
 
-    try {
-      const response = await requestApi('/refer-user-agents', { token })
-      setUserAgents(extractItems(response))
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setUserAgentsError(message)
-      setUserAgents([])
-    } finally {
-      setUserAgentsLoading(false)
-    }
-  }, [token])
+  useEffect(() => {
+    userAgentsPaginationRef.current = userAgentsPagination
+  }, [userAgentsPagination])
+
+  const loadUserAgents = useCallback(
+    async (filters = {}, pageConfig = userAgentsPaginationRef.current) => {
+      setUserAgentsLoading(true)
+      setUserAgentsError('')
+
+      try {
+        const response = await requestApi(
+          `/refer-user-agents${buildQueryString({ page: pageConfig.page, size: pageConfig.size })}`,
+          { token },
+        )
+        setUserAgents(extractItems(response))
+        setUserAgentsPagination(buildPaginationState(response, pageConfig))
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        setUserAgentsError(message)
+        setUserAgents([])
+      } finally {
+        setUserAgentsLoading(false)
+      }
+    },
+    [token],
+  )
 
   return {
     userAgents, setUserAgents,
     userAgentsLoading, setUserAgentsLoading,
     userAgentsError, setUserAgentsError,
     userAgentsMessage, setUserAgentsMessage,
+    userAgentsPagination, setUserAgentsPagination,
+    userAgentsPaginationRef,
     editingUserAgentId, setEditingUserAgentId,
     userAgentDevice, setUserAgentDevice,
     userAgentValue, setUserAgentValue,

@@ -1,4 +1,5 @@
 import InlineFormCard from '../InlineFormCard/InlineFormCard'
+import PaginationControls from '../PaginationControls/PaginationControls'
 import './UserAgentManagementSection.css'
 
 function UserAgentManagementSection({
@@ -18,6 +19,9 @@ function UserAgentManagementSection({
   onSaveUserAgent,
   savingUserAgent,
   onCloseUserAgentModal,
+  pagination,
+  onPageChange,
+  onPageSizeChange,
 }) {
   return (
     <>
@@ -79,6 +83,13 @@ function UserAgentManagementSection({
                   ))}
                 </tbody>
               </table>
+
+              <PaginationControls
+                pagination={pagination}
+                isLoading={userAgentsLoading}
+                onPageChange={onPageChange}
+                onPageSizeChange={onPageSizeChange}
+              />
             </div>
           )}
         </div>
