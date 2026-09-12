@@ -293,19 +293,23 @@ function AdsAccountManagementSection({
               ))}
             </select>
 
-            <label htmlFor="adsAccountManagementEmailAddress">Email Address</label>
-            <select
-              id="adsAccountManagementEmailAddress"
-              value={adsAccountEmailAddress}
-              onChange={(event) => onAdsAccountEmailAddressChange(event.target.value)}
-            >
-              <option value="">Select email address</option>
-              {emailOptions && emailOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {adsAccountType !== 'Agency' ? (
+              <>
+                <label htmlFor="adsAccountManagementEmailAddress">Email Address</label>
+                <select
+                  id="adsAccountManagementEmailAddress"
+                  value={adsAccountEmailAddress}
+                  onChange={(event) => onAdsAccountEmailAddressChange(event.target.value)}
+                >
+                  <option value="">Select email address</option>
+                  {emailOptions && emailOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : null}
 
             {shouldShowMccField ? (
               <>

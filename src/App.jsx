@@ -530,6 +530,10 @@ function App() {
     adsAccountStatus, setAdsAccountStatus,
     savingAdsAccount, setSavingAdsAccount,
     showAdsAccountModal, setShowAdsAccountModal,
+    // MCC options loaded from API
+    adsAccountMccOptions: adsAccountMccOptionsFromApi,
+    adsAccountMccLoading,
+    adsAccountMccError,
     loadAdsAccounts,
   } = useAdsAccounts(token)
 
@@ -816,11 +820,7 @@ function App() {
 
   const adsAccountStatusOptions = ADS_ACCOUNT_STATUS_OPTIONS
 
-  const adsAccountMccOptions = useMemo(() => {
-    return adsAccounts
-      .filter((item) => (item?.accountType || '').toUpperCase() === 'MCC')
-      .map((item) => ({ value: item.adsAccount || item.id || '', label: item.adsAccount || item.id || '' }))
-  }, [adsAccounts])
+  const adsAccountMccOptions = useMemo(() => adsAccountMccOptionsFromApi || [], [adsAccountMccOptionsFromApi])
 
   const emailOptions = useMemo(() => {
     const ownerPhone = toOptionalTrimmedString(adsAccountFilters.ownerPhoneNumber)

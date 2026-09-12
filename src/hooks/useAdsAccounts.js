@@ -38,6 +38,38 @@ export function useAdsAccounts(token) {
     adsAccountPaginationRef.current = adsAccountPagination
   }, [adsAccountPagination])
 
+  // Load MCC accounts for dropdowns (from /ads-accounts/mcc)
+  const [adsAccountMccOptions, setAdsAccountMccOptions] = useState([])
+  const [adsAccountMccLoading, setAdsAccountMccLoading] = useState(false)
+  const [adsAccountMccError, setAdsAccountMccError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadMcc() {
+      setAdsAccountMccLoading(true)
+      setAdsAccountMccError('')
+      try {
+        const resp = await requestApi('/ads-accounts/mcc', { token })
+        const items = extractItems(resp)
+        if (cancelled) return
+        setAdsAccountMccOptions(
+          (items || []).map((item) => ({
+            value: item.adsAccount || item.id || '',
+            label: item.adsAccount || item.id || '',
+          })),
+        )
+      } catch (err) {
+        if (cancelled) return
+        setAdsAccountMccError(err instanceof Error ? err.message : 'Unknown error')
+      } finally {
+        if (!cancelled) setAdsAccountMccLoading(false)
+      }
+    }
+    loadMcc()
+    return () => { cancelled = true }
+  }, [token])
+
+
   const loadAdsAccounts = useCallback(
     async (
       filters = adsAccountFiltersRef.current,
@@ -91,6 +123,7 @@ export function useAdsAccounts(token) {
     adsAccountStatus, setAdsAccountStatus,
     savingAdsAccount, setSavingAdsAccount,
     showAdsAccountModal, setShowAdsAccountModal,
+    adsAccountMccOptions, adsAccountMccLoading, adsAccountMccError,
     loadAdsAccounts,
   }
 }
