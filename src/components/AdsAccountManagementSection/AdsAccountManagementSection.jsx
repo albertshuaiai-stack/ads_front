@@ -211,6 +211,7 @@ function AdsAccountManagementSection({
                   <tr>
                     <th>ID</th>
                     <th>Ads Account</th>
+                    <th>Email Address</th>
                     <th>MCC Account</th>
                     <th>Agency Platform</th>
                     <th>Account Type</th>
@@ -225,6 +226,7 @@ function AdsAccountManagementSection({
                     <tr key={item.id}>
                       <td>{item.id}</td>
                       <td>{formatTableValue(item.adsAccount)}</td>
+                      <td>{formatTableValue(item.emailAddress)}</td>
                       <td>{formatTableValue(item.mccAccount)}</td>
                       <td>{formatTableValue(item.agencyPlatform)}</td>
                       <td>{formatTableValue(item.accountType)}</td>
