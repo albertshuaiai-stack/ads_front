@@ -1983,7 +1983,10 @@ function App() {
         `/tool-emails/my-list`,
         { token },
       )
-      setAccountEmailOptionsSource(extractItems(response))
+      const items = extractItems(response)
+      setAccountEmailOptionsSource(items)
+      // Also populate the general emails state so existing emailOptions (which reads from `emails`) is populated.
+      setEmails(items)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
       if (activeMenu === 'income-management') {
