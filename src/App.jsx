@@ -1980,10 +1980,7 @@ function App() {
 
     try {
       const response = await requestApi(
-        `/tool-emails/my-list${buildQueryString({
-          page: 0,
-          size: 1000,
-        })}`,
+        `/tool-emails/my-list`,
         { token },
       )
       setAccountEmailOptionsSource(extractItems(response))
