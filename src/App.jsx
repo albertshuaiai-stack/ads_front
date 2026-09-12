@@ -1980,7 +1980,7 @@ function App() {
 
     try {
       const response = await requestApi(
-        `/tool-emails${buildQueryString({
+        `/tool-emails/my-list${buildQueryString({
           page: 0,
           size: 1000,
         })}`,
@@ -2477,7 +2477,7 @@ function App() {
 
     if (activeMenu === 'ads-account-management') {
       void loadAdsAccounts(adsAccountQueryApplied ? adsAccountFiltersRef.current : {})
-      void loadToolEmails(emailQueryApplied ? emailFiltersRef.current : {}, emailPaginationRef.current)
+      void loadAccountEmailOptions()
       return
     }
 
