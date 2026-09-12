@@ -825,13 +825,22 @@ function App() {
   const emailOptions = useMemo(() => {
     const ownerPhone = toOptionalTrimmedString(adsAccountFilters.ownerPhoneNumber)
     const normalizedOwner = ownerPhone || ''
-    return emails
+    return (emails || [])
       .filter((e) => {
         if (!normalizedOwner) return true
-        const ownerField = e?.ownerPhoneNumber || e?.userPhoneNumber || e?.owner || ''
+        const ownerField =
+          (typeof e === 'object' && (e.ownerPhoneNumber || e.userPhoneNumber || e.owner)) || ''
         return ownerField === normalizedOwner
       })
-      .map((e) => ({ value: e.emailAddress || '', label: e.emailAddress || '' }))
+      .map((e) => {
+        // support different response shapes: string ("a@b.com") or object with various email fields
+        const rawEmail =
+          typeof e === 'string'
+            ? e
+            : firstDefinedValue(e, ['emailAddress', 'email', 'email_address', 'address'])
+        const email = toOptionalTrimmedString(rawEmail) || ''
+        return { value: email, label: email }
+      })
   }, [emails, adsAccountFilters.ownerPhoneNumber])
 
   const affiliateAutoTaskNetworkOptions = AFFILIATE_AUTO_TASK_NETWORK_OPTIONS
@@ -4384,11 +4393,24 @@ function App() {
   function startEditAdsAccount(item) {
     setEditingAdsAccountId(item.id)
     setAdsAccountValue(item.adsAccount || '')
-    setAdsAccountType(item.accountType || '')
-    setAdsAccountAgencyPlatform(item.agencyPlatform || '')
-    setAdsAccountMccAccount(item.mccAccount || '')
-    setAdsAccountEmailAddress(item.emailAddress || '')
-    setAdsAccountStatus(item.status || '')
+
+    // Resolve account type robustly (backend may use different casing or field names)
+    const rawAccountType = firstDefinedValue(item, ['accountType', 'account_type', 'type']) || ''
+    const matchedType = (adsAccountTypeOptions || []).find(
+      (opt) => String(opt.value || '').toLowerCase() === String(rawAccountType || '').toLowerCase(),
+    )
+    setAdsAccountType(matchedType ? matchedType.value : '')
+
+    setAdsAccountAgencyPlatform(item.agencyPlatform || item.agency_platform || '')
+    setAdsAccountMccAccount(item.mccAccount || item.mcc_account || '')
+
+    // Resolve email address from different shapes (object or plain string)
+    const rawEmail =
+      typeof item === 'string'
+        ? item
+        : firstDefinedValue(item, ['emailAddress', 'email', 'email_address', 'ownerEmail'])
+    setAdsAccountEmailAddress(rawEmail || '')
+    setAdsAccountStatus(item.status || '')
     setShowAdsAccountModal(true)
   }
 
