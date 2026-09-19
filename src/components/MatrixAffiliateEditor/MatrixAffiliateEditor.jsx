@@ -1,6 +1,6 @@
 import './MatrixAffiliateEditor.css'
 
-function MatrixAffiliateEditor({ rows, platformOptions, onChangeRow, onRemoveRow }) {
+function MatrixAffiliateEditor({ rows, platformOptions, userNameOptions = [], userNameOptionsLoading = false, onChangeRow, onRemoveRow }) {
   return (
     <div className="affiliate-editor">
       {rows.map((row, index) => (
@@ -19,6 +19,24 @@ function MatrixAffiliateEditor({ rows, platformOptions, onChangeRow, onRemoveRow
               ))}
             </select>
           </label>
+
+          <label className="form-field">
+            <span>User Name</span>
+            <select
+              value={row.userName || ''}
+              onChange={(event) => onChangeRow(index, 'userName', event.target.value)}
+              disabled={userNameOptionsLoading}
+            >
+              <option value="">Select user</option>
+              {userNameOptions.map((opt) => (
+                <option key={opt.userName ?? opt.value ?? opt} value={opt.userName ?? opt.value ?? opt}>
+                  {opt.userName ?? opt.emailAddress ?? opt.label ?? opt.value ?? opt}
+                </option>
+              ))}
+            </select>
+            {userNameOptionsLoading ? <p className="field-help">Loading user names...</p> : null}
+          </label>
+
           <label className="form-field">
             <span>Affiliate URL</span>
             <input
@@ -28,13 +46,7 @@ function MatrixAffiliateEditor({ rows, platformOptions, onChangeRow, onRemoveRow
               type="url"
             />
           </label>
-          <label className="form-field">
-            <span>Remarks</span>
-            <input
-              value={row.remarks}
-              onChange={(event) => onChangeRow(index, 'remarks', event.target.value)}
-            />
-          </label>
+
           <div className="affiliate-row__actions">
             <button type="button" onClick={() => onRemoveRow(index)} disabled={rows.length === 1}>
               Remove

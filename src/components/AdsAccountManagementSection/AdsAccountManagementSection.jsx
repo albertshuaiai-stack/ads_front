@@ -18,6 +18,8 @@ function AdsAccountManagementSection({
   editingAdsAccountId,
   adsAccountValue,
   onAdsAccountValueChange,
+  adsAccountBrand,
+  onAdsAccountBrandChange,
   adsAccountType,
   onAdsAccountTypeChange,
   adsAccountAgencyPlatform,
@@ -34,6 +36,9 @@ function AdsAccountManagementSection({
   showOwnerFilter,
   ownerOptions,
   adsAccountTypeOptions,
+  adsAccountBrandOptions,
+  adsAccountBrandOptionsLoading,
+  adsAccountBrandOptionsError,
   adsAccountAgencyPlatformOptions,
   adsAccountStatusOptions,
   emailOptions,
@@ -209,6 +214,7 @@ function AdsAccountManagementSection({
               <table>
                 <thead>
                   <tr>
+                    <th>Brand</th>
                     <th>ID</th>
                     <th>Ads Account</th>
                     <th>Email Address</th>
@@ -224,6 +230,7 @@ function AdsAccountManagementSection({
                 <tbody>
                   {adsAccounts.map((item) => (
                     <tr key={item.id}>
+                      <td>{formatTableValue(item.brand)}</td>
                       <td>{item.id}</td>
                       <td>{formatTableValue(item.adsAccount)}</td>
                       <td>{formatTableValue(item.emailAddress)}</td>
@@ -278,6 +285,26 @@ function AdsAccountManagementSection({
               onChange={(event) => onAdsAccountValueChange(event.target.value)}
               required
             />
+
+            <label htmlFor="adsAccountManagementBrand">Brand</label>
+            <select
+              id="adsAccountManagementBrand"
+              value={adsAccountBrand}
+              onChange={(event) => onAdsAccountBrandChange(event.target.value)}
+              disabled={adsAccountBrandOptionsLoading}
+            >
+              <option value="">Select brand</option>
+              {adsAccountBrandOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {adsAccountBrandOptionsError ? (
+              <p className="field-help" role="alert">
+                {adsAccountBrandOptionsError}
+              </p>
+            ) : null}
 
             <label htmlFor="adsAccountManagementAccountType">Account Type</label>
             <select

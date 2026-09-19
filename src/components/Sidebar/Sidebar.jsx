@@ -45,6 +45,14 @@ function getIconFor(id) {
           <path d="M4 7l8 6 8-6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
+    case 'brand-review-management':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <path d="M6 4h9l3 3v13H6z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+          <path d="M9 11h6M9 15h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M15 4v3h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
     case 'cash-bach-account':
       return (
         <svg {...common} aria-hidden focusable="false">

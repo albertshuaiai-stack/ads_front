@@ -11,12 +11,14 @@ import IpProxyManagementSection from './components/IpProxyManagementSection/IpPr
 import HouseKeepingSection from './components/HouseKeepingSection/HouseKeepingSection'
 import LoginForm from './components/LoginForm/LoginForm'
 import CashBachAccountManagementSection from './components/CashBachAccountManagementSection/CashBachAccountManagementSection'
+import BrandReviewManagementSection from './components/BrandReviewManagementSection/BrandReviewManagementSection'
 import CbAccountReportSection from './components/CbAccountReportSection/CbAccountReportSection'
 import ChangePasswordModal from './components/ChangePasswordModal/ChangePasswordModal'
 import EmailManagementSection from './components/EmailManagementSection/EmailManagementSection'
 import GoogleAdsScriptPanel from './components/GoogleAdsScriptPanel/GoogleAdsScriptPanel'
 import IncomeManagementSection from './components/IncomeManagementSection/IncomeManagementSection'
 import IncomeExpenditureReportSection from './components/IncomeExpenditureReportSection/IncomeExpenditureReportSection'
+import AdsAuditReportSection from './components/AdsAuditReportSection.jsx'
 import MatrixAdsManagementSection from './components/MatrixAdsManagementSection/MatrixAdsManagementSection'
 import NormalAdsManagementSection from './components/NormalAdsManagementSection/NormalAdsManagementSection'
 import OutcomeManagementSection from './components/OutcomeManagementSection/OutcomeManagementSection'
@@ -129,6 +131,7 @@ import { isOwnedByCurrentUser } from './utils/ownership'
 import { useUsers } from './hooks/useUsers'
 import { useUserAgents } from './hooks/useUserAgents'
 import { useRoles } from './hooks/useRoles'
+import { useBrandReviews } from './hooks/useBrandReviews'
 import { usePlatforms } from './hooks/usePlatforms'
 import { useNormalAds } from './hooks/useNormalAds'
 import { useMatrixAds } from './hooks/useMatrixAds'
@@ -330,6 +333,25 @@ function App() {
     loadRoles,
   } = useRoles(token)
   const {
+    brandReviews, setBrandReviews,
+    brandReviewsLoading,
+    brandReviewsError, setBrandReviewsError,
+    brandReviewsMessage, setBrandReviewsMessage,
+    brandReviewPagination, setBrandReviewPagination,
+    brandReviewPaginationRef,
+    brandReviewFilters, setBrandReviewFilters,
+    brandReviewQueryApplied, setBrandReviewQueryApplied,
+    brandReviewFiltersRef,
+    editingBrandReviewId, setEditingBrandReviewId,
+    brandReviewBrand, setBrandReviewBrand,
+    brandReviewScore, setBrandReviewScore,
+    brandReviewRemarks, setBrandReviewRemarks,
+    brandReviewAdsOwner, setBrandReviewAdsOwner,
+    savingBrandReview, setSavingBrandReview,
+    showBrandReviewModal, setShowBrandReviewModal,
+    loadBrandReviews,
+  } = useBrandReviews(token)
+  const {
     userAgents, setUserAgents,
     userAgentsLoading,
     userAgentsError, setUserAgentsError,
@@ -523,6 +545,7 @@ function App() {
     adsAccountFiltersRef,
     editingAdsAccountId, setEditingAdsAccountId,
     adsAccountValue, setAdsAccountValue,
+    adsAccountBrand, setAdsAccountBrand,
     adsAccountType, setAdsAccountType,
     adsAccountAgencyPlatform, setAdsAccountAgencyPlatform,
     adsAccountMccAccount, setAdsAccountMccAccount,
@@ -530,6 +553,12 @@ function App() {
     adsAccountStatus, setAdsAccountStatus,
     savingAdsAccount, setSavingAdsAccount,
     showAdsAccountModal, setShowAdsAccountModal,
+    adsAccountBrandOptions,
+    setAdsAccountBrandOptions,
+    adsAccountBrandOptionsLoading,
+    setAdsAccountBrandOptionsLoading,
+    adsAccountBrandOptionsError,
+    setAdsAccountBrandOptionsError,
     // MCC options loaded from API
     adsAccountMccOptions: adsAccountMccOptionsFromApi,
     adsAccountMccLoading,
@@ -743,6 +772,8 @@ function App() {
     outcomeCurrency, setOutcomeCurrency,
     outcomePayDate, setOutcomePayDate,
     outcomeRemarks, setOutcomeRemarks,
+    outcomeAdsAccount, setOutcomeAdsAccount,
+    adsAccountOptions, adsAccountOptionsLoading, adsAccountOptionsError, loadAdsAccountOptions,
     savingOutcome, setSavingOutcome,
     showOutcomeModal, setShowOutcomeModal,
     loadToolOutcomes,
@@ -1768,6 +1799,7 @@ function App() {
   function clearAdsAccountForm() {
     setEditingAdsAccountId(null)
     setAdsAccountValue('')
+    setAdsAccountBrand('')
     setAdsAccountType('')
     setAdsAccountAgencyPlatform('')
     setAdsAccountMccAccount('')
@@ -1872,6 +1904,7 @@ function App() {
     setOutcomeCurrency('')
     setOutcomePayDate('')
     setOutcomeRemarks('')
+    setOutcomeAdsAccount('')
   }
 
   function openCreateOutcome() {
@@ -1916,6 +1949,21 @@ function App() {
     clearRoleForm()
     setRolesError('')
     setShowRoleModal(true)
+  }
+
+  function clearBrandReviewForm() {
+    setEditingBrandReviewId(null)
+    setBrandReviewBrand('')
+    setBrandReviewScore('')
+    setBrandReviewRemarks('')
+    setBrandReviewAdsOwner('')
+  }
+
+  function openCreateBrandReview() {
+    clearBrandReviewForm()
+    setBrandReviewAdsOwner(getLoggedInAdsOwner(identifier, currentUser) || '')
+    setBrandReviewsError('')
+    setShowBrandReviewModal(true)
   }
 
   function clearNormalAdsForm() {
@@ -2420,6 +2468,13 @@ function App() {
       return
     }
 
+    if (activeMenu === 'brand-review-management') {
+      void loadBrandReviews(
+        brandReviewQueryApplied ? brandReviewFiltersRef.current : {},
+      )
+      return
+    }
+
     if (activeMenu === 'ads-url-management') {
       void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {})
       void loadShiftLinkLogCatalog()
@@ -2453,6 +2508,7 @@ function App() {
     if (activeMenu === 'matrix-ads-management') {
       void loadMatrixAds(matrixAdsQueryApplied ? matrixAdsFiltersRef.current : {})
       void loadPlatformOptions()
+      void loadAccountEmailOptions()
       return
     }
 
@@ -2556,6 +2612,7 @@ function App() {
     activeMenu,
     loadUsers,
     loadRoles,
+    loadBrandReviews,
     loadUserAgents,
     loadAdsUrls,
     loadShiftLinkLogCatalog,
@@ -2583,6 +2640,8 @@ function App() {
     loadToolOutcomes,
     loadAccountEmailOptions,
     loadPaypalAccountOptions,
+    brandReviewQueryApplied,
+    brandReviewFiltersRef,
     emailQueryApplied,
     accountQueryApplied,
     adsAccountQueryApplied,
@@ -2929,6 +2988,126 @@ function App() {
     }
   }
 
+  function startEditBrandReview(item) {
+    setEditingBrandReviewId(item.id)
+    setBrandReviewBrand(item.brand || '')
+    setBrandReviewScore(item.score != null ? String(item.score) : '')
+    setBrandReviewRemarks(item.remarks || '')
+    setShowBrandReviewModal(true)
+  }
+
+  async function handleSaveBrandReview(event) {
+    event.preventDefault()
+    setSavingBrandReview(true)
+    setBrandReviewsError('')
+    setBrandReviewsMessage('')
+
+    try {
+      const brand = toOptionalTrimmedString(brandReviewBrand)
+      if (!brand) {
+        throw new Error('Brand is required.')
+      }
+
+      const scoreText = toOptionalTrimmedString(brandReviewScore)
+      const score = scoreText === undefined ? Number.NaN : Number(scoreText)
+      if (!Number.isInteger(score)) {
+        throw new Error('Score must be a whole number.')
+      }
+
+      const payload = {
+        brand,
+        score,
+        remarks: toOptionalTrimmedString(brandReviewRemarks),
+      }
+
+      if (editingBrandReviewId) {
+        await requestApi(`/tool-brands-reviews/${editingBrandReviewId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setBrandReviewsMessage('Brand Review updated successfully.')
+      } else {
+        await requestApi('/tool-brands-reviews', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setBrandReviewsMessage('Brand Review created successfully.')
+      }
+
+      clearBrandReviewForm()
+      setShowBrandReviewModal(false)
+      await loadBrandReviews(
+        brandReviewQueryApplied ? brandReviewFiltersRef.current : {},
+        brandReviewPaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setBrandReviewsError(message)
+    } finally {
+      setSavingBrandReview(false)
+    }
+  }
+
+  async function handleDeleteBrandReview(id) {
+    setBrandReviewsError('')
+    setBrandReviewsMessage('')
+
+    try {
+      await requestApi(`/tool-brands-reviews/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setBrandReviewsMessage('Brand Review deleted successfully.')
+      await loadBrandReviews(
+        brandReviewQueryApplied ? brandReviewFiltersRef.current : {},
+        brandReviewPaginationRef.current,
+      )
+      if (editingBrandReviewId === id) {
+        clearBrandReviewForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setBrandReviewsError(message)
+    }
+  }
+
+  function handleBrandReviewFiltersChange(nextFilters) {
+    setBrandReviewFilters(nextFilters)
+    setBrandReviewQueryApplied(false)
+  }
+
+  function applyBrandReviewFilters(event) {
+    event.preventDefault()
+    setBrandReviewQueryApplied(true)
+    void loadBrandReviews(brandReviewFilters, { page: 0, size: brandReviewPaginationRef.current.size })
+  }
+
+  function reloadBrandReviewFilters() {
+    setBrandReviewFilters({
+      ownerPhoneNumber: '',
+      score: '',
+      brand: '',
+    })
+    setBrandReviewQueryApplied(false)
+    void loadBrandReviews({}, { page: 0, size: brandReviewPaginationRef.current.size })
+  }
+
+  function handleBrandReviewPageChange(page) {
+    void loadBrandReviews(brandReviewQueryApplied ? brandReviewFiltersRef.current : {}, {
+      page,
+      size: brandReviewPaginationRef.current.size,
+    })
+  }
+
+  function handleBrandReviewPageSizeChange(size) {
+    void loadBrandReviews(brandReviewQueryApplied ? brandReviewFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
   function startEditUserAgent(item) {
     setEditingUserAgentId(item.id)
     setUserAgentDevice(item.device || '')
@@ -3038,6 +3217,18 @@ function App() {
     setRoles([])
     setRolesError('')
     setRolesMessage('')
+    setBrandReviews([])
+    setBrandReviewsError('')
+    setBrandReviewsMessage('')
+    setBrandReviewPagination(createInitialPagination())
+    setBrandReviewFilters({
+      ownerPhoneNumber: '',
+      score: '',
+      brand: '',
+    })
+    setBrandReviewQueryApplied(false)
+    setShowBrandReviewModal(false)
+    clearBrandReviewForm()
     setUserAgents([])
     setUserAgentsError('')
     setUserAgentsMessage('')
@@ -3084,6 +3275,10 @@ function App() {
     setAccountsError('')
     setAccountsMessage('')
     setAccountPagination(createInitialPagination())
+    setAdsAccountBrand('')
+    setAdsAccountBrandOptions([])
+    setAdsAccountBrandOptionsLoading(false)
+    setAdsAccountBrandOptionsError('')
     setAccountEmailOptionsSource([])
     setAccountEmailOptionsLoading(false)
     setOwnerFilterOptionsSource([])
@@ -3625,7 +3820,7 @@ function App() {
           .map((row) => normalizeAffiliateRow(row))
           .filter(
             (row) =>
-              row.platformName || row.affiliteUrl || row.displayNumber || row.remarks,
+            row.platformName || row.affiliteUrl || row.displayNumber || row.userName,
           )
           .map((row, index) => {
             if (!row.platformName) {
@@ -3639,7 +3834,7 @@ function App() {
             const affiliateInfo = {
               platformName: row.platformName,
               affiliteUrl: row.affiliteUrl,
-              remarks: row.remarks || undefined,
+            userName: row.userName || undefined,
             }
 
             if (row.displayNumber) {
@@ -4393,6 +4588,7 @@ function App() {
   function startEditAdsAccount(item) {
     setEditingAdsAccountId(item.id)
     setAdsAccountValue(item.adsAccount || '')
+    setAdsAccountBrand(item.brand || item.brandName || '')
 
     // Resolve account type robustly (backend may use different casing or field names)
     const rawAccountType = firstDefinedValue(item, ['accountType', 'account_type', 'type']) || ''
@@ -4410,7 +4606,8 @@ function App() {
         ? item
         : firstDefinedValue(item, ['emailAddress', 'email', 'email_address', 'ownerEmail'])
     setAdsAccountEmailAddress(rawEmail || '')
-    setAdsAccountStatus(item.status || '')
+setAdsAccountStatus(item.status || '')
+ setAdsAccountStatus(item.status || '')
     setShowAdsAccountModal(true)
   }
 
@@ -4497,6 +4694,7 @@ function App() {
 
       const payload = {
         adsAccount: normalizedAdsAccount,
+        brand: toOptionalTrimmedString(adsAccountBrand),
         accountType: toOptionalTrimmedString(adsAccountType),
         agencyPlatform:
           adsAccountType === 'Agency' ? toOptionalTrimmedString(adsAccountAgencyPlatform) : undefined,
@@ -4889,14 +5087,50 @@ function App() {
     }
   }
 
-  function startEditOutcome(item) {
+  async function startEditOutcome(item) {
     setEditingOutcomeId(item.id)
-    setOutcomeType(item.outcomeType || '')
+
+    // Normalize incoming outcome type against known options
+    const incomingType = toOptionalTrimmedString(item.outcomeType) || ''
+    const matchedTypeOption = outcomeTypeOptions.find((opt) =>
+      normalizeHeader(opt.value) === normalizeHeader(incomingType) ||
+      normalizeHeader(opt.label) === normalizeHeader(incomingType),
+    )
+    const resolvedType = matchedTypeOption ? matchedTypeOption.value : incomingType
+    setOutcomeType(resolvedType)
+
     setOutcomeAmount(item.outcomeAmount != null ? String(item.outcomeAmount) : '')
     setOutcomeCurrency(item.currency || '')
     setOutcomePayDate(toDateInputValue(item.payDate))
     setOutcomeRemarks(item.remarks || '')
+
+    if (resolvedType === 'MediaBy') {
+      try {
+        await loadAdsAccountOptions()
+      } catch (e) {
+        // loadAdsAccountOptions reports errors via hook state; ignore here
+      }
+
+      const incomingAds = toOptionalTrimmedString(item.adsAccount) || ''
+      const matchedAccount = adsAccountOptions.find(
+        (opt) => normalizeHeader(opt.value) === normalizeHeader(incomingAds) || normalizeHeader(opt.label) === normalizeHeader(incomingAds),
+      )
+      setOutcomeAdsAccount(matchedAccount ? matchedAccount.value : incomingAds)
+    } else {
+      setOutcomeAdsAccount('')
+    }
+
     setShowOutcomeModal(true)
+  }
+
+  function handleOutcomeTypeChange(value) {
+    setOutcomeType(value)
+    if (value !== 'MediaBy') {
+      setOutcomeAdsAccount('')
+    } else {
+      // load Ads Account options when MediaBy selected
+      void loadAdsAccountOptions()
+    }
   }
 
   async function handleSaveOutcome(event) {
@@ -4923,6 +5157,20 @@ function App() {
         currency: toOptionalTrimmedString(outcomeCurrency),
         payDate: toApiDateValue(outcomePayDate),
         remarks: toOptionalTrimmedString(outcomeRemarks),
+      }
+
+      // When MediaBy selected, Ads Account is required
+      if (normalizedOutcomeType === 'MediaBy') {
+        const selectedAdsAccount = toOptionalTrimmedString(outcomeAdsAccount)
+        if (!selectedAdsAccount) {
+          throw new Error('Ads Account is required for MediaBy expenditure type.')
+        }
+        payload.adsAccount = selectedAdsAccount
+      } else {
+        const selectedAdsAccount = toOptionalTrimmedString(outcomeAdsAccount)
+        if (selectedAdsAccount) {
+          payload.adsAccount = selectedAdsAccount
+        }
       }
 
       if (editingOutcomeId) {
@@ -4977,6 +5225,8 @@ function App() {
       ? 'User'
       : activeMenu === 'role-management'
         ? 'User Role'
+        : activeMenu === 'brand-review-management'
+          ? 'Brand Review'
         : activeMenu === 'user-agent-management'
           ? 'User Agent'
          : activeMenu === 'house-keeping'
@@ -5143,6 +5393,39 @@ function App() {
         onSaveRole={handleSaveRole}
         savingRole={savingRole}
         onCloseRoleModal={() => setShowRoleModal(false)}
+      />
+    )
+  } else if (activeMenu === 'brand-review-management') {
+    activeSection = (
+      <BrandReviewManagementSection
+        brandReviews={brandReviews}
+        brandReviewsLoading={brandReviewsLoading}
+        brandReviewsError={brandReviewsError}
+        brandReviewsMessage={brandReviewsMessage}
+        brandReviewFilters={brandReviewFilters}
+        onBrandReviewFiltersChange={handleBrandReviewFiltersChange}
+        onApplyBrandReviewFilters={applyBrandReviewFilters}
+        onReloadBrandReviewFilters={reloadBrandReviewFilters}
+        onCreateBrandReview={openCreateBrandReview}
+        onEditBrandReview={startEditBrandReview}
+        onDeleteBrandReview={handleDeleteBrandReview}
+        showBrandReviewModal={showBrandReviewModal}
+        editingBrandReviewId={editingBrandReviewId}
+        brandReviewBrand={brandReviewBrand}
+        onBrandReviewBrandChange={setBrandReviewBrand}
+        brandReviewScore={brandReviewScore}
+        onBrandReviewScoreChange={setBrandReviewScore}
+        brandReviewRemarks={brandReviewRemarks}
+        onBrandReviewRemarksChange={setBrandReviewRemarks}
+        onSaveBrandReview={handleSaveBrandReview}
+        savingBrandReview={savingBrandReview}
+        onCloseBrandReviewModal={() => setShowBrandReviewModal(false)}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={brandReviewPagination}
+        onPageChange={handleBrandReviewPageChange}
+        onPageSizeChange={handleBrandReviewPageSizeChange}
       />
     )
   } else if (activeMenu === 'ads-url-management') {
@@ -5409,6 +5692,8 @@ function App() {
         pagination={matrixAdsPagination}
         onPageChange={handleMatrixAdsPageChange}
         onPageSizeChange={handleMatrixAdsPageSizeChange}
+      userNameOptions={toolEmailUserOptions}
+      userNameOptionsLoading={accountEmailOptionsLoading}
       />
     )
   } else if (activeMenu === 'email-management') {
@@ -5507,6 +5792,15 @@ function App() {
     )
   } else if (activeMenu === 'cb-account-report') {
     activeSection = <CbAccountReportSection token={token} />
+  } else if (activeMenu === 'ads-audit-report') {
+    activeSection = (
+      <AdsAuditReportSection
+        token={token}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
+        ownerOptionsLoading={ownerFilterOptionsLoading}
+      />
+    )
   } else if (activeMenu === 'income-expenditure-report') {
     activeSection = (
       <IncomeExpenditureReportSection
@@ -5532,6 +5826,8 @@ function App() {
         editingAdsAccountId={editingAdsAccountId}
         adsAccountValue={adsAccountValue}
         onAdsAccountValueChange={setAdsAccountValue}
+        adsAccountBrand={adsAccountBrand}
+        onAdsAccountBrandChange={setAdsAccountBrand}
         adsAccountType={adsAccountType}
         onAdsAccountTypeChange={handleAdsAccountTypeChange}
         adsAccountAgencyPlatform={adsAccountAgencyPlatform}
@@ -5551,6 +5847,9 @@ function App() {
         ownerOptions={ownerFilterOptions}
         ownerOptionsLoading={ownerFilterOptionsLoading}
         adsAccountTypeOptions={adsAccountTypeOptions}
+        adsAccountBrandOptions={adsAccountBrandOptions}
+        adsAccountBrandOptionsLoading={adsAccountBrandOptionsLoading}
+        adsAccountBrandOptionsError={adsAccountBrandOptionsError}
         adsAccountAgencyPlatformOptions={adsAccountAgencyPlatformOptions}
         adsAccountStatusOptions={adsAccountStatusOptions}
         formatDateDisplayValue={formatDateDisplayValue}
@@ -5835,7 +6134,7 @@ function App() {
         showOutcomeModal={showOutcomeModal}
         editingOutcomeId={editingOutcomeId}
         outcomeType={outcomeType}
-        onOutcomeTypeChange={setOutcomeType}
+        onOutcomeTypeChange={handleOutcomeTypeChange}
         outcomeAmount={outcomeAmount}
         onOutcomeAmountChange={setOutcomeAmount}
         outcomeCurrency={outcomeCurrency}
@@ -5844,6 +6143,11 @@ function App() {
         onOutcomePayDateChange={setOutcomePayDate}
         outcomeRemarks={outcomeRemarks}
         onOutcomeRemarksChange={setOutcomeRemarks}
+        outcomeAdsAccount={outcomeAdsAccount}
+        onOutcomeAdsAccountChange={setOutcomeAdsAccount}
+        adsAccountOptions={adsAccountOptions}
+        adsAccountOptionsLoading={adsAccountOptionsLoading}
+        adsAccountOptionsError={adsAccountOptionsError}
         onSaveOutcome={handleSaveOutcome}
         savingOutcome={savingOutcome}
         onCloseOutcomeModal={() => setShowOutcomeModal(false)}

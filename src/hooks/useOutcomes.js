@@ -25,6 +25,10 @@ export function useOutcomes(token) {
   const [outcomeCurrency, setOutcomeCurrency] = useState('')
   const [outcomePayDate, setOutcomePayDate] = useState('')
   const [outcomeRemarks, setOutcomeRemarks] = useState('')
+  const [outcomeAdsAccount, setOutcomeAdsAccount] = useState('')
+  const [adsAccountOptions, setAdsAccountOptions] = useState([])
+  const [adsAccountOptionsLoading, setAdsAccountOptionsLoading] = useState(false)
+  const [adsAccountOptionsError, setAdsAccountOptionsError] = useState('')
   const [savingOutcome, setSavingOutcome] = useState(false)
   const [showOutcomeModal, setShowOutcomeModal] = useState(false)
 
@@ -35,6 +39,40 @@ export function useOutcomes(token) {
   useEffect(() => {
     outcomePaginationRef.current = outcomePagination
   }, [outcomePagination])
+
+  const loadAdsAccountOptions = useCallback(async () => {
+    setAdsAccountOptionsLoading(true)
+    setAdsAccountOptionsError('')
+    try {
+      const response = await requestApi('/ads-accounts/dropdown', { token })
+      const items = Array.isArray(response) ? response : Array.isArray(response?.content) ? response.content : []
+      const options = items
+        .filter(Boolean)
+        .map((it) => {
+          if (typeof it === 'string') {
+            return { value: it, label: it }
+          }
+          if (it && typeof it === 'object') {
+            if (it.value && it.label) return { value: it.value, label: it.label }
+            const value = it.value ?? it.id ?? it.adsAccount ?? it.accountId ?? it.accountName ?? ''
+            const label = it.label ?? it.displayName ?? it.adsName ?? it.accountName ?? it.name ?? String(value)
+            return { value: String(value), label: String(label) }
+          }
+          return null
+        })
+        .filter(Boolean)
+      setAdsAccountOptions(options)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAdsAccountOptionsError(message)
+    } finally {
+      setAdsAccountOptionsLoading(false)
+    }
+  }, [token])
+
+  useEffect(() => {
+    void loadAdsAccountOptions()
+  }, [loadAdsAccountOptions])
 
   const loadToolOutcomes = useCallback(
     async (filters = outcomeFiltersRef.current, pageConfig = outcomePaginationRef.current) => {
@@ -81,6 +119,8 @@ export function useOutcomes(token) {
     outcomeCurrency, setOutcomeCurrency,
     outcomePayDate, setOutcomePayDate,
     outcomeRemarks, setOutcomeRemarks,
+    outcomeAdsAccount, setOutcomeAdsAccount,
+    adsAccountOptions, adsAccountOptionsLoading, adsAccountOptionsError, loadAdsAccountOptions,
     savingOutcome, setSavingOutcome,
     showOutcomeModal, setShowOutcomeModal,
     loadToolOutcomes,

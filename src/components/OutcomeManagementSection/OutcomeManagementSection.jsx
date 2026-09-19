@@ -26,6 +26,11 @@ function OutcomeManagementSection({
   onOutcomePayDateChange,
   outcomeRemarks,
   onOutcomeRemarksChange,
+  outcomeAdsAccount,
+  onOutcomeAdsAccountChange,
+  adsAccountOptions,
+  adsAccountOptionsLoading,
+  adsAccountOptionsError,
   onSaveOutcome,
   savingOutcome,
   onCloseOutcomeModal,
@@ -157,6 +162,7 @@ function OutcomeManagementSection({
                     <th>Currency</th>
                     <th>Pay Date</th>
                     <th>Remarks</th>
+                    <th>Ads Account</th>
                     <th>Create Date</th>
                     <th>Update Date</th>
                     <th>Actions</th>
@@ -171,6 +177,7 @@ function OutcomeManagementSection({
                       <td>{formatTableValue(item.currency)}</td>
                       <td>{formatDateDisplayValue(item.payDate)}</td>
                       <td>{formatTableValue(item.remarks)}</td>
+                      <td>{formatTableValue(item.adsAccount)}</td>
                       <td>{formatDateDisplayValue(item.createDate)}</td>
                       <td>{formatDateDisplayValue(item.updateDate)}</td>
                       <td className="actions">
@@ -221,6 +228,25 @@ function OutcomeManagementSection({
                 </option>
               ))}
             </select>
+
+            {outcomeType === 'MediaBy' ? (
+              <>
+                <label htmlFor="outcomeManagementAdsAccount">Ads Account</label>
+                <select
+                  id="outcomeManagementAdsAccount"
+                  value={outcomeAdsAccount}
+                  onChange={(event) => onOutcomeAdsAccountChange(event.target.value)}
+                  required
+                >
+                  <option value="">Select Ads Account</option>
+                  {adsAccountOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                {adsAccountOptionsLoading ? <p>Loading Ads Account options...</p> : null}
+                {adsAccountOptionsError ? <p className="status error">{adsAccountOptionsError}</p> : null}
+              </>
+            ) : null}
 
             <label htmlFor="outcomeManagementOutcomeAmount">Expenditure Amount</label>
             <input

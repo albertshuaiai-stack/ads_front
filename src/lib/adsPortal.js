@@ -451,7 +451,7 @@ function createEmptyAffiliateRow() {
     platformName: '',
     affiliteUrl: '',
     displayNumber: '',
-    remarks: '',
+    userName: '',
   }
 }
 
@@ -460,7 +460,7 @@ function normalizeAffiliateRow(row) {
     platformName: toOptionalTrimmedString(row?.platformName) || '',
     affiliteUrl: toOptionalTrimmedString(row?.affiliteUrl) || '',
     displayNumber: toOptionalTrimmedString(row?.displayNumber) || '',
-    remarks: toOptionalTrimmedString(row?.remarks) || '',
+    userName: toOptionalTrimmedString(row?.userName) || '',
   }
 }
 

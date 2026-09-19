@@ -1,0 +1,10 @@
+.ads-audit-report__filters { display:flex; gap:12px; align-items:center; margin-bottom:12px; }
+.ads-audit-report__filters label { display:flex; flex-direction:column; font-size:13px; }
+.ads-audit-report__table { width:100%; border-collapse:collapse; }
+.ads-audit-report__table th, .ads-audit-report__table td { border:1px solid var(--border); padding:8px; }
+.ads-audit-report__table th { background:#f7f7f7; }
+.ads-audit-report__table-wrap { overflow:auto; }
+.ads-audit-report__error { color: var(--danger); }
+.ads-audit-report__cell-highlight { font-weight:600; border-radius:4px; }
+.ads-audit-report__cell-entry { display:block; margin-bottom:6px; }
+.ads-audit-report__cell-entry:last-child { margin-bottom:0 }

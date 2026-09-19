@@ -26,6 +26,7 @@ export function useAdsAccounts(token) {
   const [adsAccountAgencyPlatform, setAdsAccountAgencyPlatform] = useState('')
   const [adsAccountMccAccount, setAdsAccountMccAccount] = useState('')
   const [adsAccountEmailAddress, setAdsAccountEmailAddress] = useState('')
+  const [adsAccountBrand, setAdsAccountBrand] = useState('')
   const [adsAccountStatus, setAdsAccountStatus] = useState('')
   const [savingAdsAccount, setSavingAdsAccount] = useState(false)
   const [showAdsAccountModal, setShowAdsAccountModal] = useState(false)
@@ -38,12 +39,54 @@ export function useAdsAccounts(token) {
     adsAccountPaginationRef.current = adsAccountPagination
   }, [adsAccountPagination])
 
+  const [adsAccountBrandOptions, setAdsAccountBrandOptions] = useState([])
+  const [adsAccountBrandOptionsLoading, setAdsAccountBrandOptionsLoading] = useState(false)
+  const [adsAccountBrandOptionsError, setAdsAccountBrandOptionsError] = useState('')
+
   // Load MCC accounts for dropdowns (from /ads-accounts/mcc)
   const [adsAccountMccOptions, setAdsAccountMccOptions] = useState([])
   const [adsAccountMccLoading, setAdsAccountMccLoading] = useState(false)
   const [adsAccountMccError, setAdsAccountMccError] = useState('')
 
+  const loadBrandOptions = useCallback(async () => {
+    if (!token) {
+      setAdsAccountBrandOptions([])
+      setAdsAccountBrandOptionsError('')
+      setAdsAccountBrandOptionsLoading(false)
+      return
+    }
+
+    setAdsAccountBrandOptionsLoading(true)
+    setAdsAccountBrandOptionsError('')
+
+    try {
+      const response = await requestApi('/tool-brands-reviews/brands', { token })
+      const items = extractItems(response)
+      const uniqueBrands = Array.from(
+        new Set(items.map((item) => String(item ?? '').trim()).filter(Boolean)),
+      ).sort((left, right) => left.localeCompare(right))
+      setAdsAccountBrandOptions(uniqueBrands)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setAdsAccountBrandOptionsError(message)
+      setAdsAccountBrandOptions([])
+    } finally {
+      setAdsAccountBrandOptionsLoading(false)
+    }
+  }, [token])
+
   useEffect(() => {
+    void loadBrandOptions()
+  }, [loadBrandOptions])
+
+  useEffect(() => {
+    if (!token) {
+      setAdsAccountMccOptions([])
+      setAdsAccountMccError('')
+      setAdsAccountMccLoading(false)
+      return
+    }
+
     let cancelled = false
     async function loadMcc() {
       setAdsAccountMccLoading(true)
@@ -120,10 +163,15 @@ export function useAdsAccounts(token) {
     adsAccountAgencyPlatform, setAdsAccountAgencyPlatform,
     adsAccountMccAccount, setAdsAccountMccAccount,
     adsAccountEmailAddress, setAdsAccountEmailAddress,
+    adsAccountBrand, setAdsAccountBrand,
     adsAccountStatus, setAdsAccountStatus,
     savingAdsAccount, setSavingAdsAccount,
     showAdsAccountModal, setShowAdsAccountModal,
+    adsAccountBrandOptions, setAdsAccountBrandOptions,
+    adsAccountBrandOptionsLoading, setAdsAccountBrandOptionsLoading,
+    adsAccountBrandOptionsError, setAdsAccountBrandOptionsError,
     adsAccountMccOptions, adsAccountMccLoading, adsAccountMccError,
+    loadBrandOptions,
     loadAdsAccounts,
   }
 }

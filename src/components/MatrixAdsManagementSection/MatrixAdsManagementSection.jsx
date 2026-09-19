@@ -85,6 +85,8 @@ function MatrixAdsManagementSection({
   pagination,
   onPageChange,
   onPageSizeChange,
+  userNameOptions,
+  userNameOptionsLoading,
 }) {
   const visibleMatrixAdsColumns = MATRIX_TABLE_COLUMN_ORDER.filter((column) =>
     matrixAdsColumns.includes(column),
@@ -369,7 +371,9 @@ function MatrixAdsManagementSection({
                 onRemoveRow={onRemoveMatrixAffiliateRow}
                 platformOptions={platformOptions}
                 rows={matrixAffiliateRows}
-              />
+                              userNameOptions={userNameOptions}
+                              userNameOptionsLoading={userNameOptionsLoading}
+                            />
               <button type="button" className="secondary" onClick={onAddMatrixAffiliateRow}>
                 Add Affiliate Row
               </button>
