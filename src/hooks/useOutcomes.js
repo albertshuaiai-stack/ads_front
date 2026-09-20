@@ -26,9 +26,17 @@ export function useOutcomes(token) {
   const [outcomePayDate, setOutcomePayDate] = useState('')
   const [outcomeRemarks, setOutcomeRemarks] = useState('')
   const [outcomeAdsAccount, setOutcomeAdsAccount] = useState('')
+  const [outcomeCloudPhone, setOutcomeCloudPhone] = useState('')
+  const [outcomeIp, setOutcomeIp] = useState('')
   const [adsAccountOptions, setAdsAccountOptions] = useState([])
   const [adsAccountOptionsLoading, setAdsAccountOptionsLoading] = useState(false)
   const [adsAccountOptionsError, setAdsAccountOptionsError] = useState('')
+  const [cloudPhoneOptions, setCloudPhoneOptions] = useState([])
+  const [cloudPhoneOptionsLoading, setCloudPhoneOptionsLoading] = useState(false)
+  const [cloudPhoneOptionsError, setCloudPhoneOptionsError] = useState('')
+  const [ipOptions, setIpOptions] = useState([])
+  const [ipOptionsLoading, setIpOptionsLoading] = useState(false)
+  const [ipOptionsError, setIpOptionsError] = useState('')
   const [savingOutcome, setSavingOutcome] = useState(false)
   const [showOutcomeModal, setShowOutcomeModal] = useState(false)
 
@@ -73,6 +81,64 @@ export function useOutcomes(token) {
   useEffect(() => {
     void loadAdsAccountOptions()
   }, [loadAdsAccountOptions])
+
+  const loadCloudPhoneOptions = useCallback(async () => {
+    setCloudPhoneOptionsLoading(true)
+    setCloudPhoneOptionsError('')
+    try {
+      const response = await requestApi('/tool-cloud-phones/phones', { token })
+      const items = extractItems(response)
+      const options = (Array.isArray(items) ? items : [])
+        .filter(Boolean)
+        .map((it) => {
+          if (typeof it === 'string') {
+            return { value: it, label: it }
+          }
+          if (it && typeof it === 'object') {
+            const value = it.value ?? it.phoneNumber ?? it.cloudPhone ?? it.cloudPhoneNumber ?? ''
+            const label = it.label ?? it.phoneNumber ?? it.cloudPhone ?? it.cloudPhoneNumber ?? String(value)
+            return value ? { value: String(value), label: String(label) } : null
+          }
+          return null
+        })
+        .filter(Boolean)
+      setCloudPhoneOptions(options)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setCloudPhoneOptionsError(message)
+    } finally {
+      setCloudPhoneOptionsLoading(false)
+    }
+  }, [token])
+
+  const loadIpOptions = useCallback(async () => {
+    setIpOptionsLoading(true)
+    setIpOptionsError('')
+    try {
+      const response = await requestApi('/tool-ips/ips', { token })
+      const items = extractItems(response)
+      const options = (Array.isArray(items) ? items : [])
+        .filter(Boolean)
+        .map((it) => {
+          if (typeof it === 'string') {
+            return { value: it, label: it }
+          }
+          if (it && typeof it === 'object') {
+            const value = it.value ?? it.ip ?? it.ipString ?? ''
+            const label = it.label ?? it.ip ?? it.ipString ?? String(value)
+            return value ? { value: String(value), label: String(label) } : null
+          }
+          return null
+        })
+        .filter(Boolean)
+      setIpOptions(options)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setIpOptionsError(message)
+    } finally {
+      setIpOptionsLoading(false)
+    }
+  }, [token])
 
   const loadToolOutcomes = useCallback(
     async (filters = outcomeFiltersRef.current, pageConfig = outcomePaginationRef.current) => {
@@ -120,6 +186,10 @@ export function useOutcomes(token) {
     outcomePayDate, setOutcomePayDate,
     outcomeRemarks, setOutcomeRemarks,
     outcomeAdsAccount, setOutcomeAdsAccount,
+    outcomeCloudPhone, setOutcomeCloudPhone,
+    outcomeIp, setOutcomeIp,
+    cloudPhoneOptions, cloudPhoneOptionsLoading, cloudPhoneOptionsError, loadCloudPhoneOptions,
+    ipOptions, ipOptionsLoading, ipOptionsError, loadIpOptions,
     adsAccountOptions, adsAccountOptionsLoading, adsAccountOptionsError, loadAdsAccountOptions,
     savingOutcome, setSavingOutcome,
     showOutcomeModal, setShowOutcomeModal,

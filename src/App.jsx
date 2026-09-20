@@ -9,6 +9,7 @@ import AffiliateTestResultManagementSection from './components/AffiliateTestResu
 import AffiliateTriggerSection from './components/AffiliateTriggerSection/AffiliateTriggerSection'
 import IpProxyManagementSection from './components/IpProxyManagementSection/IpProxyManagementSection'
 import ToolIpManagementSection from './components/ToolIpManagementSection/ToolIpManagementSection'
+import ToolCloudPhoneManagementSection from './components/ToolCloudPhoneManagementSection/ToolCloudPhoneManagementSection'
 import HouseKeepingSection from './components/HouseKeepingSection/HouseKeepingSection'
 import LoginForm from './components/LoginForm/LoginForm'
 import CashBachAccountManagementSection from './components/CashBachAccountManagementSection/CashBachAccountManagementSection'
@@ -155,6 +156,7 @@ import { useAffiliateTestResults } from './hooks/useAffiliateTestResults'
 import { useAffiliateTriggers } from './hooks/useAffiliateTriggers'
 import { useIpProxies } from './hooks/useIpProxies'
 import { useToolIps } from './hooks/useToolIps'
+import { useToolCloudPhones } from './hooks/useToolCloudPhones'
 
 const DEFAULT_CURRENCY_EXCHANGE_RATE_PAIR = 'USD:CNY'
 
@@ -731,6 +733,26 @@ function App() {
     showToolIpModal, setShowToolIpModal,
     loadToolIps,
   } = useToolIps(token)
+  const {
+    toolCloudPhones,
+    toolCloudPhonesLoading,
+    toolCloudPhonesError, setToolCloudPhonesError,
+    toolCloudPhonesMessage, setToolCloudPhonesMessage,
+    toolCloudPhonePagination,
+    toolCloudPhonePaginationRef,
+    toolCloudPhoneFilters, setToolCloudPhoneFilters,
+    toolCloudPhoneQueryApplied, setToolCloudPhoneQueryApplied,
+    toolCloudPhoneFiltersRef,
+    editingToolCloudPhoneId, setEditingToolCloudPhoneId,
+    toolCloudPhoneCountryCd, setToolCloudPhoneCountryCd,
+    toolCloudPhoneNumber, setToolCloudPhoneNumber,
+    toolCloudPhoneStartDate, setToolCloudPhoneStartDate,
+    toolCloudPhoneExpireDate, setToolCloudPhoneExpireDate,
+    toolCloudPhoneRemarks, setToolCloudPhoneRemarks,
+    savingToolCloudPhone, setSavingToolCloudPhone,
+    showToolCloudPhoneModal, setShowToolCloudPhoneModal,
+    loadToolCloudPhones,
+  } = useToolCloudPhones(token)
 
   const {
     paypals, setPaypals,
@@ -794,6 +816,10 @@ function App() {
     outcomePayDate, setOutcomePayDate,
     outcomeRemarks, setOutcomeRemarks,
     outcomeAdsAccount, setOutcomeAdsAccount,
+    outcomeCloudPhone, setOutcomeCloudPhone,
+    outcomeIp, setOutcomeIp,
+    cloudPhoneOptions, cloudPhoneOptionsLoading, cloudPhoneOptionsError, loadCloudPhoneOptions,
+    ipOptions, ipOptionsLoading, ipOptionsError, loadIpOptions,
     adsAccountOptions, adsAccountOptionsLoading, adsAccountOptionsError, loadAdsAccountOptions,
     savingOutcome, setSavingOutcome,
     showOutcomeModal, setShowOutcomeModal,
@@ -859,6 +885,10 @@ function App() {
   const paymentMethodOptions = PAYMENT_METHOD_OPTIONS
 
   const outcomeTypeOptions = OUTCOME_TYPE_OPTIONS
+  const isOutcomeType = useCallback(
+    (value, expected) => normalizeHeader(value) === normalizeHeader(expected),
+    [],
+  )
 
   const accountStatusOptions = ACCOUNT_STATUS_OPTIONS
 
@@ -1926,6 +1956,8 @@ function App() {
     setOutcomePayDate('')
     setOutcomeRemarks('')
     setOutcomeAdsAccount('')
+    setOutcomeCloudPhone('')
+    setOutcomeIp('')
   }
 
   function openCreateOutcome() {
@@ -2617,6 +2649,11 @@ function App() {
       return
     }
 
+    if (activeMenu === 'tool-cloud-phone-management') {
+      void loadToolCloudPhones(toolCloudPhoneQueryApplied ? toolCloudPhoneFiltersRef.current : {})
+      return
+    }
+
     if (activeMenu === 'paypal-management') {
       void loadToolPaypals(paypalQueryApplied ? paypalFiltersRef.current : {})
       return
@@ -2662,6 +2699,7 @@ function App() {
     loadAffiliateTriggers,
     loadIpProxies,
     loadToolIps,
+    loadToolCloudPhones,
     loadToolPaypals,
     loadToolIncomes,
     loadToolOutcomes,
@@ -2680,6 +2718,7 @@ function App() {
     affiliateTriggerQueryApplied,
     ipProxyQueryApplied,
     toolIpQueryApplied,
+    toolCloudPhoneQueryApplied,
     paypalQueryApplied,
     incomeQueryApplied,
     outcomeQueryApplied,
@@ -5082,6 +5121,143 @@ setAdsAccountStatus(item.status || '')
     }
   }
 
+  function clearToolCloudPhoneForm() {
+    setEditingToolCloudPhoneId(null)
+    setToolCloudPhoneCountryCd('')
+    setToolCloudPhoneNumber('')
+    setToolCloudPhoneStartDate('')
+    setToolCloudPhoneExpireDate('')
+    setToolCloudPhoneRemarks('')
+    setSavingToolCloudPhone(false)
+    setShowToolCloudPhoneModal(false)
+    setToolCloudPhonesError('')
+    setToolCloudPhonesMessage('')
+  }
+
+  function openCreateToolCloudPhone() {
+    clearToolCloudPhoneForm()
+    setShowToolCloudPhoneModal(true)
+  }
+
+  function startEditToolCloudPhone(item) {
+    setEditingToolCloudPhoneId(item.id)
+    setToolCloudPhoneCountryCd(toCountryCode(item.countryCd || ''))
+    setToolCloudPhoneNumber(item.phoneNumber || '')
+    setToolCloudPhoneStartDate(toDateInputValue(item.startDate))
+    setToolCloudPhoneExpireDate(toDateInputValue(item.expireDate))
+    setToolCloudPhoneRemarks(item.remarks || '')
+    setShowToolCloudPhoneModal(true)
+  }
+
+  function handleToolCloudPhoneFiltersChange(nextFilters) {
+    setToolCloudPhoneFilters(nextFilters)
+    setToolCloudPhoneQueryApplied(false)
+  }
+
+  function applyToolCloudPhoneFilters(event) {
+    event.preventDefault()
+    setToolCloudPhoneQueryApplied(true)
+    void loadToolCloudPhones(toolCloudPhoneFilters, { page: 0, size: toolCloudPhonePaginationRef.current.size })
+  }
+
+  function reloadToolCloudPhoneFilters() {
+    setToolCloudPhoneFilters({
+      countryCd: '',
+      adsOwner: '',
+    })
+    setToolCloudPhoneQueryApplied(false)
+    void loadToolCloudPhones({}, { page: 0, size: toolCloudPhonePaginationRef.current.size })
+  }
+
+  function handleToolCloudPhonePageChange(page) {
+    void loadToolCloudPhones(toolCloudPhoneQueryApplied ? toolCloudPhoneFiltersRef.current : {}, {
+      page,
+      size: toolCloudPhonePaginationRef.current.size,
+    })
+  }
+
+  function handleToolCloudPhonePageSizeChange(size) {
+    void loadToolCloudPhones(toolCloudPhoneQueryApplied ? toolCloudPhoneFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  async function handleSaveToolCloudPhone(event) {
+    event.preventDefault()
+    setSavingToolCloudPhone(true)
+    setToolCloudPhonesError('')
+    setToolCloudPhonesMessage('')
+
+    try {
+      const normalizedPhoneNumber = toOptionalTrimmedString(toolCloudPhoneNumber)
+      if (!normalizedPhoneNumber) {
+        throw new Error('Phone Number is required.')
+      }
+
+      const payload = {
+        countryCd: toOptionalTrimmedString(toCountryCode(toolCloudPhoneCountryCd)),
+        phoneNumber: normalizedPhoneNumber,
+        startDate: toApiDateValue(toolCloudPhoneStartDate),
+        expireDate: toApiDateValue(toolCloudPhoneExpireDate),
+        remarks: toOptionalTrimmedString(toolCloudPhoneRemarks),
+      }
+
+      if (editingToolCloudPhoneId) {
+        await requestApi(`/tool-cloud-phones/${editingToolCloudPhoneId}`, {
+          method: 'PUT',
+          token,
+          body: {
+            id: editingToolCloudPhoneId,
+            ...payload,
+          },
+        })
+        setToolCloudPhonesMessage('Cloud Phone updated successfully.')
+      } else {
+        await requestApi('/tool-cloud-phones', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setToolCloudPhonesMessage('Cloud Phone created successfully.')
+      }
+
+      clearToolCloudPhoneForm()
+      await loadToolCloudPhones(
+        toolCloudPhoneQueryApplied ? toolCloudPhoneFiltersRef.current : {},
+        toolCloudPhonePaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setToolCloudPhonesError(message)
+    } finally {
+      setSavingToolCloudPhone(false)
+    }
+  }
+
+  async function handleDeleteToolCloudPhone(id) {
+    setToolCloudPhonesError('')
+    setToolCloudPhonesMessage('')
+
+    try {
+      await requestApi(`/tool-cloud-phones/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setToolCloudPhonesMessage('Cloud Phone deleted successfully.')
+      await loadToolCloudPhones(
+        toolCloudPhoneQueryApplied ? toolCloudPhoneFiltersRef.current : {},
+        toolCloudPhonePaginationRef.current,
+      )
+      if (editingToolCloudPhoneId === id) {
+        clearToolCloudPhoneForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setToolCloudPhonesError(message)
+    }
+  }
+
   function startEditPaypal(item) {
     setEditingPaypalId(item.id)
     setPaypalEmail(item.paypalEmail || '')
@@ -5268,7 +5444,7 @@ setAdsAccountStatus(item.status || '')
     setOutcomePayDate(toDateInputValue(item.payDate))
     setOutcomeRemarks(item.remarks || '')
 
-    if (resolvedType === 'MediaBy') {
+    if (isOutcomeType(resolvedType, 'Media By')) {
       try {
         await loadAdsAccountOptions()
       } catch (e) {
@@ -5284,16 +5460,52 @@ setAdsAccountStatus(item.status || '')
       setOutcomeAdsAccount('')
     }
 
+    if (isOutcomeType(resolvedType, 'Cloud Phone')) {
+      try {
+        await loadCloudPhoneOptions()
+      } catch {
+        // loadCloudPhoneOptions reports errors via hook state; ignore here
+      }
+      setOutcomeCloudPhone(
+        toOptionalTrimmedString(firstDefinedValue(item, ['cloudPhoneNumber', 'cloudPhone'])) || '',
+      )
+    } else {
+      setOutcomeCloudPhone('')
+    }
+
+    if (isOutcomeType(resolvedType, 'Static IP')) {
+      try {
+        await loadIpOptions()
+      } catch {
+        // loadIpOptions reports errors via hook state; ignore here
+      }
+      setOutcomeIp(
+        toOptionalTrimmedString(firstDefinedValue(item, ['ip', 'ipString'])) || '',
+      )
+    } else {
+      setOutcomeIp('')
+    }
+
     setShowOutcomeModal(true)
   }
 
   function handleOutcomeTypeChange(value) {
     setOutcomeType(value)
-    if (value !== 'MediaBy') {
+    if (!isOutcomeType(value, 'Media By')) {
       setOutcomeAdsAccount('')
     } else {
       // load Ads Account options when MediaBy selected
       void loadAdsAccountOptions()
+    }
+    if (!isOutcomeType(value, 'Cloud Phone')) {
+      setOutcomeCloudPhone('')
+    } else {
+      void loadCloudPhoneOptions()
+    }
+    if (!isOutcomeType(value, 'Static IP')) {
+      setOutcomeIp('')
+    } else {
+      void loadIpOptions()
     }
   }
 
@@ -5323,11 +5535,11 @@ setAdsAccountStatus(item.status || '')
         remarks: toOptionalTrimmedString(outcomeRemarks),
       }
 
-      // When MediaBy selected, Ads Account is required
-      if (normalizedOutcomeType === 'MediaBy') {
+      // When Media By selected, Ads Account is required
+      if (isOutcomeType(normalizedOutcomeType, 'Media By')) {
         const selectedAdsAccount = toOptionalTrimmedString(outcomeAdsAccount)
         if (!selectedAdsAccount) {
-          throw new Error('Ads Account is required for MediaBy expenditure type.')
+          throw new Error('Ads Account is required for Media By expenditure type.')
         }
         payload.adsAccount = selectedAdsAccount
       } else {
@@ -5335,6 +5547,22 @@ setAdsAccountStatus(item.status || '')
         if (selectedAdsAccount) {
           payload.adsAccount = selectedAdsAccount
         }
+      }
+
+      if (isOutcomeType(normalizedOutcomeType, 'Cloud Phone')) {
+        const normalizedCloudPhone = toOptionalTrimmedString(outcomeCloudPhone)
+        if (!normalizedCloudPhone) {
+          throw new Error('Cloud Phone Number is required for Cloud Phone expenditure type.')
+        }
+        payload.phoneNumber = normalizedCloudPhone
+      }
+
+      if (isOutcomeType(normalizedOutcomeType, 'Static IP')) {
+        const normalizedIp = toOptionalTrimmedString(outcomeIp)
+        if (!normalizedIp) {
+          throw new Error('IP is required for Static IP expenditure type.')
+        }
+        payload.ip = normalizedIp
       }
 
       if (editingOutcomeId) {
@@ -5423,6 +5651,8 @@ setAdsAccountStatus(item.status || '')
           ? 'Proxy Config'
         : activeMenu === 'tool-ip-management'
           ? 'IP Management'
+        : activeMenu === 'tool-cloud-phone-management'
+          ? 'Cloud Phone Management'
         : activeMenu === 'paypal-management'
           ? 'PayPal Management'
         : activeMenu === 'income-management'
@@ -6233,6 +6463,44 @@ setAdsAccountStatus(item.status || '')
         onPageSizeChange={handleToolIpPageSizeChange}
       />
     )
+  } else if (activeMenu === 'tool-cloud-phone-management') {
+    activeSection = (
+      <ToolCloudPhoneManagementSection
+        toolCloudPhones={toolCloudPhones}
+        toolCloudPhonesLoading={toolCloudPhonesLoading}
+        toolCloudPhonesError={toolCloudPhonesError}
+        toolCloudPhonesMessage={toolCloudPhonesMessage}
+        toolCloudPhoneFilters={toolCloudPhoneFilters}
+        onToolCloudPhoneFiltersChange={handleToolCloudPhoneFiltersChange}
+        onApplyToolCloudPhoneFilters={applyToolCloudPhoneFilters}
+        onReloadToolCloudPhoneFilters={reloadToolCloudPhoneFilters}
+        onCreateToolCloudPhone={openCreateToolCloudPhone}
+        onEditToolCloudPhone={startEditToolCloudPhone}
+        onDeleteToolCloudPhone={handleDeleteToolCloudPhone}
+        showToolCloudPhoneModal={showToolCloudPhoneModal}
+        editingToolCloudPhoneId={editingToolCloudPhoneId}
+        toolCloudPhoneCountryCd={toolCloudPhoneCountryCd}
+        onToolCloudPhoneCountryCdChange={setToolCloudPhoneCountryCd}
+        toolCloudPhoneNumber={toolCloudPhoneNumber}
+        onToolCloudPhoneNumberChange={setToolCloudPhoneNumber}
+        toolCloudPhoneStartDate={toolCloudPhoneStartDate}
+        onToolCloudPhoneStartDateChange={setToolCloudPhoneStartDate}
+        toolCloudPhoneExpireDate={toolCloudPhoneExpireDate}
+        onToolCloudPhoneExpireDateChange={setToolCloudPhoneExpireDate}
+        toolCloudPhoneRemarks={toolCloudPhoneRemarks}
+        onToolCloudPhoneRemarksChange={setToolCloudPhoneRemarks}
+        onSaveToolCloudPhone={handleSaveToolCloudPhone}
+        savingToolCloudPhone={savingToolCloudPhone}
+        onCloseToolCloudPhoneModal={() => setShowToolCloudPhoneModal(false)}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
+        countryOptions={COUNTRY_OPTIONS}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={toolCloudPhonePagination}
+        onPageChange={handleToolCloudPhonePageChange}
+        onPageSizeChange={handleToolCloudPhonePageSizeChange}
+      />
+    )
   } else if (activeMenu === 'paypal-management') {
     activeSection = (
       <PaypalManagementSection
@@ -6346,6 +6614,16 @@ setAdsAccountStatus(item.status || '')
         onOutcomeRemarksChange={setOutcomeRemarks}
         outcomeAdsAccount={outcomeAdsAccount}
         onOutcomeAdsAccountChange={setOutcomeAdsAccount}
+        outcomeCloudPhone={outcomeCloudPhone}
+        onOutcomeCloudPhoneChange={setOutcomeCloudPhone}
+        outcomeIp={outcomeIp}
+        onOutcomeIpChange={setOutcomeIp}
+        cloudPhoneOptions={cloudPhoneOptions}
+        cloudPhoneOptionsLoading={cloudPhoneOptionsLoading}
+        cloudPhoneOptionsError={cloudPhoneOptionsError}
+        ipOptions={ipOptions}
+        ipOptionsLoading={ipOptionsLoading}
+        ipOptionsError={ipOptionsError}
         adsAccountOptions={adsAccountOptions}
         adsAccountOptionsLoading={adsAccountOptionsLoading}
         adsAccountOptionsError={adsAccountOptionsError}

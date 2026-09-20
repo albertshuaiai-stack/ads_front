@@ -38,7 +38,7 @@ export function useToolIps(token) {
 
       try {
         const response = await requestApi(
-          `/tool-ips/ips${buildQueryString({
+          `/tool-ips${buildQueryString({
             ip: filters.ipString,
             adsOwner: filters.adsOwner,
             page: pageConfig.page,

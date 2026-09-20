@@ -114,7 +114,6 @@ function ToolIpManagementSection({
                     <th>IP</th>
                     <th>Start Date</th>
                     <th>Expire Date</th>
-                    <th>Ads Owner</th>
                     <th>Create Date</th>
                     <th>Update Date</th>
                     <th>Remarks</th>
@@ -128,7 +127,6 @@ function ToolIpManagementSection({
                       <td>{formatTableValue(item.ip || item.ipString)}</td>
                       <td>{formatDateDisplayValue(item.startDate)}</td>
                       <td>{formatDateDisplayValue(item.expireDate)}</td>
-                      <td>{formatTableValue(item.adsOwner)}</td>
                       <td>{formatDateDisplayValue(item.createDate)}</td>
                       <td>{formatDateDisplayValue(item.updateDate)}</td>
                       <td>{formatTableValue(item.remarks)}</td>

@@ -52,6 +52,14 @@ function getIconFor(id) {
           <path d="M4 12h16M12 4c2.5 2.4 4 5.5 4 8s-1.5 5.6-4 8c-2.5-2.4-4-5.5-4-8s1.5-5.6 4-8z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
+    case 'tool-cloud-phone-management':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <rect x="7" y="3" width="10" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" />
+          <path d="M10 6h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="12" cy="18" r="1" fill="currentColor" />
+        </svg>
+      )
     case 'brand-review-management':
       return (
         <svg {...common} aria-hidden focusable="false">

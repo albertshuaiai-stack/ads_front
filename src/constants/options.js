@@ -13,11 +13,14 @@ export const PAYMENT_METHOD_OPTIONS = [
 ]
 
 export const OUTCOME_TYPE_OPTIONS = [
-  { value: 'MediaBy', label: 'MediaBy' },
-  { value: 'IP Proxy', label: 'IP Proxy' },
+  { value: 'MediaBy', label: 'Media By' },
+  { value: 'Static IP', label: 'Static IP' },
+  { value: 'Dynamic IP', label: 'Dynamic IP' },
+  { value: 'Cloud Phone', label: 'Cloud Phone' },
   { value: 'VPN', label: 'VPN' },
-  { value: 'AdsPower Browser', label: 'AdsPower Browser' },
-  { value: 'SEMRUSH', label: 'SEMRUSH' },
+  { value: 'VPS', label: 'VPS' },
+  { value: 'Ads Power Broswer', label: 'Ads Power Broswer' },
+  { value: 'Semrush', label: 'Semrush' },
   { value: 'Others', label: 'Others' },
 ]
 

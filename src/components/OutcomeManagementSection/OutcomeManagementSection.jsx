@@ -28,6 +28,16 @@ function OutcomeManagementSection({
   onOutcomeRemarksChange,
   outcomeAdsAccount,
   onOutcomeAdsAccountChange,
+  outcomeCloudPhone,
+  onOutcomeCloudPhoneChange,
+  outcomeIp,
+  onOutcomeIpChange,
+  cloudPhoneOptions,
+  cloudPhoneOptionsLoading,
+  cloudPhoneOptionsError,
+  ipOptions,
+  ipOptionsLoading,
+  ipOptionsError,
   adsAccountOptions,
   adsAccountOptionsLoading,
   adsAccountOptionsError,
@@ -43,6 +53,21 @@ function OutcomeManagementSection({
   onPageChange,
   onPageSizeChange,
 }) {
+  const normalizeValue = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '')
+  const normalizedOutcomeType = String(outcomeType || '').toLowerCase().replace(/[^a-z0-9]+/g, '')
+  const isMediaByType = normalizedOutcomeType === 'mediaby'
+  const isCloudPhoneType = normalizedOutcomeType === 'cloudphone'
+  const isStaticIpType = normalizedOutcomeType === 'staticip'
+  const formatOutcomeTypeLabel = (value) => {
+    const normalizedValue = normalizeValue(value)
+    const matched = outcomeTypeOptions.find(
+      (option) =>
+        normalizeValue(option.value) === normalizedValue ||
+        normalizeValue(option.label) === normalizedValue,
+    )
+    return matched ? matched.label : formatTableValue(value)
+  }
+
   return (
     <>
       <div className="panel outcome-management">
@@ -163,6 +188,8 @@ function OutcomeManagementSection({
                     <th>Pay Date</th>
                     <th>Remarks</th>
                     <th>Ads Account</th>
+                    <th>Cloud Phone</th>
+                    <th>IP</th>
                     <th>Create Date</th>
                     <th>Update Date</th>
                     <th>Actions</th>
@@ -172,12 +199,14 @@ function OutcomeManagementSection({
                   {outcomes.map((item) => (
                     <tr key={item.id}>
                       <td>{item.id}</td>
-                      <td>{formatTableValue(item.outcomeType)}</td>
+                      <td>{formatOutcomeTypeLabel(item.outcomeType)}</td>
                       <td>{formatTableValue(item.outcomeAmount)}</td>
                       <td>{formatTableValue(item.currency)}</td>
                       <td>{formatDateDisplayValue(item.payDate)}</td>
                       <td>{formatTableValue(item.remarks)}</td>
                       <td>{formatTableValue(item.adsAccount)}</td>
+                      <td>{formatTableValue(item.cloudPhoneNumber || item.cloudPhone)}</td>
+                      <td>{formatTableValue(item.ip || item.ipString)}</td>
                       <td>{formatDateDisplayValue(item.createDate)}</td>
                       <td>{formatDateDisplayValue(item.updateDate)}</td>
                       <td className="actions">
@@ -229,7 +258,7 @@ function OutcomeManagementSection({
               ))}
             </select>
 
-            {outcomeType === 'MediaBy' ? (
+            {isMediaByType ? (
               <>
                 <label htmlFor="outcomeManagementAdsAccount">Ads Account</label>
                 <select
@@ -245,6 +274,48 @@ function OutcomeManagementSection({
                 </select>
                 {adsAccountOptionsLoading ? <p>Loading Ads Account options...</p> : null}
                 {adsAccountOptionsError ? <p className="status error">{adsAccountOptionsError}</p> : null}
+              </>
+            ) : null}
+
+            {isCloudPhoneType ? (
+              <>
+                <label htmlFor="outcomeManagementCloudPhone">Cloud Phone Number</label>
+                <select
+                  id="outcomeManagementCloudPhone"
+                  value={outcomeCloudPhone}
+                  onChange={(event) => onOutcomeCloudPhoneChange(event.target.value)}
+                  required
+                >
+                  <option value="">Select Cloud Phone Number</option>
+                  {cloudPhoneOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                {cloudPhoneOptionsLoading ? <p>Loading Cloud Phone options...</p> : null}
+                {cloudPhoneOptionsError ? <p className="status error">{cloudPhoneOptionsError}</p> : null}
+              </>
+            ) : null}
+
+            {isStaticIpType ? (
+              <>
+                <label htmlFor="outcomeManagementIp">IP</label>
+                <select
+                  id="outcomeManagementIp"
+                  value={outcomeIp}
+                  onChange={(event) => onOutcomeIpChange(event.target.value)}
+                  required
+                >
+                  <option value="">Select IP</option>
+                  {ipOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                {ipOptionsLoading ? <p>Loading IP options...</p> : null}
+                {ipOptionsError ? <p className="status error">{ipOptionsError}</p> : null}
               </>
             ) : null}
 
