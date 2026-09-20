@@ -8,6 +8,7 @@ import AffiliateSyncResultManagementSection from './components/AffiliateSyncResu
 import AffiliateTestResultManagementSection from './components/AffiliateTestResultManagementSection/AffiliateTestResultManagementSection'
 import AffiliateTriggerSection from './components/AffiliateTriggerSection/AffiliateTriggerSection'
 import IpProxyManagementSection from './components/IpProxyManagementSection/IpProxyManagementSection'
+import ToolIpManagementSection from './components/ToolIpManagementSection/ToolIpManagementSection'
 import HouseKeepingSection from './components/HouseKeepingSection/HouseKeepingSection'
 import LoginForm from './components/LoginForm/LoginForm'
 import CashBachAccountManagementSection from './components/CashBachAccountManagementSection/CashBachAccountManagementSection'
@@ -153,6 +154,7 @@ import { useAffiliateSyncResults } from './hooks/useAffiliateSyncResults'
 import { useAffiliateTestResults } from './hooks/useAffiliateTestResults'
 import { useAffiliateTriggers } from './hooks/useAffiliateTriggers'
 import { useIpProxies } from './hooks/useIpProxies'
+import { useToolIps } from './hooks/useToolIps'
 
 const DEFAULT_CURRENCY_EXCHANGE_RATE_PAIR = 'USD:CNY'
 
@@ -710,6 +712,25 @@ function App() {
     showIpProxyModal, setShowIpProxyModal,
     loadIpProxies,
   } = useIpProxies(token)
+  const {
+    toolIps, setToolIps,
+    toolIpsLoading, setToolIpsLoading,
+    toolIpsError, setToolIpsError,
+    toolIpsMessage, setToolIpsMessage,
+    toolIpPagination, setToolIpPagination,
+    toolIpPaginationRef,
+    toolIpFilters, setToolIpFilters,
+    toolIpQueryApplied, setToolIpQueryApplied,
+    toolIpFiltersRef,
+    editingToolIpId, setEditingToolIpId,
+    toolIpString, setToolIpString,
+    toolIpRemarks, setToolIpRemarks,
+    toolIpStartDate, setToolIpStartDate,
+    toolIpExpireDate, setToolIpExpireDate,
+    savingToolIp, setSavingToolIp,
+    showToolIpModal, setShowToolIpModal,
+    loadToolIps,
+  } = useToolIps(token)
 
   const {
     paypals, setPaypals,
@@ -2591,6 +2612,11 @@ function App() {
       return
     }
 
+    if (activeMenu === 'tool-ip-management') {
+      void loadToolIps(toolIpQueryApplied ? toolIpFiltersRef.current : {})
+      return
+    }
+
     if (activeMenu === 'paypal-management') {
       void loadToolPaypals(paypalQueryApplied ? paypalFiltersRef.current : {})
       return
@@ -2635,6 +2661,7 @@ function App() {
     loadAffiliatePostBacks,
     loadAffiliateTriggers,
     loadIpProxies,
+    loadToolIps,
     loadToolPaypals,
     loadToolIncomes,
     loadToolOutcomes,
@@ -2652,6 +2679,7 @@ function App() {
     affiliatePostBackQueryApplied,
     affiliateTriggerQueryApplied,
     ipProxyQueryApplied,
+    toolIpQueryApplied,
     paypalQueryApplied,
     incomeQueryApplied,
     outcomeQueryApplied,
@@ -3399,6 +3427,16 @@ function App() {
       ownerPhoneNumber: '',
     })
     setIpProxyQueryApplied(false)
+    setToolIps([])
+    setToolIpsLoading(false)
+    setToolIpsError('')
+    setToolIpsMessage('')
+    setToolIpPagination(createInitialPagination())
+    setToolIpFilters({
+      ipString: '',
+      adsOwner: '',
+    })
+    setToolIpQueryApplied(false)
     setPaypals([])
     setPaypalsError('')
     setPaypalsMessage('')
@@ -3453,6 +3491,7 @@ function App() {
     setShowAffiliateSyncConfigModal(false)
     setShowAffiliateSyncTaskModal(false)
     setShowIpProxyModal(false)
+    setShowToolIpModal(false)
     setShowPaypalModal(false)
     setShowIncomeModal(false)
     setShowOutcomeModal(false)
@@ -3475,6 +3514,7 @@ function App() {
     clearAffiliateSyncConfigForm()
     clearAffiliateSyncTaskForm()
     clearIpProxyForm()
+    clearToolIpForm()
   }
 
   const logoutHandlerRef = useRef(handleLogout)
@@ -4918,6 +4958,130 @@ setAdsAccountStatus(item.status || '')
     }
   }
 
+  function clearToolIpForm() {
+    setEditingToolIpId(null)
+    setToolIpString('')
+    setToolIpRemarks('')
+    setSavingToolIp(false)
+    setShowToolIpModal(false)
+    setToolIpsError('')
+    setToolIpsMessage('')
+  }
+
+  function openCreateToolIp() {
+    clearToolIpForm()
+    setShowToolIpModal(true)
+  }
+
+  function startEditToolIp(item) {
+    setEditingToolIpId(item.id)
+    setToolIpString(item.ip || item.ipString || '')
+    setToolIpRemarks(item.remarks || '')
+    setShowToolIpModal(true)
+  }
+
+  function handleToolIpFiltersChange(nextFilters) {
+    setToolIpFilters(nextFilters)
+    setToolIpQueryApplied(false)
+  }
+
+  function applyToolIpFilters(event) {
+    event.preventDefault()
+    setToolIpQueryApplied(true)
+    void loadToolIps(toolIpFilters, { page: 0, size: toolIpPaginationRef.current.size })
+  }
+
+  function reloadToolIpFilters() {
+    setToolIpFilters({
+      ipString: '',
+      adsOwner: '',
+    })
+    setToolIpQueryApplied(false)
+    void loadToolIps({}, { page: 0, size: toolIpPaginationRef.current.size })
+  }
+
+  function handleToolIpPageChange(page) {
+    void loadToolIps(toolIpQueryApplied ? toolIpFiltersRef.current : {}, {
+      page,
+      size: toolIpPaginationRef.current.size,
+    })
+  }
+
+  function handleToolIpPageSizeChange(size) {
+    void loadToolIps(toolIpQueryApplied ? toolIpFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  async function handleSaveToolIp(event) {
+    event.preventDefault()
+    setSavingToolIp(true)
+    setToolIpsError('')
+    setToolIpsMessage('')
+
+    try {
+      const ipString = toOptionalTrimmedString(toolIpString)
+      if (!ipString) {
+        throw new Error('IP is required.')
+      }
+
+      const payload = {
+        ip: ipString,
+        startDate: toApiDateValue(toolIpStartDate),
+        expireDate: toApiDateValue(toolIpExpireDate),
+        remarks: toOptionalTrimmedString(toolIpRemarks),
+      }
+
+      if (editingToolIpId) {
+        await requestApi(`/tool-ips/${editingToolIpId}`, {
+          method: 'PUT',
+          token,
+          body: {
+            id: editingToolIpId,
+            ...payload,
+          },
+        })
+        setToolIpsMessage('IP updated successfully.')
+      } else {
+        await requestApi('/tool-ips', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setToolIpsMessage('IP created successfully.')
+      }
+
+      clearToolIpForm()
+      await loadToolIps(toolIpQueryApplied ? toolIpFiltersRef.current : {}, toolIpPaginationRef.current)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setToolIpsError(message)
+    } finally {
+      setSavingToolIp(false)
+    }
+  }
+
+  async function handleDeleteToolIp(id) {
+    setToolIpsError('')
+    setToolIpsMessage('')
+
+    try {
+      await requestApi(`/tool-ips/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setToolIpsMessage('IP deleted successfully.')
+      await loadToolIps(toolIpQueryApplied ? toolIpFiltersRef.current : {}, toolIpPaginationRef.current)
+      if (editingToolIpId === id) {
+        clearToolIpForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setToolIpsError(message)
+    }
+  }
+
   function startEditPaypal(item) {
     setEditingPaypalId(item.id)
     setPaypalEmail(item.paypalEmail || '')
@@ -5257,6 +5421,8 @@ setAdsAccountStatus(item.status || '')
           ? 'Auto Trigger'
         : activeMenu === 'affiliate-ip-proxy'
           ? 'Proxy Config'
+        : activeMenu === 'tool-ip-management'
+          ? 'IP Management'
         : activeMenu === 'paypal-management'
           ? 'PayPal Management'
         : activeMenu === 'income-management'
@@ -6030,6 +6196,41 @@ setAdsAccountStatus(item.status || '')
         pagination={ipProxyPagination}
         onPageChange={handleIpProxyPageChange}
         onPageSizeChange={handleIpProxyPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'tool-ip-management') {
+    activeSection = (
+      <ToolIpManagementSection
+        toolIps={toolIps}
+        toolIpsLoading={toolIpsLoading}
+        toolIpsError={toolIpsError}
+        toolIpsMessage={toolIpsMessage}
+        toolIpFilters={toolIpFilters}
+        onToolIpFiltersChange={handleToolIpFiltersChange}
+        onApplyToolIpFilters={applyToolIpFilters}
+        onReloadToolIpFilters={reloadToolIpFilters}
+        onCreateToolIp={openCreateToolIp}
+        onEditToolIp={startEditToolIp}
+        onDeleteToolIp={handleDeleteToolIp}
+        showToolIpModal={showToolIpModal}
+        editingToolIpId={editingToolIpId}
+        toolIpString={toolIpString}
+        onToolIpStringChange={setToolIpString}
+        toolIpRemarks={toolIpRemarks}
+        onToolIpRemarksChange={setToolIpRemarks}
+        toolIpStartDate={toolIpStartDate}
+        onToolIpStartDateChange={setToolIpStartDate}
+        toolIpExpireDate={toolIpExpireDate}
+        onToolIpExpireDateChange={setToolIpExpireDate}
+        onSaveToolIp={handleSaveToolIp}
+        savingToolIp={savingToolIp}
+        onCloseToolIpModal={() => setShowToolIpModal(false)}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={toolIpPagination}
+        onPageChange={handleToolIpPageChange}
+        onPageSizeChange={handleToolIpPageSizeChange}
       />
     )
   } else if (activeMenu === 'paypal-management') {

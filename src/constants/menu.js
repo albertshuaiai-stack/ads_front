@@ -32,10 +32,11 @@ export const MENU_GROUPS = [
   },
   {
     id: 'tool',
-    title: 'Tool',
+    title: 'TOOL MENU',
     items: [
       { id: 'brand-review-management', label: 'Brand Review' },
       { id: 'email-management', label: 'Email' },
+      { id: 'tool-ip-management', label: 'IP Management' },
       { id: 'cash-bach-account', label: 'Cash Back Account' },
       { id: 'ads-account-management', label: 'Ads Account' },
       { id: 'paypal-management', label: 'PayPal' },
@@ -69,6 +70,7 @@ export const MENU_GROUPS = [
 export const TOOL_MENU_IDS = [
   'brand-review-management',
   'email-management',
+  'tool-ip-management',
   'cash-bach-account',
   'ads-account-management',
   'paypal-management',
