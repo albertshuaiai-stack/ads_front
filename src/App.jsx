@@ -17,6 +17,7 @@ import BrandReviewManagementSection from './components/BrandReviewManagementSect
 import CbAccountReportSection from './components/CbAccountReportSection/CbAccountReportSection'
 import ChangePasswordModal from './components/ChangePasswordModal/ChangePasswordModal'
 import EmailManagementSection from './components/EmailManagementSection/EmailManagementSection'
+import ExpenditureReportSection from './components/ExpenditureReportSection/ExpenditureReportSection'
 import GoogleAdsScriptPanel from './components/GoogleAdsScriptPanel/GoogleAdsScriptPanel'
 import IncomeManagementSection from './components/IncomeManagementSection/IncomeManagementSection'
 import IncomeExpenditureReportSection from './components/IncomeExpenditureReportSection/IncomeExpenditureReportSection'
@@ -5631,6 +5632,8 @@ setAdsAccountStatus(item.status || '')
           ? 'Cash Back Account'
         : activeMenu === 'cb-account-report'
           ? 'CB Account Report'
+        : activeMenu === 'expenditure-report'
+          ? 'Expenditure Report'
         : activeMenu === 'income-expenditure-report'
           ? 'Income / Expenditure Report'
         : activeMenu === 'ads-account-management'
@@ -6191,6 +6194,15 @@ setAdsAccountStatus(item.status || '')
   } else if (activeMenu === 'ads-audit-report') {
     activeSection = (
       <AdsAuditReportSection
+        token={token}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
+        ownerOptionsLoading={ownerFilterOptionsLoading}
+      />
+    )
+  } else if (activeMenu === 'expenditure-report') {
+    activeSection = (
+      <ExpenditureReportSection
         token={token}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}

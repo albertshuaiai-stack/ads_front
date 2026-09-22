@@ -96,6 +96,16 @@ function getIconFor(id) {
           <path d="M5 10l4-3 3 2 6-4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
+    case 'expenditure-report':
+      return (
+        <svg {...common} aria-hidden focusable="false">
+          <path d="M4 19h16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M7 19V9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M12 19V6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M17 19v-8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          <path d="M7 7h10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+        </svg>
+      )
     case 'ads-account-management':
       return (
         <svg {...common} aria-hidden focusable="false">

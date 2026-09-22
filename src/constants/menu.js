@@ -51,6 +51,7 @@ export const MENU_GROUPS = [
     items: [
       { id: 'cb-account-report', label: 'CB Account' },
       { id: 'ads-audit-report', label: 'Ads Audit' },
+      { id: 'expenditure-report', label: 'Expenditure' },
       { id: 'income-expenditure-report', label: 'Income/Expenditure' },
     ],
   },
@@ -80,7 +81,12 @@ export const TOOL_MENU_IDS = [
   'outcome-management',
 ]
 
-export const REPORT_MENU_IDS = ['cb-account-report', 'ads-audit-report', 'income-expenditure-report']
+export const REPORT_MENU_IDS = [
+  'cb-account-report',
+  'ads-audit-report',
+  'expenditure-report',
+  'income-expenditure-report',
+]
 
 // Affiliate Ads 类菜单 id 集合 / Affiliate Ads menu ids
 export const AFFILIATE_ADS_MENU_IDS = [
