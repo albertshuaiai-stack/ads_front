@@ -205,7 +205,7 @@ function OutcomeManagementSection({
                       <td>{formatDateDisplayValue(item.payDate)}</td>
                       <td>{formatTableValue(item.remarks)}</td>
                       <td>{formatTableValue(item.adsAccount)}</td>
-                      <td>{formatTableValue(item.cloudPhoneNumber || item.cloudPhone)}</td>
+                      <td>{formatTableValue(item.phoneNumber || item.cloudPhoneNumber || item.cloudPhone)}</td>
                       <td>{formatTableValue(item.ip || item.ipString)}</td>
                       <td>{formatDateDisplayValue(item.createDate)}</td>
                       <td>{formatDateDisplayValue(item.updateDate)}</td>

@@ -5468,7 +5468,7 @@ setAdsAccountStatus(item.status || '')
         // loadCloudPhoneOptions reports errors via hook state; ignore here
       }
       setOutcomeCloudPhone(
-        toOptionalTrimmedString(firstDefinedValue(item, ['cloudPhoneNumber', 'cloudPhone'])) || '',
+        toOptionalTrimmedString(firstDefinedValue(item, ['phoneNumber', 'cloudPhoneNumber', 'cloudPhone'])) || '',
       )
     } else {
       setOutcomeCloudPhone('')
@@ -6207,6 +6207,7 @@ setAdsAccountStatus(item.status || '')
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
         ownerOptionsLoading={ownerFilterOptionsLoading}
+        currencyExchangeRateValue={currencyExchangeRate.exchangeRate}
       />
     )
   } else if (activeMenu === 'income-expenditure-report') {

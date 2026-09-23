@@ -9,6 +9,7 @@ import {
 } from '../../lib/adsPortal'
 import { OUTCOME_TYPE_OPTIONS } from '../../constants/options'
 import { toApiDateValue } from '../../utils/formatters'
+import { DEFAULT_EXCHANGE_RATE, convertCurrencyAmount, resolveExchangeRate } from '../../utils/reportCurrency'
 import './ExpenditureReportSection.css'
 
 const PAY_TYPE_COLORS = [
@@ -21,6 +22,7 @@ const PAY_TYPE_COLORS = [
   '#ec4899',
   '#84cc16',
 ]
+const MIN_VISIBLE_BAR_HEIGHT = 3
 
 function toNumber(value) {
   const parsed = Number(value)
@@ -47,6 +49,14 @@ function toMonthKey(value) {
   const text = String(value ?? '').trim()
   if (!text) {
     return ''
+  }
+
+  const compactMatch = text.match(/^(\d{4})(\d{2})$/)
+  if (compactMatch) {
+    const month = Number(compactMatch[2])
+    if (month >= 1 && month <= 12) {
+      return `${compactMatch[1]}-${compactMatch[2]}`
+    }
   }
 
   const directMatch = text.match(/(\d{4})[-/](\d{1,2})/)
@@ -86,6 +96,27 @@ function resolvePayTypeLabel(value) {
   return matchedOption ? matchedOption.label : fallback
 }
 
+function resolvePayTypeValue(item) {
+  return resolvePayTypeLabel(
+    firstDefinedValue(item, ['payType', 'PayType', 'outcomeType', 'outcomeTypeName']),
+  )
+}
+
+function resolveItemCurrency(item) {
+  return firstDefinedValue(item, ['currency', 'Currency', 'PayCurrency', 'payCurrency'])
+}
+
+function buildAvailablePayTypes(items) {
+  const payTypes = new Map()
+
+  ;(Array.isArray(items) ? items : []).forEach((item) => {
+    const payType = resolvePayTypeValue(item)
+    payTypes.set(payType, payType)
+  })
+
+  return Array.from(payTypes.values()).sort((left, right) => left.localeCompare(right))
+}
+
 async function loadAllOutcomes(token, filters) {
   const size = 200
   const query = {
@@ -95,13 +126,14 @@ async function loadAllOutcomes(token, filters) {
     page: 0,
     size,
   }
-  const firstResponse = await requestApi(`/tool-outcomes${buildQueryString(query)}`, { token })
+  const reportPath = '/report/expenditure'
+  const firstResponse = await requestApi(`${reportPath}${buildQueryString(query)}`, { token })
   const totalPages = Math.max(toNumber(firstResponse?.totalPages), 1)
   const items = [...extractItems(firstResponse)]
 
   for (let page = 1; page < totalPages; page += 1) {
     const response = await requestApi(
-      `/tool-outcomes${buildQueryString({
+      `${reportPath}${buildQueryString({
         ...query,
         page,
       })}`,
@@ -113,21 +145,28 @@ async function loadAllOutcomes(token, filters) {
   return items
 }
 
-function buildChartModel(items) {
+function buildChartModel(items, payTypeSelection, displayCurrency, exchangeRate) {
   const monthlyMap = new Map()
   const payTypes = new Map()
 
   ;(Array.isArray(items) ? items : []).forEach((item) => {
-    const month = toMonthKey(firstDefinedValue(item, ['payDate', 'createDate', 'date', 'reportDate']))
+    const month = toMonthKey(
+      firstDefinedValue(item, ['payMonth', 'payDate', 'createDate', 'date', 'reportDate']),
+    )
     if (!month) {
       return
     }
 
-    const payTypeLabel = resolvePayTypeLabel(
-      firstDefinedValue(item, ['payType', 'PayType', 'outcomeType', 'outcomeTypeName']),
-    )
-    const amount = toNumber(
+    const payTypeLabel = resolvePayTypeValue(item)
+    if (payTypeSelection?.[payTypeLabel] === false) {
+      return
+    }
+
+    const amount = convertCurrencyAmount(
       firstDefinedValue(item, ['payAmount', 'PayAmount', 'outcomeAmount', 'amount']),
+      resolveItemCurrency(item),
+      displayCurrency,
+      exchangeRate,
     )
 
     const current = monthlyMap.get(month) || { month, series: {} }
@@ -153,7 +192,7 @@ function buildChartModel(items) {
   return { chartItems, series, totals }
 }
 
-function GroupedMonthlyColumnChart({ items, series, totals }) {
+function GroupedMonthlyColumnChart({ items, series, totals, displayCurrency }) {
   if (items.length === 0 || series.length === 0) {
     return <p className="expenditure-report__empty">No expenditure data found for the selected time range.</p>
   }
@@ -194,7 +233,7 @@ function GroupedMonthlyColumnChart({ items, series, totals }) {
           width={svgWidth}
           height={svgHeight}
           role="img"
-          aria-label="Expenditure monthly column chart"
+          aria-label={`Expenditure monthly column chart in ${displayCurrency}`}
         >
           <line
             x1={chartLeft}
@@ -241,14 +280,15 @@ function GroupedMonthlyColumnChart({ items, series, totals }) {
               <g key={item.month}>
                 {series.map((entry, seriesIndex) => {
                   const value = toNumber(item.series[entry.key])
-                  const barHeight = (value / maxValue) * chartHeight
+                  const scaledBarHeight = (value / maxValue) * chartHeight
+                  const barHeight = value > 0 ? Math.max(scaledBarHeight, MIN_VISIBLE_BAR_HEIGHT) : 0
                   const x = groupX + seriesIndex * (barWidth + barGap)
                   const y = chartTop + chartHeight - barHeight
 
                   return (
                     <g key={`${item.month}-${entry.key}`}>
                       <rect x={x} y={y} width={barWidth} height={barHeight} rx="8" ry="8" fill={entry.color}>
-                        <title>{`${item.month}\n${entry.label}: ${formatAmount(value)}`}</title>
+                        <title>{`${item.month}\n${entry.label}: ${formatAmount(value)} ${displayCurrency}`}</title>
                       </rect>
                       <text
                         x={x + barWidth / 2}
@@ -281,7 +321,7 @@ function GroupedMonthlyColumnChart({ items, series, totals }) {
             transform={`rotate(-90 20 ${chartTop + chartHeight / 2})`}
             className="expenditure-report__axis-label"
           >
-            Pay Amount
+            Pay Amount ({displayCurrency})
           </text>
           <text
             x={chartLeft + plotWidth / 2}
@@ -297,7 +337,7 @@ function GroupedMonthlyColumnChart({ items, series, totals }) {
       <div className="expenditure-report__summary">
         {totals.map((entry) => (
           <span className="expenditure-report__summary-chip" key={entry.key}>
-            {entry.label}: {formatAmount(entry.total)}
+            {entry.label}: {formatAmount(entry.total)} {displayCurrency}
           </span>
         ))}
       </div>
@@ -310,6 +350,7 @@ function ExpenditureReportSection({
   showOwnerFilter,
   ownerOptions = [],
   ownerOptionsLoading = false,
+  currencyExchangeRateValue,
 }) {
   const defaultRange = useMemo(() => createDefaultRange(), [])
   const [startDate, setStartDate] = useState(defaultRange.startDate)
@@ -318,11 +359,18 @@ function ExpenditureReportSection({
   const [reportItems, setReportItems] = useState([])
   const [reportLoading, setReportLoading] = useState(false)
   const [reportError, setReportError] = useState('')
+  const [displayCurrency, setDisplayCurrency] = useState('USD')
+  const [payTypeSelection, setPayTypeSelection] = useState({})
   const initialFiltersRef = useRef({
     startDate: defaultRange.startDate,
     endDate: defaultRange.endDate,
     selectedOwner: '',
   })
+  const exchangeRate = useMemo(
+    () => resolveExchangeRate(currencyExchangeRateValue),
+    [currencyExchangeRateValue],
+  )
+  const availablePayTypes = useMemo(() => buildAvailablePayTypes(reportItems), [reportItems])
 
   const loadReport = useCallback(
     async (filters) => {
@@ -346,12 +394,29 @@ function ExpenditureReportSection({
     void loadReport(initialFiltersRef.current)
   }, [loadReport])
 
+  useEffect(() => {
+    setPayTypeSelection((current) => {
+      const next = {}
+      availablePayTypes.forEach((payType) => {
+        next[payType] = Object.prototype.hasOwnProperty.call(current, payType) ? current[payType] : true
+      })
+      return next
+    })
+  }, [availablePayTypes])
+
   function handleSearch(event) {
     event.preventDefault()
     void loadReport({ startDate, endDate, selectedOwner })
   }
 
-  const { chartItems, series, totals } = useMemo(() => buildChartModel(reportItems), [reportItems])
+  const selectedPayTypeCount = useMemo(
+    () => availablePayTypes.filter((payType) => payTypeSelection[payType] !== false).length,
+    [availablePayTypes, payTypeSelection],
+  )
+  const { chartItems, series, totals } = useMemo(
+    () => buildChartModel(reportItems, payTypeSelection, displayCurrency, exchangeRate),
+    [displayCurrency, exchangeRate, payTypeSelection, reportItems],
+  )
   const grandTotal = useMemo(
     () => totals.reduce((sum, entry) => sum + toNumber(entry.total), 0),
     [totals],
@@ -375,7 +440,7 @@ function ExpenditureReportSection({
         </div>
 
         <p className="expenditure-report__intro">
-          Query expenditure by time range and compare monthly pay amounts across PayType categories.
+          Query expenditure by time range, switch display currency, and show or hide PayType series.
         </p>
 
         <form className="filter-form expenditure-report__filters" onSubmit={handleSearch}>
@@ -427,6 +492,61 @@ function ExpenditureReportSection({
           </div>
         </form>
 
+        <div className="expenditure-report__controls">
+          <div className="expenditure-report__currency-group" role="radiogroup" aria-label="Display currency">
+            <span className="expenditure-report__control-label">Display Currency</span>
+            <label className="expenditure-report__radio">
+              <input
+                type="radio"
+                name="expenditureReportDisplayCurrency"
+                value="USD"
+                checked={displayCurrency === 'USD'}
+                onChange={(event) => setDisplayCurrency(event.target.value)}
+              />
+              <span>USD</span>
+            </label>
+            <label className="expenditure-report__radio">
+              <input
+                type="radio"
+                name="expenditureReportDisplayCurrency"
+                value="CNY"
+                checked={displayCurrency === 'CNY'}
+                onChange={(event) => setDisplayCurrency(event.target.value)}
+              />
+              <span>CNY</span>
+            </label>
+          </div>
+          <div className="expenditure-report__control-group">
+            <span className="expenditure-report__control-label">Pay Type</span>
+            <div className="expenditure-report__control-options">
+              {availablePayTypes.length === 0 ? (
+                <span className="expenditure-report__empty">No pay types available.</span>
+              ) : (
+                availablePayTypes.map((payType) => (
+                  <label className="expenditure-report__toggle" key={payType}>
+                    <input
+                      type="checkbox"
+                      checked={payTypeSelection[payType] !== false}
+                      onChange={(event) => {
+                        const { checked } = event.target
+                        setPayTypeSelection((current) => ({
+                          ...current,
+                          [payType]: checked,
+                        }))
+                      }}
+                    />
+                    <span>{payType}</span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+        <p className="expenditure-report__rate-note">
+          Exchange rate USD:CNY = {formatAmount(exchangeRate)}. If the endpoint rate is empty, the
+          report uses the default rate {DEFAULT_EXCHANGE_RATE}.
+        </p>
+
         {reportError ? (
           <p className="status error" role="alert">
             {reportError}
@@ -440,10 +560,19 @@ function ExpenditureReportSection({
               <h3>Monthly Expenditure by PayType</h3>
               <p>The X-axis shows year and month, and the Y-axis shows the total payAmount.</p>
             </div>
-            <span className="expenditure-report__total">Total: {formatAmount(grandTotal)}</span>
+            <span className="expenditure-report__total">Total: {formatAmount(grandTotal)} {displayCurrency}</span>
           </div>
 
-          <GroupedMonthlyColumnChart items={chartItems} series={series} totals={totals} />
+          {availablePayTypes.length > 0 && selectedPayTypeCount === 0 ? (
+            <p className="expenditure-report__empty">Enable at least one PayType to display the report.</p>
+          ) : (
+            <GroupedMonthlyColumnChart
+              items={chartItems}
+              series={series}
+              totals={totals}
+              displayCurrency={displayCurrency}
+            />
+          )}
         </div>
       </div>
     </div>

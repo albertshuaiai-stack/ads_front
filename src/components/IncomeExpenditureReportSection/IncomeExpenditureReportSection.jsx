@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { buildQueryString, extractItems, requestApi } from '../../lib/adsPortal'
+import { DEFAULT_EXCHANGE_RATE, convertCurrencyAmount, resolveExchangeRate } from '../../utils/reportCurrency'
 import './IncomeExpenditureReportSection.css'
 
-const DEFAULT_EXCHANGE_RATE = 7
 const FINANCE_SERIES = [
   { key: 'income', label: 'Income', color: '#22c55e' },
   { key: 'expenditure', label: 'Expenditure', color: '#ef4444' },
@@ -12,35 +12,6 @@ const FINANCE_SERIES = [
 function toNumber(value) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : 0
-}
-
-function normalizeCurrency(value) {
-  return String(value ?? '').trim().toUpperCase()
-}
-
-function resolveExchangeRate(value) {
-  const parsed = Number(value)
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_EXCHANGE_RATE
-}
-
-function convertCurrencyAmount(value, itemCurrency, displayCurrency, exchangeRate) {
-  const amount = toNumber(value)
-  const normalizedItemCurrency = normalizeCurrency(itemCurrency)
-  const normalizedDisplayCurrency = normalizeCurrency(displayCurrency)
-
-  if (!normalizedItemCurrency || normalizedItemCurrency === normalizedDisplayCurrency) {
-    return amount
-  }
-
-  if (normalizedDisplayCurrency === 'USD' && normalizedItemCurrency === 'CNY') {
-    return amount / exchangeRate
-  }
-
-  if (normalizedDisplayCurrency === 'CNY' && normalizedItemCurrency === 'USD') {
-    return amount * exchangeRate
-  }
-
-  return amount
 }
 
 function formatValue(value) {

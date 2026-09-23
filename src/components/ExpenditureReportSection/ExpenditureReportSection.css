@@ -9,6 +9,71 @@
   font-size: 14px;
 }
 
+.expenditure-report__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  margin-top: 12px;
+}
+
+.expenditure-report__control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.expenditure-report__control-label {
+  color: var(--text-h);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.expenditure-report__control-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.expenditure-report__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.expenditure-report__toggle input {
+  margin: 0;
+}
+
+.expenditure-report__currency-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.expenditure-report__radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-h);
+  font-size: 14px;
+}
+
+.expenditure-report__radio input {
+  margin: 0;
+}
+
+.expenditure-report__rate-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .expenditure-report__filters {
   align-items: end;
 }
