@@ -15,6 +15,7 @@ export function useShiftLinks(token) {
   const [capMainName, setCapMainName] = useState('')
   const [adsType, setAdsType] = useState('')
   const [platform, setPlatform] = useState('')
+  const [adsUserName, setAdsUserName] = useState('')
   const [fullUrl, setFullUrl] = useState('')
   const [displayNumber, setDisplayNumber] = useState('')
   const [remark, setRemark] = useState('')
@@ -95,6 +96,7 @@ export function useShiftLinks(token) {
     capMainName, setCapMainName,
     adsType, setAdsType,
     platform, setPlatform,
+    adsUserName, setAdsUserName,
     fullUrl, setFullUrl,
     displayNumber, setDisplayNumber,
     remark, setRemark,

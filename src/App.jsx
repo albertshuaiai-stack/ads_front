@@ -392,6 +392,7 @@ function App() {
     capMainName, setCapMainName,
     adsType, setAdsType,
     platform, setPlatform,
+    adsUserName, setAdsUserName,
     fullUrl, setFullUrl,
     displayNumber, setDisplayNumber,
     remark, setRemark,
@@ -1083,6 +1084,30 @@ function App() {
     incomeUserName,
   ])
 
+  const shiftLinkUserOptions = useMemo(() => {
+    const usersByName = new Map()
+
+    const addUserOption = (rawUserName) => {
+      const normalizedUserName = toOptionalTrimmedString(rawUserName)
+      if (!normalizedUserName || usersByName.has(normalizedUserName)) {
+        return
+      }
+
+      usersByName.set(normalizedUserName, { userName: normalizedUserName })
+    }
+
+    toolEmailUserOptions.forEach((item) => {
+      addUserOption(item?.userName)
+    })
+
+    addUserOption(adsUserName)
+    addUserOption(firstDefinedValue(editingAdsOriginal, ['userName', 'user_name']))
+
+    return Array.from(usersByName.values()).sort((left, right) =>
+      String(left.userName).localeCompare(String(right.userName)),
+    )
+  }, [adsUserName, editingAdsOriginal, toolEmailUserOptions])
+
   const ownerFilterOptions = useMemo(() => {
     const usersByPhoneNumber = new Map()
 
@@ -1213,6 +1238,7 @@ function App() {
     setCapMainName('')
     setAdsType(adsTypeOptions.length === 1 ? adsTypeOptions[0].value : '')
     setPlatform('')
+    setAdsUserName('')
     setFullUrl('')
     setDisplayNumber('')
     setRemark('')
@@ -2545,6 +2571,7 @@ function App() {
     }
 
     if (activeMenu === 'ads-url-management') {
+      void loadAccountEmailOptions()
       void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {})
       void loadShiftLinkLogCatalog()
       void loadPlatformOptions()
@@ -3626,6 +3653,7 @@ function App() {
     setCapMainName(item.adsName || item.capMainName || item.campainName || '')
     setAdsType(item.adsType || item.ads_type || '')
     setPlatform(item.platformName || item.platform || '')
+    setAdsUserName(firstDefinedValue(item, ['userName', 'user_name']) || '')
     setFullUrl(item.fullUrl || '')
     setDisplayNumber(
       firstDefinedValue(item, ['displayNumber']) != null
@@ -3651,6 +3679,10 @@ function App() {
         platformName:
           platform ||
           firstDefinedValue(editingAdsOriginal, ['platformName', 'platform']) ||
+          undefined,
+        userName:
+          toOptionalTrimmedString(adsUserName) ||
+          firstDefinedValue(editingAdsOriginal, ['userName', 'user_name']) ||
           undefined,
         adsOwner:
           firstDefinedValue(editingAdsOriginal, ['adsOwner']) ||
@@ -5885,12 +5917,16 @@ setAdsAccountStatus(item.status || '')
         onAdsTypeChange={setAdsType}
         platform={platform}
         onPlatformChange={setPlatform}
+        adsUserName={adsUserName}
+        onAdsUserNameChange={setAdsUserName}
         fullUrl={fullUrl}
         onFullUrlChange={setFullUrl}
         displayNumber={displayNumber}
         onDisplayNumberChange={setDisplayNumber}
         remark={remark}
         onRemarkChange={setRemark}
+        userNameOptions={shiftLinkUserOptions}
+        userNameOptionsLoading={accountEmailOptionsLoading}
         onSaveAds={handleSaveAds}
         savingAds={savingAds}
         onCloseAdsModal={() => setShowAdsModal(false)}

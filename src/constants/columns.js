@@ -22,7 +22,7 @@ export const ADS_URL_COLUMNS = [
     fields: ['landingPageUrl', 'landingUrl'],
   },
   { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
-  { key: 'remarks', label: 'Remarks', fields: ['remarks', 'remark'] },
+  { key: 'userName', label: 'User Name', fields: ['userName', 'user_name'] },
   { key: 'status', label: 'Status', fields: ['status'] },
   { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
   { key: 'updateDate', label: 'Update Date', fields: ['updateDate'] },
@@ -34,8 +34,8 @@ export const SHIFT_LINK_LOG_COLUMNS = [
   { key: 'adsName', label: 'Ads Name', fields: ['adsName', 'capMainName', 'campaignName'] },
   { key: 'platformName', label: 'Platform Name', fields: ['platformName', 'platform'] },
   { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
+  { key: 'userName', label: 'User Name', fields: ['userName', 'user_name'] },
   { key: 'displayTimes', label: 'Display Times', fields: ['displayTimes'] },
-  { key: 'remarks', label: 'Remarks', fields: ['remarks', 'remark'] },
   { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
 ]
 

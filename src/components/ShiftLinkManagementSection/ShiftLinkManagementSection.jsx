@@ -42,12 +42,16 @@ function ShiftLinkManagementSection({
   onAdsTypeChange,
   platform,
   onPlatformChange,
+  adsUserName,
+  onAdsUserNameChange,
   fullUrl,
   onFullUrlChange,
   displayNumber,
   onDisplayNumberChange,
   remark,
   onRemarkChange,
+  userNameOptions,
+  userNameOptionsLoading,
   onSaveAds,
   savingAds,
   onCloseAdsModal,
@@ -352,6 +356,21 @@ function ShiftLinkManagementSection({
             {!platformsLoading && platformOptions.length === 0 ? (
               <p className="field-help">Create a platform first, then choose it here.</p>
             ) : null}
+
+            <label htmlFor="shiftLinkUserName">User Name</label>
+            <select
+              id="shiftLinkUserName"
+              value={adsUserName}
+              onChange={(event) => onAdsUserNameChange(event.target.value)}
+            >
+              <option value="">Select user name</option>
+              {userNameOptions.map((option) => (
+                <option key={option.userName} value={option.userName}>
+                  {option.userName}
+                </option>
+              ))}
+            </select>
+            {userNameOptionsLoading ? <p className="field-help">Loading user names...</p> : null}
 
             <label htmlFor="fullUrl">Full URL</label>
             <input

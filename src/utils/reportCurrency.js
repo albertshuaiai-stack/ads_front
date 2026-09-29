@@ -1,54 +1,51 @@
-// 报表货币换算工具 / Report currency helpers
+const DEFAULT_EXCHANGE_RATE = 7
 
-// 默认 USD:CNY 汇率, 接口为空或无效时兜底 / Fallback USD:CNY rate when endpoint value is empty or invalid
-export const DEFAULT_EXCHANGE_RATE = 7.2
-
-// 解析接口返回的汇率值, 无效时回退默认值 / Parse endpoint rate value, fallback to default when invalid
-export function resolveExchangeRate(value) {
-  if (value === null || value === undefined) {
-    return DEFAULT_EXCHANGE_RATE
+function normalizeCurrency(value) {
+  const normalized = String(value ?? '').trim().toUpperCase()
+  if (!normalized) {
+    return ''
   }
 
-  // 接口为空时 App 会传 '—' 占位 / App passes '—' placeholder when rate is missing
-  const text = String(value).trim()
-  if (!text || text === '—' || text === '-') {
-    return DEFAULT_EXCHANGE_RATE
+  if (normalized === 'USD' || normalized === 'US$' || normalized === '$') {
+    return 'USD'
   }
 
-  const rate = Number(text)
-  if (!Number.isFinite(rate) || rate <= 0) {
-    return DEFAULT_EXCHANGE_RATE
+  if (normalized === 'CNY' || normalized === 'RMB' || normalized === 'CN¥' || normalized === '¥' || normalized === '￥') {
+    return 'CNY'
   }
 
-  return rate
+  return normalized
 }
 
-// 归一化币种代码 / Normalize currency code
-function normalizeCurrencyCode(currency) {
-  return String(currency ?? '').trim().toUpperCase()
+function resolveExchangeRate(value) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_EXCHANGE_RATE
 }
 
-// 换算金额, 无效金额按 0 处理 / Convert amount across currencies, invalid amount counts as 0
-export function convertCurrencyAmount(amount, fromCurrency, toCurrency, exchangeRate) {
-  const value = Number(amount)
-  if (!Number.isFinite(value)) {
-    return 0
+function convertCurrencyAmount(value, itemCurrency, displayCurrency, exchangeRate) {
+  const amount = Number(value)
+  const normalizedAmount = Number.isFinite(amount) ? amount : 0
+  const normalizedItemCurrency = normalizeCurrency(itemCurrency)
+  const normalizedDisplayCurrency = normalizeCurrency(displayCurrency)
+
+  if (!normalizedItemCurrency || normalizedItemCurrency === normalizedDisplayCurrency) {
+    return normalizedAmount
   }
 
-  const from = normalizeCurrencyCode(fromCurrency)
-  const to = normalizeCurrencyCode(toCurrency)
-  if (!from || !to || from === to) {
-    return value
+  if (normalizedDisplayCurrency === 'USD' && normalizedItemCurrency === 'CNY') {
+    return normalizedAmount / exchangeRate
   }
 
-  const rate = resolveExchangeRate(exchangeRate)
-  if (from === 'USD' && to === 'CNY') {
-    return value * rate
-  }
-  if (from === 'CNY' && to === 'USD') {
-    return value / rate
+  if (normalizedDisplayCurrency === 'CNY' && normalizedItemCurrency === 'USD') {
+    return normalizedAmount * exchangeRate
   }
 
-  // 未知币种不做换算, 原样计入 / Unknown currency passes through unconverted
-  return value
+  return normalizedAmount
+}
+
+export {
+  DEFAULT_EXCHANGE_RATE,
+  normalizeCurrency,
+  resolveExchangeRate,
+  convertCurrencyAmount,
 }
