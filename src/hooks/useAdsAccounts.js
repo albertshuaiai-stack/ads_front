@@ -39,45 +39,10 @@ export function useAdsAccounts(token) {
     adsAccountPaginationRef.current = adsAccountPagination
   }, [adsAccountPagination])
 
-  const [adsAccountBrandOptions, setAdsAccountBrandOptions] = useState([])
-  const [adsAccountBrandOptionsLoading, setAdsAccountBrandOptionsLoading] = useState(false)
-  const [adsAccountBrandOptionsError, setAdsAccountBrandOptionsError] = useState('')
-
   // Load MCC accounts for dropdowns (from /ads-accounts/mcc)
   const [adsAccountMccOptions, setAdsAccountMccOptions] = useState([])
   const [adsAccountMccLoading, setAdsAccountMccLoading] = useState(false)
   const [adsAccountMccError, setAdsAccountMccError] = useState('')
-
-  const loadBrandOptions = useCallback(async () => {
-    if (!token) {
-      setAdsAccountBrandOptions([])
-      setAdsAccountBrandOptionsError('')
-      setAdsAccountBrandOptionsLoading(false)
-      return
-    }
-
-    setAdsAccountBrandOptionsLoading(true)
-    setAdsAccountBrandOptionsError('')
-
-    try {
-      const response = await requestApi('/tool-brands-reviews/brands', { token })
-      const items = extractItems(response)
-      const uniqueBrands = Array.from(
-        new Set(items.map((item) => String(item ?? '').trim()).filter(Boolean)),
-      ).sort((left, right) => left.localeCompare(right))
-      setAdsAccountBrandOptions(uniqueBrands)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setAdsAccountBrandOptionsError(message)
-      setAdsAccountBrandOptions([])
-    } finally {
-      setAdsAccountBrandOptionsLoading(false)
-    }
-  }, [token])
-
-  useEffect(() => {
-    void loadBrandOptions()
-  }, [loadBrandOptions])
 
   useEffect(() => {
     if (!token) {
@@ -167,11 +132,7 @@ export function useAdsAccounts(token) {
     adsAccountStatus, setAdsAccountStatus,
     savingAdsAccount, setSavingAdsAccount,
     showAdsAccountModal, setShowAdsAccountModal,
-    adsAccountBrandOptions, setAdsAccountBrandOptions,
-    adsAccountBrandOptionsLoading, setAdsAccountBrandOptionsLoading,
-    adsAccountBrandOptionsError, setAdsAccountBrandOptionsError,
     adsAccountMccOptions, adsAccountMccLoading, adsAccountMccError,
-    loadBrandOptions,
     loadAdsAccounts,
   }
 }

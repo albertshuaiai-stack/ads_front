@@ -561,12 +561,6 @@ function App() {
     adsAccountStatus, setAdsAccountStatus,
     savingAdsAccount, setSavingAdsAccount,
     showAdsAccountModal, setShowAdsAccountModal,
-    adsAccountBrandOptions,
-    setAdsAccountBrandOptions,
-    adsAccountBrandOptionsLoading,
-    setAdsAccountBrandOptionsLoading,
-    adsAccountBrandOptionsError,
-    setAdsAccountBrandOptionsError,
     // MCC options loaded from API
     adsAccountMccOptions: adsAccountMccOptionsFromApi,
     adsAccountMccLoading,
@@ -3386,9 +3380,6 @@ function App() {
     setAccountsMessage('')
     setAccountPagination(createInitialPagination())
     setAdsAccountBrand('')
-    setAdsAccountBrandOptions([])
-    setAdsAccountBrandOptionsLoading(false)
-    setAdsAccountBrandOptionsError('')
     setAccountEmailOptionsSource([])
     setAccountEmailOptionsLoading(false)
     setOwnerFilterOptionsSource([])
@@ -6290,8 +6281,6 @@ setAdsAccountStatus(item.status || '')
         editingAdsAccountId={editingAdsAccountId}
         adsAccountValue={adsAccountValue}
         onAdsAccountValueChange={setAdsAccountValue}
-        adsAccountBrand={adsAccountBrand}
-        onAdsAccountBrandChange={setAdsAccountBrand}
         adsAccountType={adsAccountType}
         onAdsAccountTypeChange={handleAdsAccountTypeChange}
         adsAccountAgencyPlatform={adsAccountAgencyPlatform}
@@ -6311,9 +6300,6 @@ setAdsAccountStatus(item.status || '')
         ownerOptions={ownerFilterOptions}
         ownerOptionsLoading={ownerFilterOptionsLoading}
         adsAccountTypeOptions={adsAccountTypeOptions}
-        adsAccountBrandOptions={adsAccountBrandOptions}
-        adsAccountBrandOptionsLoading={adsAccountBrandOptionsLoading}
-        adsAccountBrandOptionsError={adsAccountBrandOptionsError}
         adsAccountAgencyPlatformOptions={adsAccountAgencyPlatformOptions}
         adsAccountStatusOptions={adsAccountStatusOptions}
         formatDateDisplayValue={formatDateDisplayValue}

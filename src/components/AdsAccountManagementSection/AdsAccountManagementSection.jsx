@@ -18,8 +18,6 @@ function AdsAccountManagementSection({
   editingAdsAccountId,
   adsAccountValue,
   onAdsAccountValueChange,
-  adsAccountBrand,
-  onAdsAccountBrandChange,
   adsAccountType,
   onAdsAccountTypeChange,
   adsAccountAgencyPlatform,
@@ -36,9 +34,6 @@ function AdsAccountManagementSection({
   showOwnerFilter,
   ownerOptions,
   adsAccountTypeOptions,
-  adsAccountBrandOptions,
-  adsAccountBrandOptionsLoading,
-  adsAccountBrandOptionsError,
   adsAccountAgencyPlatformOptions,
   adsAccountStatusOptions,
   emailOptions,
@@ -285,26 +280,6 @@ function AdsAccountManagementSection({
               onChange={(event) => onAdsAccountValueChange(event.target.value)}
               required
             />
-
-            <label htmlFor="adsAccountManagementBrand">Brand</label>
-            <select
-              id="adsAccountManagementBrand"
-              value={adsAccountBrand}
-              onChange={(event) => onAdsAccountBrandChange(event.target.value)}
-              disabled={adsAccountBrandOptionsLoading}
-            >
-              <option value="">Select brand</option>
-              {adsAccountBrandOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            {adsAccountBrandOptionsError ? (
-              <p className="field-help" role="alert">
-                {adsAccountBrandOptionsError}
-              </p>
-            ) : null}
 
             <label htmlFor="adsAccountManagementAccountType">Account Type</label>
             <select
