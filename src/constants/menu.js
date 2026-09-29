@@ -28,6 +28,7 @@ export const MENU_GROUPS = [
       { id: 'ads-url-management', label: 'Shift Link' },
       { id: 'shift-link-log', label: 'Shift Link Log' },
       { id: 'test-shift-link', label: 'Shift Link Testing' },
+      { id: 'tracker-management', label: 'Tracker' },
     ],
   },
   {

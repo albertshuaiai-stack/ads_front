@@ -1,0 +1,75 @@
+/* 追踪管理页 / tracker management page */
+.tracker-management__intro {
+  margin: 0 0 12px;
+  color: var(--text-muted, #6b7280);
+  font-size: 13px;
+}
+
+.tracker-management__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  padding-bottom: 8px;
+}
+
+.tracker-management__tab {
+  border: 1px solid transparent;
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted, #6b7280);
+}
+
+.tracker-management__tab:hover {
+  background: var(--surface-hover, #f3f4f6);
+}
+
+.tracker-management__tab--active {
+  background: var(--primary-soft, #e0edff);
+  border-color: var(--primary-color, #3b82f6);
+  color: var(--primary-color, #3b82f6);
+  font-weight: 600;
+}
+
+/* 长 URL / 长文本截断 / truncate long urls and messages */
+.tracker-management__ellipsis {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tracker-management__check-detail {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  background: var(--surface-muted, #f9fafb);
+}
+
+.tracker-management__check-detail h4 {
+  margin: 0 0 8px;
+}
+
+.tracker-management__check-detail p {
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+/* 跳转链 / redirect chain */
+.tracker-management__chain {
+  margin: 8px 0 0;
+  padding: 10px;
+  max-height: 220px;
+  overflow: auto;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

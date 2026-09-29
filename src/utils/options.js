@@ -20,7 +20,10 @@ export function buildAdsTypeOptions(role) {
   const hasMatrixRole = isMatrixRole(role)
 
   if (hasNormalRole && !hasMatrixRole && !hasAdminRole) {
-    return [{ value: 'Normal', label: 'Normal' }]
+    return [
+      { value: 'Normal', label: 'Normal' },
+      { value: 'Tracker', label: 'Tracker' },
+    ]
   }
 
   if (hasMatrixRole && !hasNormalRole && !hasAdminRole) {
@@ -30,6 +33,7 @@ export function buildAdsTypeOptions(role) {
   if (hasAdminRole || hasNormalRole || hasMatrixRole) {
     return [
       { value: 'Normal', label: 'Normal' },
+      { value: 'Tracker', label: 'Tracker' },
       { value: 'Matrix', label: 'Matrix' },
     ]
   }

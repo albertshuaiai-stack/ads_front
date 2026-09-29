@@ -34,6 +34,7 @@ import ShiftLinkLogSection from './components/ShiftLinkLogSection/ShiftLinkLogSe
 import ShiftLinkManagementSection from './components/ShiftLinkManagementSection/ShiftLinkManagementSection'
 import Sidebar from './components/Sidebar/Sidebar'
 import TestShiftLinkSection from './components/TestShiftLinkSection/TestShiftLinkSection'
+import TrackerManagementSection from './components/TrackerManagementSection/TrackerManagementSection'
 import UserAgentManagementSection from './components/UserAgentManagementSection/UserAgentManagementSection'
 import UserManagementSection from './components/UserManagementSection/UserManagementSection'
 import './App.css'
@@ -158,6 +159,7 @@ import { useAffiliateTriggers } from './hooks/useAffiliateTriggers'
 import { useIpProxies } from './hooks/useIpProxies'
 import { useToolIps } from './hooks/useToolIps'
 import { useToolCloudPhones } from './hooks/useToolCloudPhones'
+import { useTracker } from './hooks/useTracker'
 
 const DEFAULT_CURRENCY_EXCHANGE_RATE_PAIR = 'USD:CNY'
 
@@ -826,6 +828,19 @@ function App() {
     showOutcomeModal, setShowOutcomeModal,
     loadToolOutcomes,
   } = useOutcomes(token)
+  const tracker = useTracker(token)
+  const trackerLoadCampaigns = tracker.loadTrackCampaigns
+  const trackerLoadPools = tracker.loadTrackPools
+
+  // 进入 Tracker 菜单时加载列表 / load tracker lists when the menu becomes active
+  useEffect(() => {
+    if (activeMenu !== 'tracker-management') {
+      return
+    }
+    void trackerLoadCampaigns()
+    void trackerLoadPools()
+  }, [activeMenu, trackerLoadCampaigns, trackerLoadPools])
+
   const isAuthenticated = useMemo(() => Boolean(token), [token])
 
   const platformOptions = useMemo(() => {
@@ -5662,6 +5677,8 @@ setAdsAccountStatus(item.status || '')
           ? 'Income Management'
         : activeMenu === 'outcome-management'
           ? 'Expenditure Management'
+        : activeMenu === 'tracker-management'
+          ? 'Tracker Management'
         : activeMenu === 'ads-url-management'
           ? 'Shift Link'
           : activeMenu === 'shift-link-dashboard'
@@ -6217,6 +6234,8 @@ setAdsAccountStatus(item.status || '')
         currencyExchangeRateValue={currencyExchangeRate.exchangeRate}
       />
     )
+  } else if (activeMenu === 'tracker-management') {
+    activeSection = <TrackerManagementSection {...tracker} />
   } else if (activeMenu === 'ads-account-management') {
     activeSection = (
       <AdsAccountManagementSection

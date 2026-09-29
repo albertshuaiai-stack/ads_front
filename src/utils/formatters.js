@@ -130,6 +130,10 @@ export function normalizeShiftLinkAdsType(value) {
     return 'Normal'
   }
 
+  if (normalized === 'tracker') {
+    return 'Tracker'
+  }
+
   if (normalized === 'matrix') {
     return 'Matrix'
   }
