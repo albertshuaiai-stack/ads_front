@@ -492,9 +492,10 @@ function ShiftLinkManagementSection({
 
             <p className="field-help">
               Folder structure: <code>root / platform / campaign-file</code>. First-level folders
-              are platform names, file names (without extension) are Campaign Names, and each line
-              inside a file is one Full URL. Display Number applies to every imported link. Missing
-              platforms are created automatically.
+              are platform names, file names (without extension) are brand / Campaign Names, and
+              each line inside a file is one Full URL. Display Number applies to every imported
+              link. Missing platforms are created automatically. Links containing a Gmail Link
+              Rule Match ID are classified to that Gmail account automatically.
             </p>
 
             {folderImportError ? (

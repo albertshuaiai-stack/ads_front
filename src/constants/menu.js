@@ -28,7 +28,6 @@ export const MENU_GROUPS = [
       { id: 'ads-url-management', label: 'Shift Link' },
       { id: 'shift-link-log', label: 'Shift Link Log' },
       { id: 'test-shift-link', label: 'Shift Link Testing' },
-      { id: 'tracker-management', label: 'Tracker' },
     ],
   },
   {
@@ -37,6 +36,8 @@ export const MENU_GROUPS = [
     items: [
       { id: 'brand-review-management', label: 'Brand Review' },
       { id: 'email-management', label: 'Email' },
+      { id: 'gmail-platform-link', label: 'Gmail Link Rule' },
+      { id: 'middle-link-management', label: 'Middle Link' },
       { id: 'tool-ip-management', label: 'IP Management' },
       { id: 'tool-cloud-phone-management', label: 'Cloud Phone' },
       { id: 'cash-bach-account', label: 'Cash Back Account' },
@@ -73,6 +74,8 @@ export const MENU_GROUPS = [
 export const TOOL_MENU_IDS = [
   'brand-review-management',
   'email-management',
+  'gmail-platform-link',
+  'middle-link-management',
   'tool-ip-management',
   'tool-cloud-phone-management',
   'cash-bach-account',

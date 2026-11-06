@@ -4,324 +4,266 @@ import './GoogleAdsScriptPanel.css'
 // 脚本服务器地址走环境变量配置(见 .env.production / .env.development.local), 未配置时回退默认域名
 // Script server base URL comes from env config; falls back to the default domain
 const ADS_SCRIPT_NORMAL_BASE_URL =
-  import.meta.env.VITE_ADS_SCRIPT_NORMAL_BASE_URL || 'https://ads.admirecars.com'
+  import.meta.env.VITE_ADS_SCRIPT_NORMAL_BASE_URL || 'https://track.lunalvabeau.com'
 const ADS_SCRIPT_MATRIX_BASE_URL =
-  import.meta.env.VITE_ADS_SCRIPT_MATRIX_BASE_URL || 'https://ads.admirecars.com'
+  import.meta.env.VITE_ADS_SCRIPT_MATRIX_BASE_URL || 'https://track.lunalvabeau.com'
+
+// 高频替换场景: setTrackingTemplate 不返回服务端结果, 失败只写进更改日志, 文本日志会一直显示成功。
+// 改为 mutateAll + partialFailure, 逐条读取 isSuccessful/getErrorMessages, 并对瞬时错误自动重试。
+// High-frequency sync: mutateAll exposes per-campaign server errors and retries transient failures.
+function buildGoogleAdsScript(apiBaseUrl, modeLabel) {
+  return `// Google Ads auto tracking template script (high frequency safe)
+// Server: ${apiBaseUrl}
+// Mode: ${modeLabel}
+// Note: unchanged templates are skipped, so frequent runs do not spam mutations.
+
+var API_BASE_URL = '${apiBaseUrl}';
+var BATCH_SIZE = 50;
+var MAX_RETRIES = 3;
+var MAX_TEMPLATE_BYTES = 2048;
+
+function main() {
+  if (isMccAccount()) {
+    var accountIterator = MccApp
+      .accounts()
+      .withCondition('CanManageClients = FALSE')
+      .get();
+
+    while (accountIterator.hasNext()) {
+      MccApp.select(accountIterator.next());
+      processAccount();
+    }
+  } else {
+    processAccount();
+  }
+}
+
+function isMccAccount() {
+  try {
+    return MccApp.accounts().get().hasNext();
+  } catch (e) {
+    return false;
+  }
+}
+
+function processAccount() {
+  var customerId = AdsApp.currentAccount().getCustomerId().replace(/-/g, '');
+  var stats = {applied: 0, unchanged: 0, failed: 0};
+  var ops = [];
+  var metas = [];
+  var campaignIterator = AdsApp
+    .campaigns()
+    .withCondition('Status = ENABLED')
+    .get();
+
+  while (campaignIterator.hasNext()) {
+    var campaign = campaignIterator.next();
+    var campaignName = campaign.getName();
+
+    var raw = fetchWithRetries(API_BASE_URL + encodeURIComponent(campaignName), MAX_RETRIES);
+    if (!raw) {
+      stats.failed++;
+      console.error('fetch failed: ' + campaignName);
+      continue;
+    }
+
+    var trackingTemplate = sanitizeTemplate(raw);
+    var check = validateTemplate(trackingTemplate, campaign);
+    if (!check.valid) {
+      stats.failed++;
+      console.error('invalid template [' + campaignName + ']: ' + check.reason);
+      continue;
+    }
+
+    // 值相同不提交, 避免高频运行产生重复变更与并发冲突 / skip no-op writes
+    if (campaign.urls().getTrackingTemplate() === trackingTemplate) {
+      stats.unchanged++;
+      continue;
+    }
+
+    ops.push({
+      campaignOperation: {
+        update: {
+          resourceName: 'customers/' + customerId + '/campaigns/' + campaign.getId(),
+          trackingUrlTemplate: trackingTemplate
+        },
+        updateMask: 'trackingUrlTemplate'
+      }
+    });
+    metas.push({name: campaignName});
+
+    if (ops.length >= BATCH_SIZE) {
+      flush(ops, metas, stats);
+      ops = [];
+      metas = [];
+    }
+  }
+
+  if (ops.length > 0) {
+    flush(ops, metas, stats);
+  }
+  console.log('summary applied=' + stats.applied +
+      ' unchanged=' + stats.unchanged + ' failed=' + stats.failed);
+}
+
+// 批量提交, 瞬时错误(并发冲突/内部错误/限流)自动退避重试一轮
+// Batch mutate with one backoff round for transient errors
+function flush(ops, metas, stats) {
+  var pendingOps = ops;
+  var pendingMetas = metas;
+
+  for (var round = 1; round <= 2 && pendingOps.length > 0; round++) {
+    var results = mutateWithRetries(pendingOps);
+    if (!results) {
+      stats.failed += pendingOps.length;
+      return;
+    }
+
+    var retryOps = [];
+    var retryMetas = [];
+    for (var i = 0; i < results.length; i++) {
+      var result = results[i];
+      var name = pendingMetas[i].name;
+      if (result.isSuccessful()) {
+        stats.applied++;
+        console.log('applied: ' + name);
+        continue;
+      }
+
+      var transient = false;
+      var errors = result.getErrorMessages();
+      for (var j = 0; j < errors.length; j++) {
+        console.error('rejected [' + name + ']: ' + errors[j]);
+        if (/CONCURRENT_MODIFICATION|INTERNAL_ERROR|RESOURCE_EXHAUSTED|DEADLINE/i.test(errors[j])) {
+          transient = true;
+        }
+      }
+
+      if (transient && round < 2) {
+        retryOps.push(pendingOps[i]);
+        retryMetas.push(pendingMetas[i]);
+      } else {
+        stats.failed++;
+      }
+    }
+
+    if (retryOps.length > 0) {
+      Utilities.sleep(3000);
+    }
+    pendingOps = retryOps;
+    pendingMetas = retryMetas;
+  }
+}
+
+function mutateWithRetries(ops) {
+  for (var attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return AdsApp.mutateAll(ops, {partialFailure: true});
+    } catch (e) {
+      console.error('mutateAll exception (attempt ' + attempt + '): ' + e);
+      if (attempt < MAX_RETRIES) {
+        Utilities.sleep(1000 * Math.pow(2, attempt));
+      }
+    }
+  }
+  return null;
+}
+
+// 清洗服务器返回: 去 BOM、还原 &amp;、去换行与零宽字符
+// Sanitize server response: strip BOM, unescape &amp;, remove line breaks and zero-width chars
+function sanitizeTemplate(text) {
+  if (!text) {
+    return '';
+  }
+  return text
+    .replace(/^\\uFEFF/, '')
+    .replace(/&amp;/g, '&')
+    .replace(/[\\r\\n\\t]/g, '')
+    .replace(/[\\u200B-\\u200D\\uFEFF]/g, '')
+    .trim();
+}
+
+// 提交前拦截必然失败的模板, 避免产生垃圾变更 / reject invalid templates before mutating
+function validateTemplate(template, campaign) {
+  if (!template) {
+    return {valid: false, reason: 'empty template'};
+  }
+  if (/\\s/.test(template)) {
+    return {valid: false, reason: 'contains whitespace'};
+  }
+  if (/[<>"']/.test(template)) {
+    return {valid: false, reason: 'contains illegal characters'};
+  }
+  if (byteLength(template) > MAX_TEMPLATE_BYTES) {
+    return {valid: false, reason: 'exceeds ' + MAX_TEMPLATE_BYTES + ' bytes'};
+  }
+  if (template.indexOf('{lpurl}') === -1) {
+    return {valid: false, reason: 'missing {lpurl}; add {lpurl} or &redirection_url={lpurl}'};
+  }
+
+  // 自定义参数必须已定义, 名称只能含字母数字, 值不能超过 200 字节
+  // Custom params must exist, names alphanumeric only, values <= 200 bytes
+  var custom = {};
+  try {
+    custom = campaign.urls().getCustomParameters() || {};
+  } catch (e) {
+    custom = {};
+  }
+  var re = /\\{_([A-Za-z0-9_]+)\\}/g;
+  var match;
+  while ((match = re.exec(template)) !== null) {
+    var key = match[1];
+    if (!/^[A-Za-z0-9]+$/.test(key)) {
+      return {valid: false, reason: 'custom param name invalid: ' + key};
+    }
+    if (!custom.hasOwnProperty(key)) {
+      return {valid: false, reason: 'custom param not defined: {_' + key + '}'};
+    }
+    if (byteLength(String(custom[key])) > 200) {
+      return {valid: false, reason: 'custom param value too long: ' + key};
+    }
+  }
+  return {valid: true, reason: 'ok'};
+}
+
+function fetchWithRetries(url, maxRetries) {
+  for (var i = 1; i <= maxRetries; i++) {
+    try {
+      var response = UrlFetchApp.fetch(url, {
+        muteHttpExceptions: true,
+        followRedirects: true
+      });
+      var code = response.getResponseCode();
+      if (code == 200) {
+        return response.getContentText();
+      }
+      console.error('fetch http ' + code + ' (attempt ' + i + '/' + maxRetries + ')');
+    } catch (e) {
+      console.error('fetch exception (attempt ' + i + '/' + maxRetries + '): ' + e);
+    }
+    if (i < maxRetries) {
+      Utilities.sleep(1000 * Math.pow(2, i));
+    }
+  }
+  return null;
+}
+
+function byteLength(str) {
+  return unescape(encodeURIComponent(str)).length;
+}`
+}
 
 // 旧方案: 服务器返回联盟链接, 作为 campaign 级跟踪模板
 // Legacy mode: server returns the affiliate link used as the campaign tracking template
-const NORMAL_GOOGLE_ADS_SCRIPT = `// Google Ads自动跟踪模板脚本
-// 服务器: ${ADS_SCRIPT_NORMAL_BASE_URL}/
-// 模式: Tracking Template (旧方案 / legacy)
+const NORMAL_GOOGLE_ADS_SCRIPT = buildGoogleAdsScript(
+  `${ADS_SCRIPT_NORMAL_BASE_URL}/api/normal/ads?api_key={API_KEY}&campaign_name=`,
+  'normal / tracking template'
+)
 
-var API_BASE_URL = '${ADS_SCRIPT_NORMAL_BASE_URL}/api/normal/ads?api_key={API_KEY}&campaign_name=';
-
-function main() {
-  if (isMccAccount()) {
-    var accountIterator = MccApp
-      .accounts()
-      .withCondition('CanManageClients = FALSE')
-      .get();
-
-    while (accountIterator.hasNext()) {
-      var account = accountIterator.next();
-      MccApp.select(account);
-      processAccount(); 
-    }
-  } else {
-    processAccount();
-  }
-}
-
-function isMccAccount() {
-  try {
-    var accIter = MccApp.accounts().get();
-    return accIter.hasNext();
-  } catch (e) {
-    return false;
-  }
-}
-
-function processAccount() {
-  var campaignIterator = AdsApp
-    .campaigns()
-    .withCondition('Status = ENABLED')
-    .get();
-
-  while (campaignIterator.hasNext()) {
-    var campaign = campaignIterator.next();
-    var campaignName = campaign.getName();
-    Logger.log('process campaign: ' + campaignName);
-
-    var apiUrl = API_BASE_URL + encodeURIComponent(campaignName);
-    var response = fetchWithRetries(apiUrl, 3); 
-    
-    if (response) {
-      var trackingTemplate = sanitizeTemplate(response);
-      if (trackingTemplate) {
-        Logger.log('raw length=' + response.length + ' clean length=' + trackingTemplate.length);
-        Logger.log('has &amp; = ' + (response.indexOf('&amp;') !== -1));
-        Logger.log('template = ' + trackingTemplate);
-        try {
-          campaign.urls().setTrackingTemplate(trackingTemplate);
-          Logger.log('OK set: ' + campaignName);
-        } catch (setErr) {
-          Logger.log('SET ERROR [' + campaignName + ']: ' + setErr);
-        }
-      } else {
-        Logger.log('WARN empty template: ' + campaignName);
-      }
-    } else {
-      Logger.log('FAIL fetch: ' + campaignName);
-    }
-  }
-}
-
-// 清洗服务器返回：去 BOM、还原被转义的 & 、去首尾空白与不可见字符
-// Sanitize server response: strip BOM, unescape &amp;, trim whitespace/invisible chars
-function sanitizeTemplate(text) {
-  if (!text) {
-    return '';
-  }
-  var cleaned = text
-    .replace(/^\uFEFF/, '')          // 去 BOM / strip BOM
-    .replace(/&amp;/g, '&')          // 还原被转义的 & / unescape ampersand
-    .replace(/[\r\n\t]/g, '')        // 去换行制表符 / remove line breaks & tabs
-    .replace(/[\u200B-\u200D\uFEFF]/g, ''); // 去零宽字符 / remove zero-width chars
-  return cleaned.trim();
-}
-
-function fetchWithRetries(url, maxRetries) {
-  for (var i = 1; i <= maxRetries; i++) {
-    try {
-      // 不设置timeoutSeconds，使用Google默认超时
-      var response = UrlFetchApp.fetch(url, {
-        muteHttpExceptions: true,
-        followRedirects: true
-      });
-
-      var code = response.getResponseCode();
-      
-      if (code == 200) {
-        return response.getContentText();
-      }
-      
-      Logger.log('请求失败 (尝试' + i + '/' + maxRetries + '): HTTP ' + code);
-    } catch (e) {
-      Logger.log('请求异常 (尝试' + i + '/' + maxRetries + '): ' + e);
-    }
-    
-    if (i < maxRetries) {
-      Utilities.sleep(2000);
-    }
-  }
-  return null;
-}`
-
-// 预留: /r/{slug} 模式(按 campaign 独立配置 Final URL)的脚本模板, 当前未在面板展示
-// Reserved: script template for the /r/{slug} mode, not shown in the panel for now
-const NORMAL_TRACKER_GOOGLE_ADS_SCRIPT = `// Google Ads自动跟踪模板脚本
-// 服务器: ${ADS_SCRIPT_NORMAL_BASE_URL}/
-// 模式: Tracker Final URL (新方案 / new)
-// 注意: 使用本模式前请清空 campaign 的 Tracking Template, 否则会被旧模板覆盖
-// Note: clear the campaign Tracking Template before using this mode
-
-var API_BASE_URL = '${ADS_SCRIPT_NORMAL_BASE_URL}/api/track/url?api_key={API_KEY}&campaign_name=';
-
-function main() {
-  if (isMccAccount()) {
-    var accountIterator = MccApp
-      .accounts()
-      .withCondition('CanManageClients = FALSE')
-      .get();
-
-    while (accountIterator.hasNext()) {
-      var account = accountIterator.next();
-      MccApp.select(account);
-      processAccount(); 
-    }
-  } else {
-    processAccount();
-  }
-}
-
-function isMccAccount() {
-  try {
-    var accIter = MccApp.accounts().get();
-    return accIter.hasNext();
-  } catch (e) {
-    return false;
-  }
-}
-
-function processAccount() {
-  var campaignIterator = AdsApp
-    .campaigns()
-    .withCondition('Status = ENABLED')
-    .get();
-
-  while (campaignIterator.hasNext()) {
-    var campaign = campaignIterator.next();
-    var campaignName = campaign.getName();
-    Logger.log('process campaign: ' + campaignName);
-
-    var apiUrl = API_BASE_URL + encodeURIComponent(campaignName);
-    var response = fetchWithRetries(apiUrl, 3); 
-    
-    if (response) {
-      var finalUrl = sanitizeTemplate(response);
-      if (finalUrl) {
-        Logger.log('final url = ' + finalUrl);
-
-        // 遍历广告设置 Final URL / set Final URL for each ad
-        var ads = campaign.ads().get();
-        var updatedCount = 0;
-        while (ads.hasNext()) {
-          var ad = ads.next();
-          try {
-            ad.urls().setFinalUrl(finalUrl);
-            updatedCount++;
-          } catch (adErr) {
-            Logger.log('AD SET ERROR [' + campaignName + ']: ' + adErr);
-          }
-        }
-        Logger.log('OK set ads: ' + campaignName + ' updated=' + updatedCount);
-      } else {
-        Logger.log('WARN empty url: ' + campaignName);
-      }
-    } else {
-      Logger.log('FAIL fetch: ' + campaignName);
-    }
-  }
-}
-
-// 清洗服务器返回：去 BOM、还原被转义的 & 、去首尾空白与不可见字符
-// Sanitize server response: strip BOM, unescape &amp;, trim whitespace/invisible chars
-function sanitizeTemplate(text) {
-  if (!text) {
-    return '';
-  }
-  var cleaned = text
-    .replace(/^\\uFEFF/, '')          // 去 BOM / strip BOM
-    .replace(/&amp;/g, '&')          // 还原被转义的 & / unescape ampersand
-    .replace(/[\\r\\n\\t]/g, '')        // 去换行制表符 / remove line breaks & tabs
-    .replace(/[\\u200B-\\u200D\\uFEFF]/g, ''); // 去零宽字符 / remove zero-width chars
-  return cleaned.trim();
-}
-
-function fetchWithRetries(url, maxRetries) {
-  for (var i = 1; i <= maxRetries; i++) {
-    try {
-      // 不设置timeoutSeconds，使用Google默认超时
-      var response = UrlFetchApp.fetch(url, {
-        muteHttpExceptions: true,
-        followRedirects: true
-      });
-
-      var code = response.getResponseCode();
-      
-      if (code == 200) {
-        return response.getContentText();
-      }
-      
-      Logger.log('fetch failed (try ' + i + '/' + maxRetries + '): HTTP ' + code);
-    } catch (e) {
-      Logger.log('fetch exception (try ' + i + '/' + maxRetries + '): ' + e);
-    }
-    
-    if (i < maxRetries) {
-      Utilities.sleep(2000);
-    }
-  }
-  return null;
-}`
-
-const MATRIX_GOOGLE_ADS_SCRIPT = `// Google Ads自动跟踪模板脚本
-// 服务器: ${ADS_SCRIPT_MATRIX_BASE_URL}
-
-var API_BASE_URL = '${ADS_SCRIPT_MATRIX_BASE_URL}/api/matrix/ads?api_key={API_KEY}&campaign_name=';
-
-function main() {
-  if (isMccAccount()) {
-    var accountIterator = MccApp
-      .accounts()
-      .withCondition('CanManageClients = FALSE')
-      .get();
-
-    while (accountIterator.hasNext()) {
-      var account = accountIterator.next();
-      MccApp.select(account);
-      processAccount(); 
-    }
-  } else {
-    processAccount();
-  }
-}
-
-function isMccAccount() {
-  try {
-    var accIter = MccApp.accounts().get();
-    return accIter.hasNext();
-  } catch (e) {
-    return false;
-  }
-}
-
-function processAccount() {
-  var campaignIterator = AdsApp
-    .campaigns()
-    .withCondition('Status = ENABLED')
-    .get();
-
-  while (campaignIterator.hasNext()) {
-    var campaign = campaignIterator.next();
-    var campaignName = campaign.getName();
-    Logger.log('处理广告系列: ' + campaignName);
-
-    var apiUrl = API_BASE_URL + encodeURIComponent(campaignName);
-    var response = fetchWithRetries(apiUrl, 3); 
-    Logger.log('✅ response: ' + response);
-    if (response) {
-      var trackingTemplate = response.trim();
-      Logger.log('✅ trackingTemplate: ' + trackingTemplate);
-      if (trackingTemplate) {
-        campaign.urls().setTrackingTemplate(trackingTemplate);
-        Logger.log('✅ 成功设置: ' + campaignName);
-      } else {
-        Logger.log('⚠️ 返回空模板: ' + campaignName);
-      }
-    } else {
-      Logger.log('❌ 获取失败: ' + campaignName);
-    }
-  }
-}
-
-function fetchWithRetries(url, maxRetries) {
-  for (var i = 1; i <= maxRetries; i++) {
-    try {
-      // 不设置timeoutSeconds，使用Google默认超时
-      var response = UrlFetchApp.fetch(url, {
-        muteHttpExceptions: true,
-        followRedirects: true
-      });
-
-      var code = response.getResponseCode();
-      
-      if (code == 200) {
-        return response.getContentText();
-      }
-      
-      Logger.log('请求失败 (尝试' + i + '/' + maxRetries + '): HTTP ' + code);
-    } catch (e) {
-      Logger.log('请求异常 (尝试' + i + '/' + maxRetries + '): ' + e);
-    }
-    
-    if (i < maxRetries) {
-      Utilities.sleep(2000);
-    }
-  }
-  return null;
-}`
+const MATRIX_GOOGLE_ADS_SCRIPT = buildGoogleAdsScript(
+  `${ADS_SCRIPT_MATRIX_BASE_URL}/api/matrix/ads?api_key={API_KEY}&campaign_name=`,
+  'matrix'
+)
 
 function injectApiKey(scriptTemplate, currentUserApiKey) {
   return scriptTemplate.replaceAll('{API_KEY}', currentUserApiKey || '{API_KEY}')
@@ -366,7 +308,6 @@ async function copyTextToClipboard(text) {
 function GoogleAdsScriptPanel({
   currentUserApiKey = '',
   showNormalTemplate = true,
-  showTrackerTemplate = true,
   showMatrixTemplate = true,
 }) {
   const [copyMessage, setCopyMessage] = useState('')

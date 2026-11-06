@@ -14,6 +14,8 @@ import HouseKeepingSection from './components/HouseKeepingSection/HouseKeepingSe
 import LoginForm from './components/LoginForm/LoginForm'
 import CashBachAccountManagementSection from './components/CashBachAccountManagementSection/CashBachAccountManagementSection'
 import BrandReviewManagementSection from './components/BrandReviewManagementSection/BrandReviewManagementSection'
+import GmailPlatformLinkSection from './components/GmailPlatformLinkSection/GmailPlatformLinkSection'
+import MiddleLinkSection from './components/MiddleLinkSection/MiddleLinkSection'
 import CbAccountReportSection from './components/CbAccountReportSection/CbAccountReportSection'
 import ChangePasswordModal from './components/ChangePasswordModal/ChangePasswordModal'
 import EmailManagementSection from './components/EmailManagementSection/EmailManagementSection'
@@ -34,7 +36,6 @@ import ShiftLinkLogSection from './components/ShiftLinkLogSection/ShiftLinkLogSe
 import ShiftLinkManagementSection from './components/ShiftLinkManagementSection/ShiftLinkManagementSection'
 import Sidebar from './components/Sidebar/Sidebar'
 import TestShiftLinkSection from './components/TestShiftLinkSection/TestShiftLinkSection'
-import TrackerManagementSection from './components/TrackerManagementSection/TrackerManagementSection'
 import UserAgentManagementSection from './components/UserAgentManagementSection/UserAgentManagementSection'
 import UserManagementSection from './components/UserManagementSection/UserManagementSection'
 import './App.css'
@@ -136,6 +137,8 @@ import { useUsers } from './hooks/useUsers'
 import { useUserAgents } from './hooks/useUserAgents'
 import { useRoles } from './hooks/useRoles'
 import { useBrandReviews } from './hooks/useBrandReviews'
+import { useGmailPlatformLinks } from './hooks/useGmailPlatformLinks'
+import { useMiddleLinks } from './hooks/useMiddleLinks'
 import { usePlatforms } from './hooks/usePlatforms'
 import { useNormalAds } from './hooks/useNormalAds'
 import { useMatrixAds } from './hooks/useMatrixAds'
@@ -159,7 +162,6 @@ import { useAffiliateTriggers } from './hooks/useAffiliateTriggers'
 import { useIpProxies } from './hooks/useIpProxies'
 import { useToolIps } from './hooks/useToolIps'
 import { useToolCloudPhones } from './hooks/useToolCloudPhones'
-import { useTracker } from './hooks/useTracker'
 
 const DEFAULT_CURRENCY_EXCHANGE_RATE_PAIR = 'USD:CNY'
 
@@ -358,6 +360,49 @@ function App() {
     showBrandReviewModal, setShowBrandReviewModal,
     loadBrandReviews,
   } = useBrandReviews(token)
+  const {
+    gmailPlatformLinks,
+    gmailPlatformLinksLoading,
+    gmailPlatformLinksError, setGmailPlatformLinksError,
+    gmailPlatformLinksMessage, setGmailPlatformLinksMessage,
+    gmailPlatformLinkPagination,
+    gmailPlatformLinkPaginationRef,
+    gmailPlatformLinkFilters, setGmailPlatformLinkFilters,
+    gmailPlatformLinkQueryApplied, setGmailPlatformLinkQueryApplied,
+    gmailPlatformLinkFiltersRef,
+    editingGmailPlatformLinkId, setEditingGmailPlatformLinkId,
+    gmailPlatformLinkUserName, setGmailPlatformLinkUserName,
+    gmailPlatformLinkPlatformName, setGmailPlatformLinkPlatformName,
+    gmailPlatformLinkMatchId, setGmailPlatformLinkMatchId,
+    gmailPlatformLinkRemarks, setGmailPlatformLinkRemarks,
+    savingGmailPlatformLink, setSavingGmailPlatformLink,
+    showGmailPlatformLinkModal, setShowGmailPlatformLinkModal,
+    gmailPlatformStats,
+    gmailMerchantRatings,
+    gmailPlatformStatsLoading,
+    gmailPlatformStatsError,
+    loadGmailPlatformLinks,
+    loadGmailPlatformStats,
+  } = useGmailPlatformLinks(token)
+  const {
+    middleLinks,
+    middleLinksLoading,
+    middleLinksError, setMiddleLinksError,
+    middleLinksMessage, setMiddleLinksMessage,
+    middleLinkPagination,
+    middleLinkPaginationRef,
+    middleLinkFilters, setMiddleLinkFilters,
+    middleLinkQueryApplied, setMiddleLinkQueryApplied,
+    middleLinkFiltersRef,
+    middleLinkBrandName, setMiddleLinkBrandName,
+    middleLinkUrlsText, setMiddleLinkUrlsText,
+    middleLinkTargetCount, setMiddleLinkTargetCount,
+    middleLinkWindowSeconds, setMiddleLinkWindowSeconds,
+    middleLinkIntervalSeconds, setMiddleLinkIntervalSeconds,
+    middleLinkUploading, setMiddleLinkUploading,
+    resolvingMiddleLinkId, setResolvingMiddleLinkId,
+    loadMiddleLinks,
+  } = useMiddleLinks(token)
   const {
     userAgents, setUserAgents,
     userAgentsLoading,
@@ -823,19 +868,6 @@ function App() {
     showOutcomeModal, setShowOutcomeModal,
     loadToolOutcomes,
   } = useOutcomes(token)
-  const tracker = useTracker(token)
-  const trackerLoadCampaigns = tracker.loadTrackCampaigns
-  const trackerLoadPools = tracker.loadTrackPools
-
-  // 进入 Tracker 菜单时加载列表 / load tracker lists when the menu becomes active
-  useEffect(() => {
-    if (activeMenu !== 'tracker-management') {
-      return
-    }
-    void trackerLoadCampaigns()
-    void trackerLoadPools()
-  }, [activeMenu, trackerLoadCampaigns, trackerLoadPools])
-
   const isAuthenticated = useMemo(() => Boolean(token), [token])
 
   const platformOptions = useMemo(() => {
@@ -2564,6 +2596,25 @@ function App() {
       return
     }
 
+    // Gmail 链接归类规则页：规则 + 统计 + 下拉选项 / gmail link rule page: rules, stats, options
+    if (activeMenu === 'gmail-platform-link') {
+      void loadGmailPlatformLinks(
+        gmailPlatformLinkQueryApplied ? gmailPlatformLinkFiltersRef.current : {},
+      )
+      void loadGmailPlatformStats()
+      void loadAccountEmailOptions()
+      void loadPlatformOptions()
+      return
+    }
+
+    // 中间链接页 / middle link page
+    if (activeMenu === 'middle-link-management') {
+      void loadMiddleLinks(
+        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
+      )
+      return
+    }
+
     if (activeMenu === 'ads-url-management') {
       void loadAccountEmailOptions()
       void loadAdsUrls(adsUrlQueryApplied ? adsUrlFiltersRef.current : {})
@@ -2742,6 +2793,13 @@ function App() {
     loadToolOutcomes,
     loadAccountEmailOptions,
     loadPaypalAccountOptions,
+    loadGmailPlatformLinks,
+    loadGmailPlatformStats,
+    loadMiddleLinks,
+    middleLinkQueryApplied,
+    middleLinkFiltersRef,
+    gmailPlatformLinkQueryApplied,
+    gmailPlatformLinkFiltersRef,
     brandReviewQueryApplied,
     brandReviewFiltersRef,
     emailQueryApplied,
@@ -3207,6 +3265,281 @@ function App() {
 
   function handleBrandReviewPageSizeChange(size) {
     void loadBrandReviews(brandReviewQueryApplied ? brandReviewFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  // Gmail 链接归类规则表单 / gmail link rule form helpers
+  function clearGmailPlatformLinkForm() {
+    setEditingGmailPlatformLinkId(null)
+    setGmailPlatformLinkUserName('')
+    setGmailPlatformLinkPlatformName('')
+    setGmailPlatformLinkMatchId('')
+    setGmailPlatformLinkRemarks('')
+  }
+
+  function openCreateGmailPlatformLink() {
+    clearGmailPlatformLinkForm()
+    setShowGmailPlatformLinkModal(true)
+  }
+
+  function startEditGmailPlatformLink(item) {
+    setEditingGmailPlatformLinkId(item.id)
+    setGmailPlatformLinkUserName(item.userName || '')
+    setGmailPlatformLinkPlatformName(item.platformName || '')
+    setGmailPlatformLinkMatchId(item.matchId || '')
+    setGmailPlatformLinkRemarks(item.remarks || '')
+    setShowGmailPlatformLinkModal(true)
+  }
+
+  async function handleSaveGmailPlatformLink(event) {
+    event.preventDefault()
+    setSavingGmailPlatformLink(true)
+    setGmailPlatformLinksError('')
+    setGmailPlatformLinksMessage('')
+
+    try {
+      const payload = {
+        userName: toOptionalTrimmedString(gmailPlatformLinkUserName),
+        platformName: toOptionalTrimmedString(gmailPlatformLinkPlatformName),
+        matchId: toOptionalTrimmedString(gmailPlatformLinkMatchId),
+        remarks: toOptionalTrimmedString(gmailPlatformLinkRemarks),
+      }
+      if (!payload.userName) {
+        throw new Error('User Name is required.')
+      }
+      if (!payload.platformName) {
+        throw new Error('Platform is required.')
+      }
+      if (!payload.matchId) {
+        throw new Error('Match ID is required.')
+      }
+      if (payload.matchId.length < 4) {
+        throw new Error('Match ID must be at least 4 characters.')
+      }
+
+      if (editingGmailPlatformLinkId) {
+        await requestApi(`/gmail-platform-links/${editingGmailPlatformLinkId}`, {
+          method: 'PUT',
+          token,
+          body: payload,
+        })
+        setGmailPlatformLinksMessage('Rule updated successfully.')
+      } else {
+        await requestApi('/gmail-platform-links', {
+          method: 'POST',
+          token,
+          body: payload,
+        })
+        setGmailPlatformLinksMessage('Rule created successfully.')
+      }
+
+      clearGmailPlatformLinkForm()
+      setShowGmailPlatformLinkModal(false)
+      await loadGmailPlatformLinks(
+        gmailPlatformLinkQueryApplied ? gmailPlatformLinkFiltersRef.current : {},
+        gmailPlatformLinkPaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setGmailPlatformLinksError(message)
+    } finally {
+      setSavingGmailPlatformLink(false)
+    }
+  }
+
+  async function handleDeleteGmailPlatformLink(id) {
+    setGmailPlatformLinksError('')
+    setGmailPlatformLinksMessage('')
+
+    try {
+      await requestApi(`/gmail-platform-links/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setGmailPlatformLinksMessage('Rule deleted successfully.')
+      await loadGmailPlatformLinks(
+        gmailPlatformLinkQueryApplied ? gmailPlatformLinkFiltersRef.current : {},
+        gmailPlatformLinkPaginationRef.current,
+      )
+      if (editingGmailPlatformLinkId === id) {
+        clearGmailPlatformLinkForm()
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setGmailPlatformLinksError(message)
+    }
+  }
+
+  function handleGmailPlatformLinkFiltersChange(nextFilters) {
+    setGmailPlatformLinkFilters(nextFilters)
+    setGmailPlatformLinkQueryApplied(false)
+  }
+
+  function applyGmailPlatformLinkFilters(event) {
+    event.preventDefault()
+    setGmailPlatformLinkQueryApplied(true)
+    void loadGmailPlatformLinks(gmailPlatformLinkFilters, {
+      page: 0,
+      size: gmailPlatformLinkPaginationRef.current.size,
+    })
+  }
+
+  function reloadGmailPlatformLinkFilters() {
+    setGmailPlatformLinkFilters({
+      ownerPhoneNumber: '',
+      userName: '',
+      platformName: '',
+    })
+    setGmailPlatformLinkQueryApplied(false)
+    void loadGmailPlatformLinks({}, { page: 0, size: gmailPlatformLinkPaginationRef.current.size })
+  }
+
+  function handleGmailPlatformLinkPageChange(page) {
+    void loadGmailPlatformLinks(gmailPlatformLinkQueryApplied ? gmailPlatformLinkFiltersRef.current : {}, {
+      page,
+      size: gmailPlatformLinkPaginationRef.current.size,
+    })
+  }
+
+  function handleGmailPlatformLinkPageSizeChange(size) {
+    void loadGmailPlatformLinks(gmailPlatformLinkQueryApplied ? gmailPlatformLinkFiltersRef.current : {}, {
+      page: 0,
+      size,
+    })
+  }
+
+  // 中间链接上传与解析 / middle link upload and resolve handlers
+  async function handleUploadMiddleLinks(event) {
+    event.preventDefault()
+    setMiddleLinkUploading(true)
+    setMiddleLinksError('')
+    setMiddleLinksMessage('')
+
+    try {
+      const brandName = toOptionalTrimmedString(middleLinkBrandName)
+      if (!brandName) {
+        throw new Error('Brand Name is required.')
+      }
+      const urls = middleLinkUrlsText
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+      if (urls.length === 0) {
+        throw new Error('Please paste at least one middle link URL.')
+      }
+
+      const response = await requestApi('/middle-links/batch', {
+        method: 'POST',
+        token,
+        body: { brandName, urls },
+      })
+      const createdCount = response && typeof response.createdCount === 'number' ? response.createdCount : urls.length
+      const classifiedCount = response && typeof response.classifiedCount === 'number' ? response.classifiedCount : 0
+
+      setMiddleLinksMessage(`Uploaded ${createdCount} middle links. ${classifiedCount} classified to a Gmail account.`)
+      setMiddleLinkUrlsText('')
+      await loadMiddleLinks(
+        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
+        middleLinkPaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setMiddleLinksError(message)
+    } finally {
+      setMiddleLinkUploading(false)
+    }
+  }
+
+  async function handleResolveMiddleLink(item) {
+    setResolvingMiddleLinkId(item.id)
+    setMiddleLinksError('')
+    setMiddleLinksMessage('')
+
+    try {
+      const body = {}
+      const target = Number.parseInt(middleLinkTargetCount, 10)
+      const windowSeconds = Number.parseInt(middleLinkWindowSeconds, 10)
+      const intervalSeconds = Number.parseInt(middleLinkIntervalSeconds, 10)
+      if (Number.isFinite(target) && target > 0) {
+        body.targetCount = target
+      }
+      if (Number.isFinite(windowSeconds) && windowSeconds > 0) {
+        body.windowSeconds = windowSeconds
+      }
+      if (Number.isFinite(intervalSeconds) && intervalSeconds > 0) {
+        body.intervalSeconds = intervalSeconds
+      }
+
+      await requestApi(`/middle-links/${item.id}/resolve`, {
+        method: 'POST',
+        token,
+        body,
+      })
+      setMiddleLinksMessage(`Resolve started for middle link #${item.id}. Reload to see progress.`)
+      await loadMiddleLinks(
+        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
+        middleLinkPaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setMiddleLinksError(message)
+    } finally {
+      setResolvingMiddleLinkId(null)
+    }
+  }
+
+  async function handleDeleteMiddleLink(id) {
+    setMiddleLinksError('')
+    setMiddleLinksMessage('')
+
+    try {
+      await requestApi(`/middle-links/${id}`, {
+        method: 'DELETE',
+        token,
+      })
+      setMiddleLinksMessage('Middle link deleted successfully.')
+      await loadMiddleLinks(
+        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
+        middleLinkPaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setMiddleLinksError(message)
+    }
+  }
+
+  function handleMiddleLinkFiltersChange(nextFilters) {
+    setMiddleLinkFilters(nextFilters)
+    setMiddleLinkQueryApplied(false)
+  }
+
+  function applyMiddleLinkFilters(event) {
+    event.preventDefault()
+    setMiddleLinkQueryApplied(true)
+    void loadMiddleLinks(middleLinkFilters, { page: 0, size: middleLinkPaginationRef.current.size })
+  }
+
+  function reloadMiddleLinkFilters() {
+    setMiddleLinkFilters({
+      ownerPhoneNumber: '',
+      brandName: '',
+      resolveStatus: '',
+    })
+    setMiddleLinkQueryApplied(false)
+    void loadMiddleLinks({}, { page: 0, size: middleLinkPaginationRef.current.size })
+  }
+
+  function handleMiddleLinkPageChange(page) {
+    void loadMiddleLinks(middleLinkQueryApplied ? middleLinkFiltersRef.current : {}, {
+      page,
+      size: middleLinkPaginationRef.current.size,
+    })
+  }
+
+  function handleMiddleLinkPageSizeChange(size) {
+    void loadMiddleLinks(middleLinkQueryApplied ? middleLinkFiltersRef.current : {}, {
       page: 0,
       size,
     })
@@ -5666,6 +5999,10 @@ setAdsAccountStatus(item.status || '')
           ? 'Auto Script'
         : activeMenu === 'email-management'
           ? 'Email Management'
+        : activeMenu === 'gmail-platform-link'
+          ? 'Gmail Link Rule'
+        : activeMenu === 'middle-link-management'
+          ? 'Middle Link'
         : activeMenu === 'cash-bach-account'
           ? 'Cash Back Account'
         : activeMenu === 'cb-account-report'
@@ -5700,8 +6037,6 @@ setAdsAccountStatus(item.status || '')
           ? 'Income Management'
         : activeMenu === 'outcome-management'
           ? 'Expenditure Management'
-        : activeMenu === 'tracker-management'
-          ? 'Tracker Management'
         : activeMenu === 'ads-url-management'
           ? 'Shift Link'
           : activeMenu === 'shift-link-dashboard'
@@ -5865,6 +6200,84 @@ setAdsAccountStatus(item.status || '')
         pagination={brandReviewPagination}
         onPageChange={handleBrandReviewPageChange}
         onPageSizeChange={handleBrandReviewPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'gmail-platform-link') {
+    activeSection = (
+      <GmailPlatformLinkSection
+        rules={gmailPlatformLinks}
+        rulesLoading={gmailPlatformLinksLoading}
+        rulesError={gmailPlatformLinksError}
+        rulesMessage={gmailPlatformLinksMessage}
+        filters={gmailPlatformLinkFilters}
+        onFiltersChange={handleGmailPlatformLinkFiltersChange}
+        onApplyFilters={applyGmailPlatformLinkFilters}
+        onReloadFilters={reloadGmailPlatformLinkFilters}
+        onCreateRule={openCreateGmailPlatformLink}
+        onEditRule={startEditGmailPlatformLink}
+        onDeleteRule={handleDeleteGmailPlatformLink}
+        showModal={showGmailPlatformLinkModal}
+        editingId={editingGmailPlatformLinkId}
+        ruleUserName={gmailPlatformLinkUserName}
+        onRuleUserNameChange={setGmailPlatformLinkUserName}
+        rulePlatformName={gmailPlatformLinkPlatformName}
+        onRulePlatformNameChange={setGmailPlatformLinkPlatformName}
+        ruleMatchId={gmailPlatformLinkMatchId}
+        onRuleMatchIdChange={setGmailPlatformLinkMatchId}
+        ruleRemarks={gmailPlatformLinkRemarks}
+        onRuleRemarksChange={setGmailPlatformLinkRemarks}
+        onSaveRule={handleSaveGmailPlatformLink}
+        savingRule={savingGmailPlatformLink}
+        onCloseModal={() => setShowGmailPlatformLinkModal(false)}
+        userNameOptions={toolEmailUserOptions}
+        userNameOptionsLoading={accountEmailOptionsLoading}
+        platformOptions={platformOptions}
+        platformsLoading={platformsLoading}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
+        stats={gmailPlatformStats}
+        merchantRatings={gmailMerchantRatings}
+        statsLoading={gmailPlatformStatsLoading}
+        statsError={gmailPlatformStatsError}
+        onReloadStats={() => void loadGmailPlatformStats()}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={gmailPlatformLinkPagination}
+        onPageChange={handleGmailPlatformLinkPageChange}
+        onPageSizeChange={handleGmailPlatformLinkPageSizeChange}
+      />
+    )
+  } else if (activeMenu === 'middle-link-management') {
+    activeSection = (
+      <MiddleLinkSection
+        middleLinks={middleLinks}
+        middleLinksLoading={middleLinksLoading}
+        middleLinksError={middleLinksError}
+        middleLinksMessage={middleLinksMessage}
+        filters={middleLinkFilters}
+        onFiltersChange={handleMiddleLinkFiltersChange}
+        onApplyFilters={applyMiddleLinkFilters}
+        onReloadFilters={reloadMiddleLinkFilters}
+        brandName={middleLinkBrandName}
+        onBrandNameChange={setMiddleLinkBrandName}
+        urlsText={middleLinkUrlsText}
+        onUrlsTextChange={setMiddleLinkUrlsText}
+        targetCount={middleLinkTargetCount}
+        onTargetCountChange={setMiddleLinkTargetCount}
+        windowSeconds={middleLinkWindowSeconds}
+        onWindowSecondsChange={setMiddleLinkWindowSeconds}
+        intervalSeconds={middleLinkIntervalSeconds}
+        onIntervalSecondsChange={setMiddleLinkIntervalSeconds}
+        uploading={middleLinkUploading}
+        onUpload={handleUploadMiddleLinks}
+        onResolve={handleResolveMiddleLink}
+        onDelete={handleDeleteMiddleLink}
+        resolvingId={resolvingMiddleLinkId}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
+        formatDateDisplayValue={formatDateDisplayValue}
+        pagination={middleLinkPagination}
+        onPageChange={handleMiddleLinkPageChange}
+        onPageSizeChange={handleMiddleLinkPageSizeChange}
       />
     )
   } else if (activeMenu === 'ads-url-management') {
@@ -6261,8 +6674,6 @@ setAdsAccountStatus(item.status || '')
         currencyExchangeRateValue={currencyExchangeRate.exchangeRate}
       />
     )
-  } else if (activeMenu === 'tracker-management') {
-    activeSection = <TrackerManagementSection {...tracker} />
   } else if (activeMenu === 'ads-account-management') {
     activeSection = (
       <AdsAccountManagementSection
