@@ -24,6 +24,7 @@ function MiddleLinkSection({
   uploading,
   onUpload,
   onResolve,
+  onStop,
   onDelete,
   resolvingId,
   showOwnerFilter,
@@ -158,6 +159,7 @@ function MiddleLinkSection({
               <option value="RESOLVING">RESOLVING</option>
               <option value="DONE">DONE</option>
               <option value="FAILED">FAILED</option>
+              <option value="STOPPED">STOPPED</option>
             </select>
           </div>
 
@@ -213,14 +215,20 @@ function MiddleLinkSection({
                     <td className="truncate">{formatTableValue(item.lastError)}</td>
                     <td>{formatTableValue(formatDateDisplayValue(item.createDate))}</td>
                     <td className="actions">
-                      <button
-                        type="button"
-                        className="secondary"
-                        disabled={resolvingId === item.id || item.resolveStatus === 'RESOLVING'}
-                        onClick={() => onResolve(item)}
-                      >
-                        {item.resolveStatus === 'RESOLVING' ? 'Resolving...' : 'Resolve'}
-                      </button>
+                      {item.resolveStatus === 'RESOLVING' ? (
+                        <button type="button" className="secondary" onClick={() => onStop(item)}>
+                          Stop
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="secondary"
+                          disabled={resolvingId === item.id}
+                          onClick={() => onResolve(item)}
+                        >
+                          Resolve
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="secondary"

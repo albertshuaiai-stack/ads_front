@@ -97,7 +97,12 @@ function GmailPlatformLinkSection({
                       <td>{formatTableValue(item.accountStatus)}</td>
                       <td>{formatTableValue(item.merchantCount)}</td>
                       <td>{formatTableValue(item.linkCount)}</td>
-                      <td className="truncate">
+                      <td
+                        className="truncate"
+                        title={(item.merchants || [])
+                          .map((merchant) => `${merchant.adsName} (${merchant.linkCount})`)
+                          .join(', ')}
+                      >
                         {(item.merchants || []).map((merchant, index) => (
                           <span key={merchant.adsName}>
                             {index > 0 ? ', ' : ''}

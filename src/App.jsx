@@ -3490,6 +3490,26 @@ function App() {
     }
   }
 
+  async function handleStopMiddleLink(item) {
+    setMiddleLinksError('')
+    setMiddleLinksMessage('')
+
+    try {
+      await requestApi(`/middle-links/${item.id}/stop`, {
+        method: 'POST',
+        token,
+      })
+      setMiddleLinksMessage(`Resolve stopped for middle link #${item.id}.`)
+      await loadMiddleLinks(
+        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
+        middleLinkPaginationRef.current,
+      )
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      setMiddleLinksError(message)
+    }
+  }
+
   async function handleDeleteMiddleLink(id) {
     setMiddleLinksError('')
     setMiddleLinksMessage('')
@@ -6270,6 +6290,7 @@ setAdsAccountStatus(item.status || '')
         uploading={middleLinkUploading}
         onUpload={handleUploadMiddleLinks}
         onResolve={handleResolveMiddleLink}
+        onStop={handleStopMiddleLink}
         onDelete={handleDeleteMiddleLink}
         resolvingId={resolvingMiddleLinkId}
         showOwnerFilter={showAdminOwnerFilter}
