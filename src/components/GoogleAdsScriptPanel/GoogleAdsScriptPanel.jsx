@@ -11,13 +11,15 @@ const ADS_SCRIPT_MATRIX_BASE_URL =
 // 高频替换场景: setTrackingTemplate 不返回服务端结果, 失败只写进更改日志, 文本日志会一直显示成功。
 // 改为 mutateAll + partialFailure, 逐条读取 isSuccessful/getErrorMessages, 并对瞬时错误自动重试。
 // High-frequency sync: mutateAll exposes per-campaign server errors and retries transient failures.
-function buildGoogleAdsScript(apiBaseUrl, modeLabel) {
+function buildGoogleAdsScript(apiBaseUrl, modeLabel, reportUrl) {
   return `// Google Ads auto tracking template script (high frequency safe)
 // Server: ${apiBaseUrl}
 // Mode: ${modeLabel}
 // Note: unchanged templates are skipped, so frequent runs do not spam mutations.
+// Clicks: real campaign clicks are reported first, and the server rotates links by clicks.
 
 var API_BASE_URL = '${apiBaseUrl}';
+var API_REPORT_URL = '${reportUrl}';
 var BATCH_SIZE = 50;
 var MAX_RETRIES = 3;
 var MAX_TEMPLATE_BYTES = 2048;
@@ -46,7 +48,35 @@ function isMccAccount() {
   }
 }
 
+// 先上报 campaign 累计真实点击数, 服务端据此换链; 上报失败不影响模板同步
+// 换链只由真实点击驱动: 与上次换链时的点击数差值达到 displayNumber 才换, 与脚本执行频率无关
+// Report lifetime clicks; rotation happens only when clicks grow past the recorded base
+function reportClicks() {
+  try {
+    var rows = AdsApp.search(
+        'SELECT campaign.name, metrics.clicks FROM campaign ' +
+        'WHERE campaign.status = ENABLED');
+    var data = [];
+    while (rows.hasNext()) {
+      var row = rows.next();
+      data.push({name: row['campaign.name'], clicks: Number(row['metrics.clicks'])});
+    }
+    var response = UrlFetchApp.fetch(API_REPORT_URL, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({data: data}),
+      muteHttpExceptions: true,
+      followRedirects: true
+    });
+    console.log('click report sent campaigns=' + data.length +
+        ' http=' + response.getResponseCode());
+  } catch (e) {
+    console.error('click report failed: ' + e);
+  }
+}
+
 function processAccount() {
+  reportClicks();
   var customerId = AdsApp.currentAccount().getCustomerId().replace(/-/g, '');
   var stats = {applied: 0, unchanged: 0, failed: 0};
   var ops = [];
@@ -257,12 +287,14 @@ function byteLength(str) {
 // Legacy mode: server returns the affiliate link used as the campaign tracking template
 const NORMAL_GOOGLE_ADS_SCRIPT = buildGoogleAdsScript(
   `${ADS_SCRIPT_NORMAL_BASE_URL}/api/normal/ads?api_key={API_KEY}&campaign_name=`,
-  'normal / tracking template'
+  'normal / tracking template',
+  `${ADS_SCRIPT_NORMAL_BASE_URL}/api/track/report?api_key={API_KEY}`
 )
 
 const MATRIX_GOOGLE_ADS_SCRIPT = buildGoogleAdsScript(
   `${ADS_SCRIPT_MATRIX_BASE_URL}/api/matrix/ads?api_key={API_KEY}&campaign_name=`,
-  'matrix'
+  'matrix',
+  `${ADS_SCRIPT_MATRIX_BASE_URL}/api/track/report?api_key={API_KEY}`
 )
 
 function injectApiKey(scriptTemplate, currentUserApiKey) {

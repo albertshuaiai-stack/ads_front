@@ -50,6 +50,7 @@ function GmailPlatformLinkSection({
   pagination,
   onPageChange,
   onPageSizeChange,
+  historySection = null,
 }) {
   return (
     <>
@@ -133,7 +134,8 @@ function GmailPlatformLinkSection({
           <p className="field-help">
             Rating by ban distribution of the accounts promoting each merchant: AVOID = every
             account promoting it was banned, CAUTION = partially banned, SAFE = no banned
-            accounts, UNKNOWN = no matching cash back account row.
+            accounts, UNKNOWN = no matching cash back account row. Banned flags from History Data
+            Entry below are included.
           </p>
           {!statsLoading && merchantRatings.length === 0 ? (
             <p>No merchants found.</p>
@@ -180,6 +182,8 @@ function GmailPlatformLinkSection({
           )}
         </div>
       </div>
+
+      {historySection}
 
       <div className="panel gmail-platform-link-management">
         <div className="user-list">

@@ -15,7 +15,7 @@ import LoginForm from './components/LoginForm/LoginForm'
 import CashBachAccountManagementSection from './components/CashBachAccountManagementSection/CashBachAccountManagementSection'
 import BrandReviewManagementSection from './components/BrandReviewManagementSection/BrandReviewManagementSection'
 import GmailPlatformLinkSection from './components/GmailPlatformLinkSection/GmailPlatformLinkSection'
-import MiddleLinkSection from './components/MiddleLinkSection/MiddleLinkSection'
+import ShiftLinkHistorySection from './components/ShiftLinkHistorySection/ShiftLinkHistorySection'
 import CbAccountReportSection from './components/CbAccountReportSection/CbAccountReportSection'
 import ChangePasswordModal from './components/ChangePasswordModal/ChangePasswordModal'
 import EmailManagementSection from './components/EmailManagementSection/EmailManagementSection'
@@ -138,7 +138,7 @@ import { useUserAgents } from './hooks/useUserAgents'
 import { useRoles } from './hooks/useRoles'
 import { useBrandReviews } from './hooks/useBrandReviews'
 import { useGmailPlatformLinks } from './hooks/useGmailPlatformLinks'
-import { useMiddleLinks } from './hooks/useMiddleLinks'
+import { useShiftLinkHistory } from './hooks/useShiftLinkHistory'
 import { usePlatforms } from './hooks/usePlatforms'
 import { useNormalAds } from './hooks/useNormalAds'
 import { useMatrixAds } from './hooks/useMatrixAds'
@@ -384,25 +384,8 @@ function App() {
     loadGmailPlatformLinks,
     loadGmailPlatformStats,
   } = useGmailPlatformLinks(token)
-  const {
-    middleLinks,
-    middleLinksLoading,
-    middleLinksError, setMiddleLinksError,
-    middleLinksMessage, setMiddleLinksMessage,
-    middleLinkPagination,
-    middleLinkPaginationRef,
-    middleLinkFilters, setMiddleLinkFilters,
-    middleLinkQueryApplied, setMiddleLinkQueryApplied,
-    middleLinkFiltersRef,
-    middleLinkBrandName, setMiddleLinkBrandName,
-    middleLinkUrlsText, setMiddleLinkUrlsText,
-    middleLinkTargetCount, setMiddleLinkTargetCount,
-    middleLinkWindowSeconds, setMiddleLinkWindowSeconds,
-    middleLinkIntervalSeconds, setMiddleLinkIntervalSeconds,
-    middleLinkUploading, setMiddleLinkUploading,
-    resolvingMiddleLinkId, setResolvingMiddleLinkId,
-    loadMiddleLinks,
-  } = useMiddleLinks(token)
+  const shiftLinkHistory = useShiftLinkHistory(token)
+  const loadShiftLinkHistory = shiftLinkHistory.loadHistory
   const {
     userAgents, setUserAgents,
     userAgentsLoading,
@@ -2602,16 +2585,9 @@ function App() {
         gmailPlatformLinkQueryApplied ? gmailPlatformLinkFiltersRef.current : {},
       )
       void loadGmailPlatformStats()
+      void loadShiftLinkHistory()
       void loadAccountEmailOptions()
       void loadPlatformOptions()
-      return
-    }
-
-    // 中间链接页 / middle link page
-    if (activeMenu === 'middle-link-management') {
-      void loadMiddleLinks(
-        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
-      )
       return
     }
 
@@ -2795,9 +2771,7 @@ function App() {
     loadPaypalAccountOptions,
     loadGmailPlatformLinks,
     loadGmailPlatformStats,
-    loadMiddleLinks,
-    middleLinkQueryApplied,
-    middleLinkFiltersRef,
+    loadShiftLinkHistory,
     gmailPlatformLinkQueryApplied,
     gmailPlatformLinkFiltersRef,
     brandReviewQueryApplied,
@@ -3405,161 +3379,6 @@ function App() {
 
   function handleGmailPlatformLinkPageSizeChange(size) {
     void loadGmailPlatformLinks(gmailPlatformLinkQueryApplied ? gmailPlatformLinkFiltersRef.current : {}, {
-      page: 0,
-      size,
-    })
-  }
-
-  // 中间链接上传与解析 / middle link upload and resolve handlers
-  async function handleUploadMiddleLinks(event) {
-    event.preventDefault()
-    setMiddleLinkUploading(true)
-    setMiddleLinksError('')
-    setMiddleLinksMessage('')
-
-    try {
-      const brandName = toOptionalTrimmedString(middleLinkBrandName)
-      if (!brandName) {
-        throw new Error('Brand Name is required.')
-      }
-      const urls = middleLinkUrlsText
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0)
-      if (urls.length === 0) {
-        throw new Error('Please paste at least one middle link URL.')
-      }
-
-      const response = await requestApi('/middle-links/batch', {
-        method: 'POST',
-        token,
-        body: { brandName, urls },
-      })
-      const createdCount = response && typeof response.createdCount === 'number' ? response.createdCount : urls.length
-      const classifiedCount = response && typeof response.classifiedCount === 'number' ? response.classifiedCount : 0
-
-      setMiddleLinksMessage(`Uploaded ${createdCount} middle links. ${classifiedCount} classified to a Gmail account.`)
-      setMiddleLinkUrlsText('')
-      await loadMiddleLinks(
-        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
-        middleLinkPaginationRef.current,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setMiddleLinksError(message)
-    } finally {
-      setMiddleLinkUploading(false)
-    }
-  }
-
-  async function handleResolveMiddleLink(item) {
-    setResolvingMiddleLinkId(item.id)
-    setMiddleLinksError('')
-    setMiddleLinksMessage('')
-
-    try {
-      const body = {}
-      const target = Number.parseInt(middleLinkTargetCount, 10)
-      const windowSeconds = Number.parseInt(middleLinkWindowSeconds, 10)
-      const intervalSeconds = Number.parseInt(middleLinkIntervalSeconds, 10)
-      if (Number.isFinite(target) && target > 0) {
-        body.targetCount = target
-      }
-      if (Number.isFinite(windowSeconds) && windowSeconds > 0) {
-        body.windowSeconds = windowSeconds
-      }
-      if (Number.isFinite(intervalSeconds) && intervalSeconds > 0) {
-        body.intervalSeconds = intervalSeconds
-      }
-
-      await requestApi(`/middle-links/${item.id}/resolve`, {
-        method: 'POST',
-        token,
-        body,
-      })
-      setMiddleLinksMessage(`Resolve started for middle link #${item.id}. Reload to see progress.`)
-      await loadMiddleLinks(
-        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
-        middleLinkPaginationRef.current,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setMiddleLinksError(message)
-    } finally {
-      setResolvingMiddleLinkId(null)
-    }
-  }
-
-  async function handleStopMiddleLink(item) {
-    setMiddleLinksError('')
-    setMiddleLinksMessage('')
-
-    try {
-      await requestApi(`/middle-links/${item.id}/stop`, {
-        method: 'POST',
-        token,
-      })
-      setMiddleLinksMessage(`Resolve stopped for middle link #${item.id}.`)
-      await loadMiddleLinks(
-        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
-        middleLinkPaginationRef.current,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setMiddleLinksError(message)
-    }
-  }
-
-  async function handleDeleteMiddleLink(id) {
-    setMiddleLinksError('')
-    setMiddleLinksMessage('')
-
-    try {
-      await requestApi(`/middle-links/${id}`, {
-        method: 'DELETE',
-        token,
-      })
-      setMiddleLinksMessage('Middle link deleted successfully.')
-      await loadMiddleLinks(
-        middleLinkQueryApplied ? middleLinkFiltersRef.current : {},
-        middleLinkPaginationRef.current,
-      )
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      setMiddleLinksError(message)
-    }
-  }
-
-  function handleMiddleLinkFiltersChange(nextFilters) {
-    setMiddleLinkFilters(nextFilters)
-    setMiddleLinkQueryApplied(false)
-  }
-
-  function applyMiddleLinkFilters(event) {
-    event.preventDefault()
-    setMiddleLinkQueryApplied(true)
-    void loadMiddleLinks(middleLinkFilters, { page: 0, size: middleLinkPaginationRef.current.size })
-  }
-
-  function reloadMiddleLinkFilters() {
-    setMiddleLinkFilters({
-      ownerPhoneNumber: '',
-      brandName: '',
-      resolveStatus: '',
-    })
-    setMiddleLinkQueryApplied(false)
-    void loadMiddleLinks({}, { page: 0, size: middleLinkPaginationRef.current.size })
-  }
-
-  function handleMiddleLinkPageChange(page) {
-    void loadMiddleLinks(middleLinkQueryApplied ? middleLinkFiltersRef.current : {}, {
-      page,
-      size: middleLinkPaginationRef.current.size,
-    })
-  }
-
-  function handleMiddleLinkPageSizeChange(size) {
-    void loadMiddleLinks(middleLinkQueryApplied ? middleLinkFiltersRef.current : {}, {
       page: 0,
       size,
     })
@@ -4291,21 +4110,19 @@ function App() {
           .map((row) => normalizeAffiliateRow(row))
           .filter(
             (row) =>
-            row.platformName || row.affiliteUrl || row.displayNumber || row.userName,
+            row.platformName || row.affiliteUrl || row.displayNumber || row.userName || row.matchId,
           )
           .map((row, index) => {
-            if (!row.platformName) {
-              throw new Error(`Affiliate row ${index + 1}: Platform Name is required.`)
-            }
-
             if (!row.affiliteUrl) {
               throw new Error(`Affiliate row ${index + 1}: Affiliate URL is required.`)
             }
 
+            // 平台 / Gmail 留空由后端按 Match ID 自动归属 / blank platform and gmail are classified by match id on the server
             const affiliateInfo = {
-              platformName: row.platformName,
+              platformName: row.platformName || undefined,
               affiliteUrl: row.affiliteUrl,
-            userName: row.userName || undefined,
+              userName: row.userName || undefined,
+              matchId: row.matchId || undefined,
             }
 
             if (row.displayNumber) {
@@ -6021,8 +5838,6 @@ setAdsAccountStatus(item.status || '')
           ? 'Email Management'
         : activeMenu === 'gmail-platform-link'
           ? 'Gmail Link Rule'
-        : activeMenu === 'middle-link-management'
-          ? 'Middle Link'
         : activeMenu === 'cash-bach-account'
           ? 'Cash Back Account'
         : activeMenu === 'cb-account-report'
@@ -6264,41 +6079,27 @@ setAdsAccountStatus(item.status || '')
         pagination={gmailPlatformLinkPagination}
         onPageChange={handleGmailPlatformLinkPageChange}
         onPageSizeChange={handleGmailPlatformLinkPageSizeChange}
-      />
-    )
-  } else if (activeMenu === 'middle-link-management') {
-    activeSection = (
-      <MiddleLinkSection
-        middleLinks={middleLinks}
-        middleLinksLoading={middleLinksLoading}
-        middleLinksError={middleLinksError}
-        middleLinksMessage={middleLinksMessage}
-        filters={middleLinkFilters}
-        onFiltersChange={handleMiddleLinkFiltersChange}
-        onApplyFilters={applyMiddleLinkFilters}
-        onReloadFilters={reloadMiddleLinkFilters}
-        brandName={middleLinkBrandName}
-        onBrandNameChange={setMiddleLinkBrandName}
-        urlsText={middleLinkUrlsText}
-        onUrlsTextChange={setMiddleLinkUrlsText}
-        targetCount={middleLinkTargetCount}
-        onTargetCountChange={setMiddleLinkTargetCount}
-        windowSeconds={middleLinkWindowSeconds}
-        onWindowSecondsChange={setMiddleLinkWindowSeconds}
-        intervalSeconds={middleLinkIntervalSeconds}
-        onIntervalSecondsChange={setMiddleLinkIntervalSeconds}
-        uploading={middleLinkUploading}
-        onUpload={handleUploadMiddleLinks}
-        onResolve={handleResolveMiddleLink}
-        onStop={handleStopMiddleLink}
-        onDelete={handleDeleteMiddleLink}
-        resolvingId={resolvingMiddleLinkId}
-        showOwnerFilter={showAdminOwnerFilter}
-        ownerOptions={ownerFilterOptions}
-        formatDateDisplayValue={formatDateDisplayValue}
-        pagination={middleLinkPagination}
-        onPageChange={handleMiddleLinkPageChange}
-        onPageSizeChange={handleMiddleLinkPageSizeChange}
+        historySection={
+          <ShiftLinkHistorySection
+            rows={shiftLinkHistory.historyRows}
+            loading={shiftLinkHistory.historyLoading}
+            error={shiftLinkHistory.historyError}
+            message={shiftLinkHistory.historyMessage}
+            form={shiftLinkHistory.historyForm}
+            onFormChange={shiftLinkHistory.setHistoryForm}
+            importText={shiftLinkHistory.historyImportText}
+            onImportTextChange={shiftLinkHistory.setHistoryImportText}
+            saving={shiftLinkHistory.historySaving}
+            onSave={() => void shiftLinkHistory.saveHistory(loadGmailPlatformStats)}
+            onImport={() => void shiftLinkHistory.importHistory(loadGmailPlatformStats)}
+            onToggleBanned={(row) => void shiftLinkHistory.toggleHistoryBanned(row, loadGmailPlatformStats)}
+            onEdit={shiftLinkHistory.editHistory}
+            onDelete={(id) => void shiftLinkHistory.deleteHistory(id, loadGmailPlatformStats)}
+            onResetForm={shiftLinkHistory.resetHistoryForm}
+            userNameOptions={toolEmailUserOptions}
+            platformOptions={platformOptions}
+          />
+        }
       />
     )
   } else if (activeMenu === 'ads-url-management') {
@@ -6569,8 +6370,8 @@ setAdsAccountStatus(item.status || '')
         pagination={matrixAdsPagination}
         onPageChange={handleMatrixAdsPageChange}
         onPageSizeChange={handleMatrixAdsPageSizeChange}
-      userNameOptions={toolEmailUserOptions}
-      userNameOptionsLoading={accountEmailOptionsLoading}
+        userNameOptions={toolEmailUserOptions}
+        userNameOptionsLoading={accountEmailOptionsLoading}
       />
     )
   } else if (activeMenu === 'email-management') {
