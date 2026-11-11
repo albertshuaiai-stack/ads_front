@@ -1829,7 +1829,7 @@ function App() {
 
     setFolderImportFiles(null)
     setFolderImportAdsType(defaultShiftLinkLogAdsType)
-    setFolderImportDisplayNumber('100')
+    setFolderImportDisplayNumber('')
     setFolderImportSaving(false)
     setFolderImportError('')
     setFolderImportMessage('')
@@ -4506,12 +4506,17 @@ function App() {
         throw new Error('Please select an Ads Type.')
       }
 
-      // Display Number：用户输入，默认 100 / user input, defaults to 100
-      const parsedDisplayNumber = Number.parseInt(folderImportDisplayNumber, 10)
-      if (!Number.isFinite(parsedDisplayNumber) || parsedDisplayNumber < 0) {
-        throw new Error('Please enter a valid Display Number (0 or greater).')
+      // Display Number：留空则由后端按类型配置填充(Normal/Matrix 换链点击阈值), 填写则覆盖
+      // empty uses the backend click capacity config per ads type; a value overrides it
+      const displayNumberText = toOptionalTrimmedString(folderImportDisplayNumber)
+      let resolvedDisplayNumber = null
+      if (displayNumberText) {
+        const parsedDisplayNumber = Number.parseInt(displayNumberText, 10)
+        if (!Number.isFinite(parsedDisplayNumber) || parsedDisplayNumber < 1) {
+          throw new Error('Please enter a valid Display Number (1 or greater), or leave it empty.')
+        }
+        resolvedDisplayNumber = parsedDisplayNumber
       }
-      const resolvedDisplayNumber = parsedDisplayNumber
 
       const { entries, platformNames } = await parseFolderShiftLinks(folderImportFiles)
 

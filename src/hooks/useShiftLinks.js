@@ -30,7 +30,7 @@ export function useShiftLinks(token) {
   const [showFolderImportModal, setShowFolderImportModal] = useState(false)
   const [folderImportFiles, setFolderImportFiles] = useState(null)
   const [folderImportAdsType, setFolderImportAdsType] = useState('')
-  const [folderImportDisplayNumber, setFolderImportDisplayNumber] = useState('100')
+  const [folderImportDisplayNumber, setFolderImportDisplayNumber] = useState('')
   const [folderImportSaving, setFolderImportSaving] = useState(false)
   const [folderImportError, setFolderImportError] = useState('')
   const [folderImportMessage, setFolderImportMessage] = useState('')

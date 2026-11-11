@@ -46,8 +46,6 @@ function ShiftLinkManagementSection({
   onAdsUserNameChange,
   fullUrl,
   onFullUrlChange,
-  displayNumber,
-  onDisplayNumberChange,
   remark,
   onRemarkChange,
   userNameOptions,
@@ -65,8 +63,6 @@ function ShiftLinkManagementSection({
   showFolderImportModal,
   folderImportAdsType,
   onFolderImportAdsTypeChange,
-  folderImportDisplayNumber,
-  onFolderImportDisplayNumberChange,
   folderImportSaving,
   folderImportError,
   folderImportMessage,
@@ -380,17 +376,6 @@ function ShiftLinkManagementSection({
               required
             />
 
-            <label htmlFor="displayNumber">Display Capacity</label>
-            <input
-              id="displayNumber"
-              type="number"
-              min="0"
-              step="1"
-              value={displayNumber}
-              onChange={(event) => onDisplayNumberChange(event.target.value)}
-              placeholder="Enter display capacity"
-            />
-
             <label htmlFor="remark">Remarks</label>
             <input
               id="remark"
@@ -428,7 +413,8 @@ function ShiftLinkManagementSection({
 
             <p className="field-help">
               Use these Excel headers only: adsType, adsName, platformName, fullUrl,
-              landingPageUrl, displayNumber, remarks.
+              landingPageUrl, remarks. The click threshold for switching links is a global
+              server setting.
             </p>
 
             {bulkAdsError ? (
@@ -476,17 +462,6 @@ function ShiftLinkManagementSection({
               directory=""
               multiple
               onChange={(event) => onFolderImportFilesChange(event.target.files || null)}
-              required
-            />
-
-            <label htmlFor="folderImportDisplayNumber">Display Number</label>
-            <input
-              id="folderImportDisplayNumber"
-              type="number"
-              min="0"
-              step="1"
-              value={folderImportDisplayNumber}
-              onChange={(event) => onFolderImportDisplayNumberChange(event.target.value)}
               required
             />
 
