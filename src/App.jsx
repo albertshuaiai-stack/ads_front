@@ -704,6 +704,10 @@ function App() {
     affiliatePostBackQueryApplied, setAffiliatePostBackQueryApplied,
     affiliatePostBackFiltersRef,
     loadAffiliatePostBacks,
+    postBackStats, postBackClicks, postBackClickSummary,
+    postBackStatsLoading, postBackStatsError,
+    postBackImporting, postBackImportMessage, postBackImportError,
+    loadPostBackStats, loadClickSummary, importPostBackCsv, deletePostBack,
   } = useAffiliatePostBacks(token, loggedInAdsOwner, showAdminOwnerFilter)
 
   const {
@@ -6640,6 +6644,18 @@ setAdsAccountStatus(item.status || '')
         pagination={affiliatePostBackPagination}
         onPageChange={handleAffiliatePostBackPageChange}
         onPageSizeChange={handleAffiliatePostBackPageSizeChange}
+        postBackStats={postBackStats}
+        postBackClicks={postBackClicks}
+        postBackClickSummary={postBackClickSummary}
+        postBackStatsLoading={postBackStatsLoading}
+        postBackStatsError={postBackStatsError}
+        postBackImporting={postBackImporting}
+        postBackImportMessage={postBackImportMessage}
+        postBackImportError={postBackImportError}
+        onReloadPostBackStats={loadPostBackStats}
+        onReloadClickSummary={loadClickSummary}
+        onImportPostBackCsv={importPostBackCsv}
+        onDeletePostBack={deletePostBack}
       />
     )
   } else if (activeMenu === 'affiliate-test-result') {
