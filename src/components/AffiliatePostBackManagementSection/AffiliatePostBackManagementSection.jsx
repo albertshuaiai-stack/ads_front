@@ -61,8 +61,8 @@ function AffiliatePostBackManagementSection({
   const [clickOwner, setClickOwner] = useState('')
   const [clickPlatform, setClickPlatform] = useState('')
   const [clickBrand, setClickBrand] = useState('')
-  const [onlyClicked, setOnlyClicked] = useState(true)
-  const [clickSortKey, setClickSortKey] = useState('clicks')
+  const [clickFilter, setClickFilter] = useState('task')
+  const [clickSortKey, setClickSortKey] = useState('campaignClicks')
   const [clickSortDir, setClickSortDir] = useState('desc')
   const [shopSort, setShopSort] = useState('default')
   const [actionError, setActionError] = useState('')
@@ -85,26 +85,50 @@ function AffiliatePostBackManagementSection({
     [summaryClicks, clickOwner, clickPlatform, clickBrand],
   )
 
-  const clickTotals = useMemo(() => filteredClicks.reduce((acc, item) => ({
-    links: acc.links + 1,
-    clicked: acc.clicked + (asNumber(item.clicks) > 0 ? 1 : 0),
-    clicks: acc.clicks + asNumber(item.clicks),
-    orders: acc.orders + asNumber(item.orderCount),
-    gmv: acc.gmv + asNumber(item.orderAmount),
-    commission: acc.commission + asNumber(item.commission),
-  }), { links: 0, clicked: 0, clicks: 0, orders: 0, gmv: 0, commission: 0 }), [filteredClicks])
+  const clickTotals = useMemo(() => {
+    const taskClicks = new Map()
+    filteredClicks.forEach((item) => {
+      const key = item.normalAdsId ?? '__none__'
+      if (!taskClicks.has(key)) {
+        taskClicks.set(key, asNumber(item.campaignClicks))
+      }
+    })
+    const perTask = [...taskClicks.values()]
+    return {
+      links: filteredClicks.length,
+      activeTasks: perTask.filter((value) => value > 0).length,
+      adClicks: perTask.reduce((sum, value) => sum + value, 0),
+      clickedLinks: filteredClicks.filter((item) => asNumber(item.linkClicks) > 0).length,
+      linkClicks: filteredClicks.reduce((sum, item) => sum + asNumber(item.linkClicks), 0),
+      orders: filteredClicks.reduce((sum, item) => sum + asNumber(item.orderCount), 0),
+      gmv: filteredClicks.reduce((sum, item) => sum + asNumber(item.orderAmount), 0),
+      commission: filteredClicks.reduce((sum, item) => sum + asNumber(item.commission), 0),
+    }
+  }, [filteredClicks])
 
   const visibleClicks = useMemo(() => {
-    const base = onlyClicked
-      ? filteredClicks.filter((item) => asNumber(item.clicks) > 0)
-      : filteredClicks
+    const base = clickFilter === 'link'
+      ? filteredClicks.filter((item) => asNumber(item.linkClicks) > 0)
+      : clickFilter === 'task'
+        ? filteredClicks.filter((item) => asNumber(item.campaignClicks) > 0)
+        : filteredClicks
     const direction = clickSortDir === 'asc' ? 1 : -1
     return [...base].sort((a, b) => {
       const left = clickSortKey === 'created' ? String(a.createDate || '') : asNumber(a[clickSortKey])
       const right = clickSortKey === 'created' ? String(b.createDate || '') : asNumber(b[clickSortKey])
       return (left > right ? 1 : left < right ? -1 : 0) * direction
     })
-  }, [filteredClicks, onlyClicked, clickSortKey, clickSortDir])
+  }, [filteredClicks, clickFilter, clickSortKey, clickSortDir])
+
+  const CLICK_FILTER_LABELS = {
+    task: 'Filter: task has clicks',
+    link: 'Filter: link has clicks',
+    all: 'Filter: all links',
+  }
+
+  const cycleClickFilter = () => {
+    setClickFilter(clickFilter === 'task' ? 'link' : clickFilter === 'link' ? 'all' : 'task')
+  }
 
   const toggleClickSort = (key) => {
     if (clickSortKey === key) {
@@ -253,10 +277,10 @@ function AffiliatePostBackManagementSection({
             </button>
             <button
               type="button"
-              className={`pb-btn ${onlyClicked ? 'pb-btn-primary' : ''}`}
-              onClick={() => setOnlyClicked(!onlyClicked)}
+              className={`pb-btn ${clickFilter !== 'all' ? 'pb-btn-primary' : ''}`}
+              onClick={cycleClickFilter}
             >
-              {onlyClicked ? 'Only clicked ✓' : 'Show all'}
+              {CLICK_FILTER_LABELS[clickFilter]}
             </button>
             <button type="button" className="pb-btn pb-btn-primary" onClick={() => onReloadClickSummary?.()}>
               Refresh
@@ -265,18 +289,19 @@ function AffiliatePostBackManagementSection({
 
           <div className="pb-mini-stats">
             <span>Total links <b>{clickTotals.links}</b></span>
-            <span>Clicked links <b>{clickTotals.clicked}</b></span>
-            <span>Total clicks <b>{clickTotals.clicks}</b></span>
+            <span>Clicked links <b>{clickTotals.clickedLinks}</b></span>
+            <span>Link clicks <b>{clickTotals.linkClicks}</b></span>
+            <span>Ad clicks (lifetime) <b>{clickTotals.adClicks}</b></span>
             <span>Orders <b>{clickTotals.orders}</b></span>
             <span>GMV <b>{clickTotals.gmv.toFixed(2)}</b></span>
             <span>Commission <b>{clickTotals.commission.toFixed(2)}</b></span>
           </div>
           <p className="pb-hint">
-            {clickTotals.links} links in this filter, {clickTotals.clicked} received clicks
-            ({clickTotals.links ? ((clickTotals.clicked / clickTotals.links) * 100).toFixed(1) : '0.0'}%),
-            {clickTotals.clicks} clicks in total. Click counts come from Google Ads report-driven link consumption
-            (SHIFT_LINK.DISPLAY_TIMES). The list below shows only clicked links by default; toggle to see all.
-            Click a column header to sort.
+            Link clicks = (Google Ads cumulative clicks at report time) − (click base reserved when the link
+            became active), i.e. the click increment each link carried while active. It is updated once per
+            hourly report and only for the links the rotation has reached. Ad clicks (lifetime) is the
+            campaign total shared by all its links. Use the filter button to switch between task-level,
+            link-level and all links; click a column header to sort.
           </p>
 
           <div className="pb-table-wrap">
@@ -289,7 +314,8 @@ function AffiliatePostBackManagementSection({
                   <th>Brand</th>
                   <th>Task ID</th>
                   <th>{clickSortHeader('Created', 'created')}</th>
-                  <th>{clickSortHeader('Clicks', 'clicks')}</th>
+                  <th>{clickSortHeader('Link clicks', 'linkClicks')}</th>
+                  <th>{clickSortHeader('Task clicks', 'campaignClicks')}</th>
                   <th>{clickSortHeader('Orders', 'orderCount')}</th>
                   <th>{clickSortHeader('GMV', 'orderAmount')}</th>
                   <th>{clickSortHeader('Commission', 'commission')}</th>
@@ -297,8 +323,12 @@ function AffiliatePostBackManagementSection({
               </thead>
               <tbody>
                 {visibleClicks.length === 0 ? (
-                  <tr><td className="pb-empty" colSpan={10}>
-                    {onlyClicked ? 'No clicked links in this filter.' : 'No click IDs recorded yet.'}
+                  <tr><td className="pb-empty" colSpan={11}>
+                    {clickFilter === 'link'
+                      ? 'No link has been reached by the rotation yet.'
+                      : clickFilter === 'task'
+                        ? 'No links belong to a task with clicks in this filter.'
+                        : 'No click IDs recorded yet.'}
                   </td></tr>
                 ) : visibleClicks.map((item) => (
                   <tr key={item.clickId}>
@@ -308,7 +338,8 @@ function AffiliatePostBackManagementSection({
                     <td>{formatTableValue(item.campainName)}</td>
                     <td>{formatTableValue(item.normalAdsId)}</td>
                     <td>{formatDateTimeDisplayValueWithDashedDate(item.createDate)}</td>
-                    <td>{formatTableValue(item.clicks)}</td>
+                    <td>{formatTableValue(item.linkClicks)}</td>
+                    <td>{formatTableValue(item.campaignClicks)}</td>
                     <td>{formatTableValue(item.orderCount)}</td>
                     <td>{formatTableValue(item.orderAmount)}</td>
                     <td>{formatTableValue(item.commission)}</td>
