@@ -61,8 +61,8 @@ function AffiliatePostBackManagementSection({
   const [clickOwner, setClickOwner] = useState('')
   const [clickPlatform, setClickPlatform] = useState('')
   const [clickBrand, setClickBrand] = useState('')
-  const [clickFilter, setClickFilter] = useState('task')
-  const [clickSortKey, setClickSortKey] = useState('campaignClicks')
+  const [clickFilter, setClickFilter] = useState('all')
+  const [clickSortKey, setClickSortKey] = useState('created')
   const [clickSortDir, setClickSortDir] = useState('desc')
   const [shopSort, setShopSort] = useState('default')
   const [actionError, setActionError] = useState('')
@@ -109,9 +109,7 @@ function AffiliatePostBackManagementSection({
   const visibleClicks = useMemo(() => {
     const base = clickFilter === 'link'
       ? filteredClicks.filter((item) => asNumber(item.linkClicks) > 0)
-      : clickFilter === 'task'
-        ? filteredClicks.filter((item) => asNumber(item.campaignClicks) > 0)
-        : filteredClicks
+      : filteredClicks
     const direction = clickSortDir === 'asc' ? 1 : -1
     return [...base].sort((a, b) => {
       const left = clickSortKey === 'created' ? String(a.createDate || '') : asNumber(a[clickSortKey])
@@ -121,13 +119,12 @@ function AffiliatePostBackManagementSection({
   }, [filteredClicks, clickFilter, clickSortKey, clickSortDir])
 
   const CLICK_FILTER_LABELS = {
-    task: 'Filter: task has clicks',
     link: 'Filter: link has clicks',
     all: 'Filter: all links',
   }
 
   const cycleClickFilter = () => {
-    setClickFilter(clickFilter === 'task' ? 'link' : clickFilter === 'link' ? 'all' : 'task')
+    setClickFilter(clickFilter === 'link' ? 'all' : 'link')
   }
 
   const toggleClickSort = (key) => {
@@ -299,9 +296,9 @@ function AffiliatePostBackManagementSection({
           <p className="pb-hint">
             Link clicks = (Google Ads cumulative clicks at report time) − (click base reserved when the link
             became active), i.e. the click increment each link carried while active. It is updated once per
-            hourly report and only for the links the rotation has reached. Ad clicks (lifetime) is the
-            campaign total shared by all its links. Use the filter button to switch between task-level,
-            link-level and all links; click a column header to sort.
+            hourly report and only for the links the rotation has reached; links still waiting in the
+            rotation show 0. Ad clicks (lifetime) is the campaign total counted once per task, it is not a
+            per-link value. Use the filter button to show only links with clicks; click a column header to sort.
           </p>
 
           <div className="pb-table-wrap">
@@ -315,7 +312,6 @@ function AffiliatePostBackManagementSection({
                   <th>Task ID</th>
                   <th>{clickSortHeader('Created', 'created')}</th>
                   <th>{clickSortHeader('Link clicks', 'linkClicks')}</th>
-                  <th>{clickSortHeader('Task clicks', 'campaignClicks')}</th>
                   <th>{clickSortHeader('Orders', 'orderCount')}</th>
                   <th>{clickSortHeader('GMV', 'orderAmount')}</th>
                   <th>{clickSortHeader('Commission', 'commission')}</th>
@@ -323,12 +319,10 @@ function AffiliatePostBackManagementSection({
               </thead>
               <tbody>
                 {visibleClicks.length === 0 ? (
-                  <tr><td className="pb-empty" colSpan={11}>
+                  <tr><td className="pb-empty" colSpan={10}>
                     {clickFilter === 'link'
                       ? 'No link has been reached by the rotation yet.'
-                      : clickFilter === 'task'
-                        ? 'No links belong to a task with clicks in this filter.'
-                        : 'No click IDs recorded yet.'}
+                      : 'No click IDs recorded yet.'}
                   </td></tr>
                 ) : visibleClicks.map((item) => (
                   <tr key={item.clickId}>
@@ -339,7 +333,6 @@ function AffiliatePostBackManagementSection({
                     <td>{formatTableValue(item.normalAdsId)}</td>
                     <td>{formatDateTimeDisplayValueWithDashedDate(item.createDate)}</td>
                     <td>{formatTableValue(item.linkClicks)}</td>
-                    <td>{formatTableValue(item.campaignClicks)}</td>
                     <td>{formatTableValue(item.orderCount)}</td>
                     <td>{formatTableValue(item.orderAmount)}</td>
                     <td>{formatTableValue(item.commission)}</td>
