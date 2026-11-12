@@ -171,7 +171,8 @@ export function useAffiliatePostBacks(token, defaultAdsOwner, isAdminView) {
       const query = buildQueryString({ adsOwner: statsOwner(), size: 1000 })
       const response = await requestApi(`/postback/reattribute${query}`, { method: 'POST', token })
       await refreshAll()
-      return `Re-attributed ${response?.matched ?? 0} orders.`
+      return `Scanned ${response?.scanned ?? 0}; task-level ${response?.partial ?? 0}, ` +
+        `exact ${response?.matched ?? 0}, changed ${response?.changed ?? 0}.`
     } catch (error) {
       return error instanceof Error ? error.message : 'Unknown error'
     }

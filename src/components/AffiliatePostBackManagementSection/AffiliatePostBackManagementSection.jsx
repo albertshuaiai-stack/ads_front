@@ -61,6 +61,9 @@ function AffiliatePostBackManagementSection({
   const [clickOwner, setClickOwner] = useState('')
   const [clickPlatform, setClickPlatform] = useState('')
   const [clickBrand, setClickBrand] = useState('')
+  const [onlyClicked, setOnlyClicked] = useState(true)
+  const [clickSortKey, setClickSortKey] = useState('clicks')
+  const [clickSortDir, setClickSortDir] = useState('desc')
   const [shopSort, setShopSort] = useState('default')
   const [actionError, setActionError] = useState('')
   const [reattributeMessage, setReattributeMessage] = useState('')
@@ -83,11 +86,40 @@ function AffiliatePostBackManagementSection({
   )
 
   const clickTotals = useMemo(() => filteredClicks.reduce((acc, item) => ({
-    hits: acc.hits + asNumber(item.clickCount),
+    links: acc.links + 1,
+    clicked: acc.clicked + (asNumber(item.clicks) > 0 ? 1 : 0),
+    clicks: acc.clicks + asNumber(item.clicks),
     orders: acc.orders + asNumber(item.orderCount),
     gmv: acc.gmv + asNumber(item.orderAmount),
     commission: acc.commission + asNumber(item.commission),
-  }), { hits: 0, orders: 0, gmv: 0, commission: 0 }), [filteredClicks])
+  }), { links: 0, clicked: 0, clicks: 0, orders: 0, gmv: 0, commission: 0 }), [filteredClicks])
+
+  const visibleClicks = useMemo(() => {
+    const base = onlyClicked
+      ? filteredClicks.filter((item) => asNumber(item.clicks) > 0)
+      : filteredClicks
+    const direction = clickSortDir === 'asc' ? 1 : -1
+    return [...base].sort((a, b) => {
+      const left = clickSortKey === 'created' ? String(a.createDate || '') : asNumber(a[clickSortKey])
+      const right = clickSortKey === 'created' ? String(b.createDate || '') : asNumber(b[clickSortKey])
+      return (left > right ? 1 : left < right ? -1 : 0) * direction
+    })
+  }, [filteredClicks, onlyClicked, clickSortKey, clickSortDir])
+
+  const toggleClickSort = (key) => {
+    if (clickSortKey === key) {
+      setClickSortDir(clickSortDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setClickSortKey(key)
+      setClickSortDir('desc')
+    }
+  }
+
+  const clickSortHeader = (label, key) => (
+    <button type="button" onClick={() => toggleClickSort(key)}>
+      {label}{clickSortKey === key ? (clickSortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕'}
+    </button>
+  )
 
   const sortedOrders = useMemo(() => {
     if (shopSort === 'default') {
@@ -219,43 +251,56 @@ function AffiliatePostBackManagementSection({
             >
               Reset
             </button>
+            <button
+              type="button"
+              className={`pb-btn ${onlyClicked ? 'pb-btn-primary' : ''}`}
+              onClick={() => setOnlyClicked(!onlyClicked)}
+            >
+              {onlyClicked ? 'Only clicked ✓' : 'Show all'}
+            </button>
             <button type="button" className="pb-btn pb-btn-primary" onClick={() => onReloadClickSummary?.()}>
               Refresh
             </button>
           </div>
 
           <div className="pb-mini-stats">
-            <span>Click IDs <b>{filteredClicks.length}</b></span>
-            <span>Tracked hits <b>{clickTotals.hits}</b></span>
+            <span>Total links <b>{clickTotals.links}</b></span>
+            <span>Clicked links <b>{clickTotals.clicked}</b></span>
+            <span>Total clicks <b>{clickTotals.clicks}</b></span>
             <span>Orders <b>{clickTotals.orders}</b></span>
             <span>GMV <b>{clickTotals.gmv.toFixed(2)}</b></span>
             <span>Commission <b>{clickTotals.commission.toFixed(2)}</b></span>
           </div>
           <p className="pb-hint">
-            Ad Platform is the traffic source of the listed task. Tracked hits count requests through /api/click;
-            Google Ads links are unchanged, so it stays 0. Campaign-level ad clicks are on the Conversions tab.
+            {clickTotals.links} links in this filter, {clickTotals.clicked} received clicks
+            ({clickTotals.links ? ((clickTotals.clicked / clickTotals.links) * 100).toFixed(1) : '0.0'}%),
+            {clickTotals.clicks} clicks in total. Click counts come from Google Ads report-driven link consumption
+            (SHIFT_LINK.DISPLAY_TIMES). The list below shows only clicked links by default; toggle to see all.
+            Click a column header to sort.
           </p>
 
           <div className="pb-table-wrap">
             <table className="pb-table">
               <thead>
                 <tr>
-                  <th>Click ID</th>
+                  <th>{clickSortHeader('Click ID', 'clickId')}</th>
                   <th>Owner</th>
                   <th>Ad Platform</th>
                   <th>Brand</th>
                   <th>Task ID</th>
-                  <th>Created</th>
-                  <th>Tracked hits</th>
-                  <th>Orders</th>
-                  <th>GMV</th>
-                  <th>Commission</th>
+                  <th>{clickSortHeader('Created', 'created')}</th>
+                  <th>{clickSortHeader('Clicks', 'clicks')}</th>
+                  <th>{clickSortHeader('Orders', 'orderCount')}</th>
+                  <th>{clickSortHeader('GMV', 'orderAmount')}</th>
+                  <th>{clickSortHeader('Commission', 'commission')}</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredClicks.length === 0 ? (
-                  <tr><td className="pb-empty" colSpan={10}>No click IDs recorded yet.</td></tr>
-                ) : filteredClicks.map((item) => (
+                {visibleClicks.length === 0 ? (
+                  <tr><td className="pb-empty" colSpan={10}>
+                    {onlyClicked ? 'No clicked links in this filter.' : 'No click IDs recorded yet.'}
+                  </td></tr>
+                ) : visibleClicks.map((item) => (
                   <tr key={item.clickId}>
                     <td>{formatTableValue(item.clickId)}</td>
                     <td>{formatTableValue(item.adsOwner)}</td>
@@ -263,7 +308,7 @@ function AffiliatePostBackManagementSection({
                     <td>{formatTableValue(item.campainName)}</td>
                     <td>{formatTableValue(item.normalAdsId)}</td>
                     <td>{formatDateTimeDisplayValueWithDashedDate(item.createDate)}</td>
-                    <td>{formatTableValue(item.clickCount)}</td>
+                    <td>{formatTableValue(item.clicks)}</td>
                     <td>{formatTableValue(item.orderCount)}</td>
                     <td>{formatTableValue(item.orderAmount)}</td>
                     <td>{formatTableValue(item.commission)}</td>
