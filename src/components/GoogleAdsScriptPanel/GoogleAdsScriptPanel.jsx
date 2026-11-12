@@ -59,8 +59,15 @@ function reportClicks() {
     var data = [];
     while (rows.hasNext()) {
       var row = rows.next();
-      data.push({name: row['campaign.name'], clicks: Number(row['metrics.clicks'])});
+      // AdsApp.search 返回嵌套对象 row.campaign.name, 不是扁平键 'campaign.name'
+      var name = row.campaign ? row.campaign.name : null;
+      var clicks = row.metrics ? Number(row.metrics.clicks) : 0;
+      if (!name) {
+        continue;
+      }
+      data.push({name: name, clicks: isNaN(clicks) ? 0 : clicks});
     }
+    console.log('click report payload=' + JSON.stringify(data));
     var response = UrlFetchApp.fetch(API_REPORT_URL, {
       method: 'post',
       contentType: 'application/json',
