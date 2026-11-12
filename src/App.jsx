@@ -708,6 +708,7 @@ function App() {
     postBackStatsLoading, postBackStatsError,
     postBackImporting, postBackImportMessage, postBackImportError,
     loadPostBackStats, loadClickSummary, importPostBackCsv, deletePostBack,
+    reattributePostBacks,
   } = useAffiliatePostBacks(token, loggedInAdsOwner, showAdminOwnerFilter)
 
   const {
@@ -6656,6 +6657,7 @@ setAdsAccountStatus(item.status || '')
         onReloadClickSummary={loadClickSummary}
         onImportPostBackCsv={importPostBackCsv}
         onDeletePostBack={deletePostBack}
+        onReattributePostBacks={reattributePostBacks}
       />
     )
   } else if (activeMenu === 'affiliate-test-result') {

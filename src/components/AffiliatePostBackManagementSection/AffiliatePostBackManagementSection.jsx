@@ -6,9 +6,11 @@ import './AffiliatePostBackManagementSection.css'
 
 const TABS = [
   { id: 'click', label: 'Click' },
-  { id: 'postback', label: 'BonusArrive Postback' },
+  { id: 'postback', label: 'Conversions' },
   { id: 'import', label: 'Historical Import' },
 ]
+
+const IMPORT_PLATFORMS = ['BonusArrive', 'Yeahpromos', 'Partnerboost', 'Mylead']
 
 function formatPercent(value) {
   if (value === null || value === undefined || value === '') {
@@ -51,14 +53,17 @@ function AffiliatePostBackManagementSection({
   onReloadClickSummary,
   onImportPostBackCsv,
   onDeletePostBack,
+  onReattributePostBacks,
 }) {
   const [activeTab, setActiveTab] = useState('click')
   const [csvFile, setCsvFile] = useState(null)
+  const [importPlatform, setImportPlatform] = useState('BonusArrive')
   const [clickOwner, setClickOwner] = useState('')
   const [clickPlatform, setClickPlatform] = useState('')
   const [clickBrand, setClickBrand] = useState('')
   const [shopSort, setShopSort] = useState('default')
   const [actionError, setActionError] = useState('')
+  const [reattributeMessage, setReattributeMessage] = useState('')
   const fileInputRef = useRef(null)
 
   const summaryClicks = useMemo(
@@ -96,12 +101,20 @@ function AffiliatePostBackManagementSection({
     })
   }, [affiliatePostBacks, shopSort])
 
+  // 常量里已知平台 + 数据里实际出现过的平台, 新平台接入后自动出现在筛选里
+  // known platforms plus any platform present in the data
+  const networkOptions = useMemo(() => {
+    const fromConstants = (affiliateSiteOptions || []).map((option) => option.value)
+    const fromData = Array.isArray(postBackStats?.platforms) ? postBackStats.platforms : []
+    return [...new Set([...fromConstants, ...fromData])].filter(Boolean)
+  }, [affiliateSiteOptions, postBackStats])
+
   const handleImportSubmit = (event) => {
     event.preventDefault()
     if (!csvFile) {
       return
     }
-    onImportPostBackCsv(csvFile)
+    onImportPostBackCsv(csvFile, importPlatform)
     setCsvFile(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -129,6 +142,25 @@ function AffiliatePostBackManagementSection({
     : []
 
   const taskRows = Array.isArray(postBackStats?.tasks) ? postBackStats.tasks : []
+  const platformRows = Array.isArray(postBackStats?.byPlatform) ? postBackStats.byPlatform : []
+  const health = postBackStats?.attributionHealth
+  const recentSubIds = Array.isArray(health?.recentSubIds) ? health.recentSubIds : []
+  const healthMessage = useMemo(() => {
+    if (!health) {
+      return ''
+    }
+    if (!asNumber(health.clickTrackCount)) {
+      return 'No click IDs in the ledger yet. Auto tasks must be RUNNING and generate a new link after deploying.'
+    }
+    if (!asNumber(health.withSubIdCount)) {
+      return 'No Sub ID received from the network. Historical bills never carry one; for new orders check that the affiliate link has a subid and that the network echoes it back.'
+    }
+    if (!asNumber(health.matchedCount)) {
+      return 'Sub IDs are arriving but none match the ledger. The network is probably returning its own click id; a mapping is needed.'
+    }
+    return 'Attribution is working: new orders are matched to click IDs.'
+  }, [health])
+  const healthOk = healthMessage.startsWith('Attribution is working')
   const unmatchedAdvertisers = Array.isArray(postBackStats?.unmatchedByAdvertiser)
     ? postBackStats.unmatchedByAdvertiser : []
   const nextShopSort = shopSort === 'default' ? 'asc' : shopSort === 'asc' ? 'desc' : 'default'
@@ -138,7 +170,7 @@ function AffiliatePostBackManagementSection({
     <div className="panel pb-panel">
       <div className="pb-head">
         <h3>Post Back</h3>
-        <span className="pb-sub">Clicks, conversions and historical bills</span>
+        <span className="pb-sub">Clicks, conversions and historical bills across all networks</span>
       </div>
 
       <div className="pb-tabs" role="tablist">
@@ -167,9 +199,9 @@ function AffiliatePostBackManagementSection({
               </select>
             </label>
             <label className="pb-field">
-              Platform
+              Ad Platform
               <select value={clickPlatform} onChange={(event) => setClickPlatform(event.target.value)}>
-                <option value="">All platforms</option>
+                <option value="">All ad platforms</option>
                 {platformChoices.map((value) => <option key={value} value={value}>{value}</option>)}
               </select>
             </label>
@@ -200,8 +232,8 @@ function AffiliatePostBackManagementSection({
             <span>Commission <b>{clickTotals.commission.toFixed(2)}</b></span>
           </div>
           <p className="pb-hint">
-            Tracked hits count requests that go through /api/click. Google Ads links are unchanged, so it stays 0;
-            campaign-level ad clicks are on the Postback tab. Orders/GMV/Commission show what each click ID brought in.
+            Ad Platform is the traffic source of the listed task. Tracked hits count requests through /api/click;
+            Google Ads links are unchanged, so it stays 0. Campaign-level ad clicks are on the Conversions tab.
           </p>
 
           <div className="pb-table-wrap">
@@ -210,7 +242,7 @@ function AffiliatePostBackManagementSection({
                 <tr>
                   <th>Click ID</th>
                   <th>Owner</th>
-                  <th>Platform</th>
+                  <th>Ad Platform</th>
                   <th>Brand</th>
                   <th>Task ID</th>
                   <th>Created</th>
@@ -262,6 +294,55 @@ function AffiliatePostBackManagementSection({
                 </div>
               ))}
             </div>
+          ) : null}
+
+          {health ? (
+            <>
+              <div className="pb-block-title">
+                Attribution Health
+                <button
+                  type="button"
+                  className="pb-btn"
+                  onClick={async () => setReattributeMessage(await onReattributePostBacks())}
+                >
+                  Re-run attribution
+                </button>
+              </div>
+              <div className="pb-mini-stats">
+                <span>Click IDs in ledger <b>{formatTableValue(health.clickTrackCount)}</b></span>
+                <span>Orders <b>{formatTableValue(health.orderCount)}</b></span>
+                <span>With Sub ID <b>{formatTableValue(health.withSubIdCount)}</b></span>
+                <span>Matched to Click ID <b>{formatTableValue(health.matchedCount)}</b></span>
+              </div>
+              <p className={`pb-status ${healthOk ? 'success' : 'error'}`}>{healthMessage}</p>
+              {reattributeMessage ? <p className="pb-hint">{reattributeMessage}</p> : null}
+              {recentSubIds.length > 0 ? (
+                <p className="pb-hint">Recent Sub IDs: {recentSubIds.join(' | ')}</p>
+              ) : null}
+            </>
+          ) : null}
+
+          {platformRows.length > 0 ? (
+            <>
+              <div className="pb-block-title">By Platform</div>
+              <div className="pb-table-wrap">
+                <table className="pb-table">
+                  <thead>
+                    <tr><th>Platform</th><th>Orders</th><th>GMV</th><th>Commission</th></tr>
+                  </thead>
+                  <tbody>
+                    {platformRows.map((item) => (
+                      <tr key={item.platform}>
+                        <td>{formatTableValue(item.platform)}</td>
+                        <td>{formatTableValue(item.orderCount)}</td>
+                        <td>{formatTableValue(item.orderAmount)}</td>
+                        <td>{formatTableValue(item.commission)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : null}
 
           <div className="pb-block-title">By Normal Task</div>
@@ -330,7 +411,7 @@ function AffiliatePostBackManagementSection({
             </>
           ) : null}
 
-          <div className="pb-block-title">BonusArrive Postback Orders</div>
+          <div className="pb-block-title">Postback Orders</div>
           <div className="pb-toolbar">
             {showOwnerFilter ? (
               <label className="pb-field">
@@ -350,7 +431,7 @@ function AffiliatePostBackManagementSection({
               </label>
             ) : null}
             <label className="pb-field">
-              Affiliate Site
+              Platform
               <select
                 value={affiliatePostBackFilters.affiliateSite}
                 onChange={(event) => onAffiliatePostBackFiltersChange({
@@ -358,9 +439,9 @@ function AffiliatePostBackManagementSection({
                   affiliateSite: event.target.value,
                 })}
               >
-                <option value="">All affiliate sites</option>
-                {affiliateSiteOptions.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
+                <option value="">All platforms</option>
+                {networkOptions.map((value) => (
+                  <option key={value} value={value}>{value}</option>
                 ))}
               </select>
             </label>
@@ -429,7 +510,7 @@ function AffiliatePostBackManagementSection({
                     <th>Normal Task ID</th>
                     <th>Match Status</th>
                     <th>Match Rule</th>
-                    <th>Affiliate Site</th>
+                    <th>Platform</th>
                     <th>Sign ID</th>
                     <th>Action</th>
                   </tr>
@@ -480,11 +561,19 @@ function AffiliatePostBackManagementSection({
         <div className="pb-section">
           <div className="pb-block-title">Import Historical Bill CSV</div>
           <p className="pb-hint">
-            Upload the CSV exported from the affiliate dashboard. Columns: Order ID, Action Time, Status,
-            Advertiser Name, Advertiser ID, GMV, Commission, Promotion Space, Sub ID, Country.
-            Duplicate order numbers are skipped; the summary refreshes automatically.
+            Upload the CSV exported from the affiliate dashboard, and pick which platform it belongs to.
+            Columns: Order ID, Action Time, Status, Advertiser Name, Advertiser ID, GMV, Commission,
+            Promotion Space, Sub ID, Country. Duplicate order numbers are skipped.
           </p>
           <form className="pb-toolbar" onSubmit={handleImportSubmit}>
+            <label className="pb-field">
+              Platform
+              <select value={importPlatform} onChange={(event) => setImportPlatform(event.target.value)}>
+                {[...new Set([...IMPORT_PLATFORMS, ...networkOptions])].map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+            </label>
             <label className="pb-field">
               CSV file
               <input

@@ -123,7 +123,7 @@ export function useAffiliatePostBacks(token, defaultAdsOwner, isAdminView) {
   }, [loadAffiliatePostBacks, loadPostBackStats, loadClickSummary])
 
   const importPostBackCsv = useCallback(
-    async (file) => {
+    async (file, platform) => {
       if (!file) {
         return
       }
@@ -133,6 +133,7 @@ export function useAffiliatePostBacks(token, defaultAdsOwner, isAdminView) {
       try {
         const formData = new FormData()
         formData.append('file', file)
+        formData.append('platform', platform || 'BonusArrive')
         const response = await requestApi('/postback/import', {
           method: 'POST',
           token,
@@ -165,6 +166,17 @@ export function useAffiliatePostBacks(token, defaultAdsOwner, isAdminView) {
     [token, refreshAll],
   )
 
+  const reattributePostBacks = useCallback(async () => {
+    try {
+      const query = buildQueryString({ adsOwner: statsOwner(), size: 1000 })
+      const response = await requestApi(`/postback/reattribute${query}`, { method: 'POST', token })
+      await refreshAll()
+      return `Re-attributed ${response?.matched ?? 0} orders.`
+    } catch (error) {
+      return error instanceof Error ? error.message : 'Unknown error'
+    }
+  }, [token, statsOwner, refreshAll])
+
   useEffect(() => {
     if (token) {
       loadPostBackStats()
@@ -187,5 +199,6 @@ export function useAffiliatePostBacks(token, defaultAdsOwner, isAdminView) {
     postBackStatsLoading, postBackStatsError,
     postBackImporting, postBackImportMessage, postBackImportError,
     loadPostBackStats, loadClickSummary, importPostBackCsv, deletePostBack,
+    reattributePostBacks,
   }
 }
