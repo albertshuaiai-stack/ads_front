@@ -25,6 +25,30 @@ function asNumber(value) {
   return Number.isFinite(number) ? number : 0
 }
 
+function formatMoney(value) {
+  if (value === null || value === undefined || value === '') {
+    return '—'
+  }
+  const number = Number(value)
+  return Number.isFinite(number) ? number.toFixed(2) : '—'
+}
+
+// ROAS = 佣金 / 花费, 大于 1 即回本 / commission divided by cost, above 1 means profitable
+function formatRoas(value) {
+  if (value === null || value === undefined || value === '') {
+    return '—'
+  }
+  const number = Number(value)
+  return Number.isFinite(number) ? `${number.toFixed(2)}x` : '—'
+}
+
+function formatCost(amount, currency) {
+  if (amount === null || amount === undefined || amount === '') {
+    return '—'
+  }
+  return `${formatMoney(amount)} ${currency || 'USD'}`
+}
+
 function AffiliatePostBackManagementSection({
   affiliatePostBacks,
   affiliatePostBacksLoading,
@@ -190,7 +214,10 @@ function AffiliatePostBackManagementSection({
         ['Orders', postBackStats.orderCount],
         ['Unmatched Orders', postBackStats.unmatchedOrderCount],
         ['GMV', postBackStats.orderAmount],
-        ['Commission', postBackStats.commission],
+        ['Commission (USD)', postBackStats.commission],
+        ['Ad Cost (USD)', formatMoney(postBackStats.adCostUsd)],
+        ['Profit (USD)', formatMoney(postBackStats.profitUsd)],
+        ['ROAS', formatRoas(postBackStats.roas)],
       ]
     : []
 
@@ -415,6 +442,15 @@ function AffiliatePostBackManagementSection({
           ) : null}
 
           <div className="pb-block-title">By Normal Task</div>
+          <p className="pb-hint">
+            Ad Cost is the Google Ads lifetime cost reported by the script in the account currency, converted to
+            USD with the latest stored rate{postBackStats?.usdCnyRate ? ` (1 USD = ${postBackStats.usdCnyRate} CNY)` : ''}.
+            Commission is treated as USD. Profit = Commission − Ad Cost (USD); ROAS = Commission ÷ Ad Cost (USD),
+            above 1.00x means the brand is profitable.
+            {asNumber(postBackStats?.unconvertedCostTasks) > 0
+              ? ` ${postBackStats.unconvertedCostTasks} task(s) have no exchange rate for their currency and are excluded from the totals.`
+              : ''}
+          </p>
           <div className="pb-table-wrap">
             <table className="pb-table">
               <thead>
@@ -431,11 +467,15 @@ function AffiliatePostBackManagementSection({
                   <th>GMV</th>
                   <th>Commission</th>
                   <th>Conversion</th>
+                  <th>Ad Cost</th>
+                  <th>Ad Cost (USD)</th>
+                  <th>Profit (USD)</th>
+                  <th>ROAS</th>
                 </tr>
               </thead>
               <tbody>
                 {taskRows.length === 0 ? (
-                  <tr><td className="pb-empty" colSpan={12}>No normal tasks found.</td></tr>
+                  <tr><td className="pb-empty" colSpan={16}>No normal tasks found.</td></tr>
                 ) : taskRows.map((task) => (
                   <tr key={task.normalAdsId}>
                     <td>{formatTableValue(task.normalAdsId)}</td>
@@ -450,6 +490,12 @@ function AffiliatePostBackManagementSection({
                     <td>{formatTableValue(task.orderAmount)}</td>
                     <td>{formatTableValue(task.commission)}</td>
                     <td>{formatPercent(task.conversionRate)}</td>
+                    <td>{formatCost(task.adCost, task.costCurrency)}</td>
+                    <td>{formatMoney(task.adCostUsd)}</td>
+                    <td className={asNumber(task.profitUsd) < 0 ? 'pb-negative' : ''}>
+                      {formatMoney(task.profitUsd)}
+                    </td>
+                    <td>{formatRoas(task.roas)}</td>
                   </tr>
                 ))}
               </tbody>

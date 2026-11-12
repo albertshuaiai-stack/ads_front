@@ -278,3 +278,8 @@
 .pb-pagination {
   margin-top: 12px;
 }
+
+.pb-table td.pb-negative {
+  color: #c0392b;
+  font-weight: 600;
+}

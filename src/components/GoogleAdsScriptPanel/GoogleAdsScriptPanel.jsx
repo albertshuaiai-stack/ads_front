@@ -54,18 +54,26 @@ function isMccAccount() {
 function reportClicks() {
   try {
     var rows = AdsApp.search(
-        'SELECT campaign.name, metrics.clicks FROM campaign ' +
+        'SELECT campaign.name, metrics.clicks, metrics.cost_micros FROM campaign ' +
         'WHERE campaign.status = ENABLED');
+    // 花费单位是账户币种, 服务端按汇率折算 USD / cost is in account currency; the server converts it to USD
+    var currency = AdsApp.currentAccount().getCurrencyCode();
     var data = [];
     while (rows.hasNext()) {
       var row = rows.next();
       // AdsApp.search 返回嵌套对象 row.campaign.name, 不是扁平键 'campaign.name'
       var name = row.campaign ? row.campaign.name : null;
       var clicks = row.metrics ? Number(row.metrics.clicks) : 0;
+      var costMicros = row.metrics ? Number(row.metrics.costMicros) : 0;
       if (!name) {
         continue;
       }
-      data.push({name: name, clicks: isNaN(clicks) ? 0 : clicks});
+      data.push({
+        name: name,
+        clicks: isNaN(clicks) ? 0 : clicks,
+        cost: isNaN(costMicros) ? 0 : Math.round(costMicros / 10000) / 100,
+        currency: currency
+      });
     }
     console.log('click report payload=' + JSON.stringify(data));
     var response = UrlFetchApp.fetch(API_REPORT_URL, {
