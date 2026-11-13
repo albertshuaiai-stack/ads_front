@@ -322,10 +322,12 @@ function AffiliatePostBackManagementSection({
           </div>
           <p className="pb-hint">
             Link clicks = (Google Ads cumulative clicks at report time) − (click base reserved when the link
-            became active), i.e. the click increment each link carried while active. It is updated once per
-            hourly report and only for the links the rotation has reached; links still waiting in the
-            rotation show 0. Ad clicks (lifetime) is the campaign total counted once per task, it is not a
-            per-link value. Use the filter button to show only links with clicks; click a column header to sort.
+            became active), i.e. the click increment each link carried while active. Rotation consumes the
+            oldest queued links first, so the list contains every link the rotation has reached
+            ({formatTableValue(postBackClickSummary?.reachedLinks)}) plus the newest 500 generated links, which are
+            usually still waiting in the queue and show 0. Ad clicks (lifetime) is the campaign total counted once
+            per task, it is not a per-link value. Use the filter button to show only links with clicks; click a
+            column header to sort.
           </p>
 
           <div className="pb-table-wrap">
