@@ -292,3 +292,43 @@
   color: #8a94a6;
   white-space: nowrap;
 }
+
+.pb-table th.pb-draggable-th {
+  cursor: grab;
+  user-select: none;
+}
+
+.pb-table th.pb-draggable-th:hover {
+  color: #4e6ef2;
+}
+
+.pb-table th.pb-draggable-th.is-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+}
+
+.pb-table th.pb-draggable-th.is-drag-over-before {
+  box-shadow: inset 3px 0 0 #4e6ef2;
+  background: #eef2ff;
+}
+
+.pb-table th.pb-draggable-th.is-drag-over-after {
+  box-shadow: inset -3px 0 0 #4e6ef2;
+  background: #eef2ff;
+}
+
+.pb-drag-grip {
+  margin-right: 4px;
+  color: #b8c0cc;
+  font-size: 11px;
+}
+
+.pb-inline-link {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #4e6ef2;
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}

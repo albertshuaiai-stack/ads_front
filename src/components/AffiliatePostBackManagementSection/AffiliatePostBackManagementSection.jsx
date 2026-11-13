@@ -60,6 +60,67 @@ function formatStatusCounts(counts) {
     .join(' · ')
 }
 
+// 任务表列定义, id 同时作为排序字段 / normal task table columns, id doubles as the sort key
+const TASK_COLUMNS = [
+  { id: 'campainName', label: 'Campaign', text: true, render: (task) => formatTableValue(task.campainName) },
+  { id: 'campainCountry', label: 'Country', text: true, render: (task) => formatTableValue(task.campainCountry) },
+  { id: 'status', label: 'Status', text: true, render: (task) => formatTableValue(task.status) },
+  { id: 'reportedClicks', label: 'Ad Clicks', render: (task) => formatTableValue(task.reportedClicks) },
+  {
+    id: 'orderCount',
+    label: 'Orders',
+    render: (task) => {
+      const detail = formatStatusCounts(task.orderStatusCounts)
+      return (
+        <>
+          {formatTableValue(task.orderCount)}
+          {detail ? <small className="pb-status-counts">{detail}</small> : null}
+        </>
+      )
+    },
+  },
+  { id: 'conversionRate', label: 'Conversion', render: (task) => formatPercent(task.conversionRate) },
+  { id: 'adCostUsd', label: 'Ad Cost (USD)', render: (task) => formatMoney(task.adCostUsd) },
+  { id: 'adCost', label: 'Ad Cost (orig)', render: (task) => formatCost(task.adCost, task.costCurrency) },
+  { id: 'commission', label: 'Commission', render: (task) => formatTableValue(task.commission) },
+  {
+    id: 'profitUsd',
+    label: 'Profit (USD)',
+    className: (task) => (asNumber(task.profitUsd) < 0 ? 'pb-negative' : ''),
+    render: (task) => formatMoney(task.profitUsd),
+  },
+  { id: 'roas', label: 'ROAS', render: (task) => formatRoas(task.roas) },
+  { id: 'orderAmount', label: 'GMV', render: (task) => formatTableValue(task.orderAmount) },
+  { id: 'normalAdsId', label: 'Task ID', render: (task) => formatTableValue(task.normalAdsId) },
+  { id: 'advertiserId', label: 'Advertiser ID (a=)', render: (task) => formatTableValue(task.advertiserId) },
+  { id: 'issuedClickIds', label: 'Links Issued', render: (task) => formatTableValue(task.issuedClickIds) },
+  { id: 'matchedClickIds', label: 'Matched Click IDs', render: (task) => formatTableValue(task.matchedClickIds) },
+]
+const DEFAULT_TASK_COLUMN_ORDER = TASK_COLUMNS.map((column) => column.id)
+const TASK_COLUMN_STORAGE_KEY = 'pb.normalTaskColumnOrder'
+
+// 读取已保存的列顺序: 丢弃已不存在的列, 新增列补到末尾 / drop unknown ids, append newly added columns
+function loadTaskColumnOrder() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(TASK_COLUMN_STORAGE_KEY) || '[]')
+    if (!Array.isArray(saved)) {
+      return DEFAULT_TASK_COLUMN_ORDER
+    }
+    const known = [...new Set(saved.filter((id) => DEFAULT_TASK_COLUMN_ORDER.includes(id)))]
+    return [...known, ...DEFAULT_TASK_COLUMN_ORDER.filter((id) => !known.includes(id))]
+  } catch {
+    return DEFAULT_TASK_COLUMN_ORDER
+  }
+}
+
+function saveTaskColumnOrderToStorage(order) {
+  try {
+    window.localStorage.setItem(TASK_COLUMN_STORAGE_KEY, JSON.stringify(order))
+  } catch {
+    // 无痕模式等无法写入时只在本次会话生效 / storage unavailable, keep the order for this session only
+  }
+}
+
 function AffiliatePostBackManagementSection({
   affiliatePostBacks,
   affiliatePostBacksLoading,
@@ -190,16 +251,43 @@ function AffiliatePostBackManagementSection({
     }
   }
 
-  const taskSortHeader = (label, key) => (
-    <button type="button" onClick={() => toggleTaskSort(key)}>
-      {label}{taskSortKey === key ? (taskSortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕'}
-    </button>
+  // 列头可拖动调整顺序, 点击排序 / drag headers to reorder, click to sort
+  const [taskColumnOrder, setTaskColumnOrder] = useState(loadTaskColumnOrder)
+  const [dragColumnId, setDragColumnId] = useState(null)
+  const [dragOverColumnId, setDragOverColumnId] = useState(null)
+
+  const taskColumns = useMemo(
+    () => taskColumnOrder.map((id) => TASK_COLUMNS.find((column) => column.id === id)).filter(Boolean),
+    [taskColumnOrder],
   )
 
+  const applyTaskColumnOrder = (order) => {
+    setTaskColumnOrder(order)
+    saveTaskColumnOrderToStorage(order)
+  }
+
+  // 向右拖放到目标之后, 向左拖放到目标之前 / dropping rightwards lands after the target, leftwards before it
+  const moveTaskColumn = (fromId, toId) => {
+    const fromIndex = taskColumnOrder.indexOf(fromId)
+    const toIndex = taskColumnOrder.indexOf(toId)
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) {
+      return
+    }
+    const next = [...taskColumnOrder]
+    const [moved] = next.splice(fromIndex, 1)
+    next.splice(toIndex, 0, moved)
+    applyTaskColumnOrder(next)
+  }
+
+  const clearTaskColumnDrag = () => {
+    setDragColumnId(null)
+    setDragOverColumnId(null)
+  }
+
+  const isDefaultTaskColumnOrder = taskColumnOrder.join(',') === DEFAULT_TASK_COLUMN_ORDER.join(',')
+
   const taskValue = (task, key) => {
-    if (key === 'campainName') return String(task.campainName || '')
-    if (key === 'campainCountry') return String(task.campainCountry || '')
-    if (key === 'status') return String(task.status || '')
+    if (TASK_COLUMNS.some((column) => column.id === key && column.text)) return String(task[key] || '')
     return asNumber(task[key])
   }
 
@@ -268,7 +356,6 @@ function AffiliatePostBackManagementSection({
         ['Links Issued', postBackStats.issuedClickIds],
         ['Ad Clicks (lifetime)', postBackStats.reportedClicks],
         ['Orders', postBackStats.orderCount, formatStatusCounts(postBackStats.orderStatusCounts)],
-        ['Refunded Orders', postBackStats.refundedOrderCount],
         ['Unmatched Orders', postBackStats.unmatchedOrderCount],
         ['GMV', postBackStats.orderAmount],
         ['Commission (USD)', postBackStats.commission],
@@ -510,61 +597,78 @@ function AffiliatePostBackManagementSection({
             {asNumber(postBackStats?.unconvertedCostTasks) > 0
               ? ` ${postBackStats.unconvertedCostTasks} task(s) have no exchange rate for their currency and are excluded from the totals.`
               : ''}
+            {' '}Drag a column header to move it; click a header to sort.
+            {!isDefaultTaskColumnOrder ? (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="pb-inline-link"
+                  onClick={() => applyTaskColumnOrder(DEFAULT_TASK_COLUMN_ORDER)}
+                >
+                  Reset column order
+                </button>
+              </>
+            ) : null}
           </p>
           <div className="pb-table-wrap">
             <table className="pb-table">
               <thead>
                 <tr>
-                  <th>{taskSortHeader('Campaign', 'campainName')}</th>
-                  <th>{taskSortHeader('Country', 'campainCountry')}</th>
-                  <th>{taskSortHeader('Status', 'status')}</th>
-                  <th>{taskSortHeader('Ad Clicks', 'reportedClicks')}</th>
-                  <th>{taskSortHeader('Orders', 'orderCount')}</th>
-                  <th>{taskSortHeader('Refunded', 'refundedOrderCount')}</th>
-                  <th>{taskSortHeader('Conversion', 'conversionRate')}</th>
-                  <th>{taskSortHeader('Ad Cost (USD)', 'adCostUsd')}</th>
-                  <th>{taskSortHeader('Ad Cost (orig)', 'adCost')}</th>
-                  <th>{taskSortHeader('Commission', 'commission')}</th>
-                  <th>{taskSortHeader('Profit (USD)', 'profitUsd')}</th>
-                  <th>{taskSortHeader('ROAS', 'roas')}</th>
-                  <th>{taskSortHeader('GMV', 'orderAmount')}</th>
-                  <th>{taskSortHeader('Task ID', 'normalAdsId')}</th>
-                  <th>{taskSortHeader('Advertiser ID (a=)', 'advertiserId')}</th>
-                  <th>{taskSortHeader('Links Issued', 'issuedClickIds')}</th>
-                  <th>{taskSortHeader('Matched Click IDs', 'matchedClickIds')}</th>
+                  {taskColumns.map((column) => (
+                    <th
+                      key={column.id}
+                      draggable
+                      title="Drag to move, click to sort"
+                      className={[
+                        'pb-draggable-th',
+                        dragColumnId === column.id ? 'is-dragging' : '',
+                        dragOverColumnId === column.id && dragColumnId && dragColumnId !== column.id
+                          ? (taskColumnOrder.indexOf(dragColumnId) < taskColumnOrder.indexOf(column.id)
+                            ? 'is-drag-over-after'
+                            : 'is-drag-over-before')
+                          : '',
+                      ].filter(Boolean).join(' ')}
+                      onClick={() => toggleTaskSort(column.id)}
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = 'move'
+                        event.dataTransfer.setData('text/plain', column.id)
+                        setDragColumnId(column.id)
+                      }}
+                      onDragOver={(event) => {
+                        if (!dragColumnId) {
+                          return
+                        }
+                        event.preventDefault()
+                        event.dataTransfer.dropEffect = 'move'
+                        if (dragOverColumnId !== column.id) {
+                          setDragOverColumnId(column.id)
+                        }
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault()
+                        moveTaskColumn(dragColumnId, column.id)
+                        clearTaskColumnDrag()
+                      }}
+                      onDragEnd={clearTaskColumnDrag}
+                    >
+                      <span className="pb-drag-grip" aria-hidden="true">⠿</span>
+                      {column.label}
+                      {taskSortKey === column.id ? (taskSortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕'}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {sortedTaskRows.length === 0 ? (
-                  <tr><td className="pb-empty" colSpan={17}>No normal tasks found.</td></tr>
+                  <tr><td className="pb-empty" colSpan={taskColumns.length}>No normal tasks found.</td></tr>
                 ) : sortedTaskRows.map((task) => (
                   <tr key={task.normalAdsId}>
-                    <td>{formatTableValue(task.campainName)}</td>
-                    <td>{formatTableValue(task.campainCountry)}</td>
-                    <td>{formatTableValue(task.status)}</td>
-                    <td>{formatTableValue(task.reportedClicks)}</td>
-                    <td>
-                      {formatTableValue(task.orderCount)}
-                      {formatStatusCounts(task.orderStatusCounts)
-                        ? <small className="pb-status-counts">{formatStatusCounts(task.orderStatusCounts)}</small>
-                        : null}
-                    </td>
-                    <td className={asNumber(task.refundedOrderCount) > 0 ? 'pb-negative' : ''}>
-                      {formatTableValue(task.refundedOrderCount)}
-                    </td>
-                    <td>{formatPercent(task.conversionRate)}</td>
-                    <td>{formatMoney(task.adCostUsd)}</td>
-                    <td>{formatCost(task.adCost, task.costCurrency)}</td>
-                    <td>{formatTableValue(task.commission)}</td>
-                    <td className={asNumber(task.profitUsd) < 0 ? 'pb-negative' : ''}>
-                      {formatMoney(task.profitUsd)}
-                    </td>
-                    <td>{formatRoas(task.roas)}</td>
-                    <td>{formatTableValue(task.orderAmount)}</td>
-                    <td>{formatTableValue(task.normalAdsId)}</td>
-                    <td>{formatTableValue(task.advertiserId)}</td>
-                    <td>{formatTableValue(task.issuedClickIds)}</td>
-                    <td>{formatTableValue(task.matchedClickIds)}</td>
+                    {taskColumns.map((column) => (
+                      <td key={column.id} className={column.className ? column.className(task) : undefined}>
+                        {column.render(task)}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
