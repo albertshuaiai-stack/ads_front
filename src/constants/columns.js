@@ -22,7 +22,6 @@ export const ADS_URL_COLUMNS = [
   },
   { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
   { key: 'userName', label: 'User Name', fields: ['userName', 'user_name'] },
-  { key: 'status', label: 'Status', fields: ['status'] },
   { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
   { key: 'updateDate', label: 'Update Date', fields: ['updateDate'] },
 ]

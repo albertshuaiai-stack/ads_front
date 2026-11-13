@@ -1,6 +1,6 @@
 import InlineFormCard from '../InlineFormCard/InlineFormCard'
 import PaginationControls from '../PaginationControls/PaginationControls'
-import { firstDefinedValue, formatTableValue, getStatusToneClass } from '../../lib/adsPortal'
+import { firstDefinedValue, formatTableValue } from '../../lib/adsPortal'
 import './ShiftLinkManagementSection.css'
 
 function ShiftLinkManagementSection({
@@ -28,12 +28,8 @@ function ShiftLinkManagementSection({
   onAdsUrlFiltersChange,
   onApplyAdsUrlFilters,
   onReloadAdsUrlFilters,
-  onToggleAdsStatus,
   onEditAds,
   onDeleteAds,
-  formatAdsStatusLabel,
-  getAdsStatusActionLabel,
-  getNextAdsStatus,
   showAdsModal,
   editingAdsId,
   capMainName,
@@ -253,30 +249,13 @@ function ShiftLinkManagementSection({
                 </thead>
                 <tbody>
                   {adsUrls.map((item) => (
-                    <tr key={item.id} className={getStatusToneClass(firstDefinedValue(item, ['status']))}>
+                    <tr key={item.id}>
                       {adsUrlColumns.map((column) => (
                         <td key={column.key} className={column.key === 'fullUrl' ? 'truncate' : ''}>
-                          {column.key === 'status'
-                            ? (
-                                <span
-                                  className={`status-badge ${getStatusToneClass(
-                                    firstDefinedValue(item, column.fields),
-                                  )}`}
-                                >
-                                  {formatAdsStatusLabel(firstDefinedValue(item, column.fields))}
-                                </span>
-                              )
-                            : formatTableValue(firstDefinedValue(item, column.fields))}
+                          {formatTableValue(firstDefinedValue(item, column.fields))}
                         </td>
                       ))}
                       <td className="actions">
-                        <button
-                          type="button"
-                          className="secondary"
-                          onClick={() => onToggleAdsStatus(item, getNextAdsStatus(item.status))}
-                        >
-                          {getAdsStatusActionLabel(item.status)}
-                        </button>
                         <button type="button" className="secondary" onClick={() => onEditAds(item)}>
                           Edit
                         </button>
