@@ -160,6 +160,44 @@ function AffiliatePostBackManagementSection({
     }
   }
 
+  // 品牌投入产出表排序 / sortable brand ROI table
+  const [taskSortKey, setTaskSortKey] = useState('default')
+  const [taskSortDir, setTaskSortDir] = useState('desc')
+
+  const toggleTaskSort = (key) => {
+    if (taskSortKey === key) {
+      setTaskSortDir(taskSortDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setTaskSortKey(key)
+      setTaskSortDir('desc')
+    }
+  }
+
+  const taskSortHeader = (label, key) => (
+    <button type="button" onClick={() => toggleTaskSort(key)}>
+      {label}{taskSortKey === key ? (taskSortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕'}
+    </button>
+  )
+
+  const taskValue = (task, key) => {
+    if (key === 'campainName') return String(task.campainName || '')
+    if (key === 'campainCountry') return String(task.campainCountry || '')
+    return asNumber(task[key])
+  }
+
+  const sortedTaskRows = useMemo(() => {
+    if (taskSortKey === 'default') {
+      return taskRows
+    }
+    const direction = taskSortDir === 'asc' ? 1 : -1
+    return [...taskRows].sort((a, b) => {
+      const left = taskValue(a, taskSortKey)
+      const right = taskValue(b, taskSortKey)
+      const result = typeof left === 'string' ? left.localeCompare(right) : (left > right ? 1 : left < right ? -1 : 0)
+      return result * direction
+    })
+  }, [taskRows, taskSortKey, taskSortDir])
+
   const clickSortHeader = (label, key) => (
     <button type="button" onClick={() => toggleClickSort(key)}>
       {label}{clickSortKey === key ? (clickSortDir === 'asc' ? ' ▲' : ' ▼') : ' ↕'}
@@ -212,6 +250,7 @@ function AffiliatePostBackManagementSection({
         ['Links Issued', postBackStats.issuedClickIds],
         ['Ad Clicks (lifetime)', postBackStats.reportedClicks],
         ['Orders', postBackStats.orderCount],
+        ['Refunded Orders', postBackStats.refundedOrderCount],
         ['Unmatched Orders', postBackStats.unmatchedOrderCount],
         ['GMV', postBackStats.orderAmount],
         ['Commission (USD)', postBackStats.commission],
@@ -322,10 +361,11 @@ function AffiliatePostBackManagementSection({
           </div>
           <p className="pb-hint">
             Link clicks = (Google Ads cumulative clicks at report time) − (click base reserved when the link
-            became active), i.e. the click increment each link carried while active. Rotation consumes the
-            oldest queued links first, so the list contains every link the rotation has reached
-            ({formatTableValue(postBackClickSummary?.reachedLinks)}) plus the newest 500 generated links, which are
-            usually still waiting in the queue and show 0. Ad clicks (lifetime) is the campaign total counted once
+            became active), i.e. the click increment each link carried while active. When the active link reaches
+            the click threshold, rotation switches to the newest link that has never been used; older unused links
+            are skipped and purged by the daily housekeeping. The list contains every link that has been activated
+            ({formatTableValue(postBackClickSummary?.reachedLinks)}) plus the newest 500 generated links; links that
+            were never activated show 0. Ad clicks (lifetime) is the campaign total counted once
             per task, it is not a per-link value. Use the filter button to show only links with clicks; click a
             column header to sort.
           </p>
@@ -457,47 +497,51 @@ function AffiliatePostBackManagementSection({
             <table className="pb-table">
               <thead>
                 <tr>
-                  <th>Task ID</th>
-                  <th>Campaign</th>
-                  <th>Advertiser ID (a=)</th>
-                  <th>Country</th>
+                  <th>{taskSortHeader('Campaign', 'campainName')}</th>
+                  <th>{taskSortHeader('Country', 'campainCountry')}</th>
                   <th>Status</th>
+                  <th>{taskSortHeader('Ad Clicks', 'reportedClicks')}</th>
+                  <th>{taskSortHeader('Orders', 'orderCount')}</th>
+                  <th>{taskSortHeader('Refunded', 'refundedOrderCount')}</th>
+                  <th>{taskSortHeader('Conversion', 'conversionRate')}</th>
+                  <th>{taskSortHeader('Ad Cost (USD)', 'adCostUsd')}</th>
+                  <th>Ad Cost (orig)</th>
+                  <th>{taskSortHeader('Commission', 'commission')}</th>
+                  <th>{taskSortHeader('Profit (USD)', 'profitUsd')}</th>
+                  <th>{taskSortHeader('ROAS', 'roas')}</th>
+                  <th>{taskSortHeader('GMV', 'orderAmount')}</th>
+                  <th>Task ID</th>
+                  <th>Advertiser ID (a=)</th>
                   <th>Links Issued</th>
-                  <th>Ad Clicks</th>
-                  <th>Orders</th>
                   <th>Matched Click IDs</th>
-                  <th>GMV</th>
-                  <th>Commission</th>
-                  <th>Conversion</th>
-                  <th>Ad Cost</th>
-                  <th>Ad Cost (USD)</th>
-                  <th>Profit (USD)</th>
-                  <th>ROAS</th>
                 </tr>
               </thead>
               <tbody>
-                {taskRows.length === 0 ? (
-                  <tr><td className="pb-empty" colSpan={16}>No normal tasks found.</td></tr>
-                ) : taskRows.map((task) => (
+                {sortedTaskRows.length === 0 ? (
+                  <tr><td className="pb-empty" colSpan={17}>No normal tasks found.</td></tr>
+                ) : sortedTaskRows.map((task) => (
                   <tr key={task.normalAdsId}>
-                    <td>{formatTableValue(task.normalAdsId)}</td>
                     <td>{formatTableValue(task.campainName)}</td>
-                    <td>{formatTableValue(task.advertiserId)}</td>
                     <td>{formatTableValue(task.campainCountry)}</td>
                     <td>{formatTableValue(task.status)}</td>
-                    <td>{formatTableValue(task.issuedClickIds)}</td>
                     <td>{formatTableValue(task.reportedClicks)}</td>
                     <td>{formatTableValue(task.orderCount)}</td>
-                    <td>{formatTableValue(task.matchedClickIds)}</td>
-                    <td>{formatTableValue(task.orderAmount)}</td>
-                    <td>{formatTableValue(task.commission)}</td>
+                    <td className={asNumber(task.refundedOrderCount) > 0 ? 'pb-negative' : ''}>
+                      {formatTableValue(task.refundedOrderCount)}
+                    </td>
                     <td>{formatPercent(task.conversionRate)}</td>
-                    <td>{formatCost(task.adCost, task.costCurrency)}</td>
                     <td>{formatMoney(task.adCostUsd)}</td>
+                    <td>{formatCost(task.adCost, task.costCurrency)}</td>
+                    <td>{formatTableValue(task.commission)}</td>
                     <td className={asNumber(task.profitUsd) < 0 ? 'pb-negative' : ''}>
                       {formatMoney(task.profitUsd)}
                     </td>
                     <td>{formatRoas(task.roas)}</td>
+                    <td>{formatTableValue(task.orderAmount)}</td>
+                    <td>{formatTableValue(task.normalAdsId)}</td>
+                    <td>{formatTableValue(task.advertiserId)}</td>
+                    <td>{formatTableValue(task.issuedClickIds)}</td>
+                    <td>{formatTableValue(task.matchedClickIds)}</td>
                   </tr>
                 ))}
               </tbody>
