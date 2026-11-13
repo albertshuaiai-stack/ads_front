@@ -65,6 +65,7 @@ export const MENU_GROUPS = [
       { id: 'affiliate-test-result', label: 'Affiliate Test' },
       { id: 'affiliate-sync-result', label: 'Affiliate Ads' },
       { id: 'affiliate-post-back', label: 'Post Back' },
+      { id: 'ads-advisor', label: 'Ads Advisor' },
     ],
   },
 ]
@@ -99,6 +100,7 @@ export const AFFILIATE_ADS_MENU_IDS = [
   'affiliate-test-result',
   'affiliate-sync-result',
   'affiliate-post-back',
+  'ads-advisor',
 ]
 
 export const NON_ADMIN_AFFILIATE_ADS_MENU_IDS = [
@@ -107,6 +109,7 @@ export const NON_ADMIN_AFFILIATE_ADS_MENU_IDS = [
   'affiliate-test-result',
   'affiliate-sync-result',
   'affiliate-post-back',
+  'ads-advisor',
 ]
 
 // Shift Link 批量导入模板下载地址 / Shift Link bulk-upload template url

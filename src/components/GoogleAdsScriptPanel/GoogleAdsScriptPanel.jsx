@@ -11,15 +11,19 @@ const ADS_SCRIPT_MATRIX_BASE_URL =
 // 高频替换场景: setTrackingTemplate 不返回服务端结果, 失败只写进更改日志, 文本日志会一直显示成功。
 // 改为 mutateAll + partialFailure, 逐条读取 isSuccessful/getErrorMessages, 并对瞬时错误自动重试。
 // High-frequency sync: mutateAll exposes per-campaign server errors and retries transient failures.
-function buildGoogleAdsScript(apiBaseUrl, modeLabel, reportUrl) {
+function buildGoogleAdsScript(apiBaseUrl, modeLabel, reportUrl, dailyUrl) {
   return `// Google Ads auto tracking template script (high frequency safe)
 // Server: ${apiBaseUrl}
 // Mode: ${modeLabel}
 // Note: unchanged templates are skipped, so frequent runs do not spam mutations.
 // Clicks: real campaign clicks are reported first, and the server rotates links by clicks.
+// Daily: per-day stats, campaign settings and search terms are reported for the daily review.
 
 var API_BASE_URL = '${apiBaseUrl}';
 var API_REPORT_URL = '${reportUrl}';
+var API_DAILY_URL = '${dailyUrl}';
+var DAILY_LOOKBACK_DAYS = 7;
+var MAX_SEARCH_TERMS = 1000;
 var BATCH_SIZE = 50;
 var MAX_RETRIES = 3;
 var MAX_TEMPLATE_BYTES = 2048;
@@ -90,8 +94,146 @@ function reportClicks() {
   }
 }
 
+// 按天 x 网络数据、广告系列设置、近 7 天搜索词, 供后台每日复盘; 失败不影响换链
+// Daily stats per network, campaign settings and last-7-day search terms for the review; never blocks rotation
+function reportDaily() {
+  try {
+    var account = AdsApp.currentAccount();
+    var tz = account.getTimeZone();
+    var today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+    var from = Utilities.formatDate(new Date(Date.now() - DAILY_LOOKBACK_DAYS * 86400000), tz, 'yyyy-MM-dd');
+    var during = "segments.date BETWEEN '" + from + "' AND '" + today + "'";
+
+    var campaigns = {};
+    var settingFields = 'campaign.name, campaign.network_settings.target_google_search, ' +
+        'campaign.network_settings.target_search_network, campaign.network_settings.target_content_network, ' +
+        'campaign.geo_target_type_setting.positive_geo_target_type, campaign.bidding_strategy_type, ' +
+        'campaign_budget.amount_micros';
+    var settingRows = safeSearch('SELECT ' + settingFields + ', campaign.target_spend.cpc_bid_ceiling_micros ' +
+        'FROM campaign WHERE campaign.status = ENABLED') ||
+        safeSearch('SELECT ' + settingFields + ' FROM campaign WHERE campaign.status = ENABLED') || [];
+    settingRows.forEach(function (row) {
+      var c = row.campaign || {};
+      var ns = c.networkSettings || {};
+      var geo = c.geoTargetTypeSetting || {};
+      var ts = c.targetSpend || {};
+      if (!c.name) {
+        return;
+      }
+      campaigns[c.name] = {
+        name: c.name,
+        googleSearch: ns.targetGoogleSearch === true,
+        searchPartners: ns.targetSearchNetwork === true,
+        displayNetwork: ns.targetContentNetwork === true,
+        geoTargetType: geo.positiveGeoTargetType || null,
+        biddingStrategy: c.biddingStrategyType || null,
+        dailyBudget: micros(row.campaignBudget ? row.campaignBudget.amountMicros : null),
+        cpcCeiling: micros(ts.cpcBidCeilingMicros)
+      };
+    });
+
+    (safeSearch('SELECT campaign.name, metrics.search_impression_share, ' +
+        'metrics.search_budget_lost_impression_share, metrics.search_rank_lost_impression_share ' +
+        'FROM campaign WHERE campaign.status = ENABLED AND ' + during) || []).forEach(function (row) {
+      var item = row.campaign ? campaigns[row.campaign.name] : null;
+      var m = row.metrics || {};
+      if (!item) {
+        return;
+      }
+      item.searchImpressionShare = ratio(m.searchImpressionShare);
+      item.budgetLostShare = ratio(m.searchBudgetLostImpressionShare);
+      item.rankLostShare = ratio(m.searchRankLostImpressionShare);
+    });
+
+    var daily = [];
+    (safeSearch('SELECT campaign.name, segments.date, segments.ad_network_type, metrics.impressions, ' +
+        'metrics.clicks, metrics.cost_micros FROM campaign WHERE campaign.status != REMOVED AND ' + during) || [])
+        .forEach(function (row) {
+          var m = row.metrics || {};
+          if (!row.campaign || !row.segments) {
+            return;
+          }
+          daily.push({
+            name: row.campaign.name,
+            date: row.segments.date,
+            network: row.segments.adNetworkType || 'UNKNOWN',
+            impressions: Number(m.impressions) || 0,
+            clicks: Number(m.clicks) || 0,
+            cost: micros(m.costMicros) || 0
+          });
+        });
+
+    var terms = [];
+    (safeSearch('SELECT campaign.name, search_term_view.search_term, metrics.impressions, metrics.clicks, ' +
+        'metrics.cost_micros FROM search_term_view WHERE metrics.clicks > 0 AND ' + during +
+        ' ORDER BY metrics.cost_micros DESC LIMIT ' + MAX_SEARCH_TERMS) || []).forEach(function (row) {
+      var m = row.metrics || {};
+      if (!row.campaign || !row.searchTermView) {
+        return;
+      }
+      terms.push({
+        name: row.campaign.name,
+        term: row.searchTermView.searchTerm,
+        impressions: Number(m.impressions) || 0,
+        clicks: Number(m.clicks) || 0,
+        cost: micros(m.costMicros) || 0
+      });
+    });
+
+    var payload = {
+      currency: account.getCurrencyCode(),
+      reportDate: today,
+      campaigns: Object.keys(campaigns).map(function (key) { return campaigns[key]; }),
+      daily: daily,
+      searchTerms: terms
+    };
+    var response = UrlFetchApp.fetch(API_DAILY_URL, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+      followRedirects: true
+    });
+    console.log('daily report sent campaigns=' + payload.campaigns.length + ' daily=' + daily.length +
+        ' terms=' + terms.length + ' http=' + response.getResponseCode());
+  } catch (e) {
+    console.error('daily report failed: ' + e);
+  }
+}
+
+function safeSearch(query) {
+  try {
+    var iterator = AdsApp.search(query);
+    var rows = [];
+    while (iterator.hasNext()) {
+      rows.push(iterator.next());
+    }
+    return rows;
+  } catch (e) {
+    console.error('daily query failed: ' + e + ' query=' + query);
+    return null;
+  }
+}
+
+function micros(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  var number = Number(value);
+  return isNaN(number) ? null : Math.round(number / 10000) / 100;
+}
+
+function ratio(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+  var number = Number(value);
+  return isNaN(number) ? null : number;
+}
+
 function processAccount() {
   reportClicks();
+  reportDaily();
   var customerId = AdsApp.currentAccount().getCustomerId().replace(/-/g, '');
   var stats = {applied: 0, unchanged: 0, failed: 0};
   var ops = [];
@@ -303,13 +445,15 @@ function byteLength(str) {
 const NORMAL_GOOGLE_ADS_SCRIPT = buildGoogleAdsScript(
   `${ADS_SCRIPT_NORMAL_BASE_URL}/api/normal/ads?api_key={API_KEY}&campaign_name=`,
   'normal / tracking template',
-  `${ADS_SCRIPT_NORMAL_BASE_URL}/api/track/report?api_key={API_KEY}`
+  `${ADS_SCRIPT_NORMAL_BASE_URL}/api/track/report?api_key={API_KEY}`,
+  `${ADS_SCRIPT_NORMAL_BASE_URL}/api/track/daily?api_key={API_KEY}`
 )
 
 const MATRIX_GOOGLE_ADS_SCRIPT = buildGoogleAdsScript(
   `${ADS_SCRIPT_MATRIX_BASE_URL}/api/matrix/ads?api_key={API_KEY}&campaign_name=`,
   'matrix',
-  `${ADS_SCRIPT_MATRIX_BASE_URL}/api/track/report?api_key={API_KEY}`
+  `${ADS_SCRIPT_MATRIX_BASE_URL}/api/track/report?api_key={API_KEY}`,
+  `${ADS_SCRIPT_MATRIX_BASE_URL}/api/track/daily?api_key={API_KEY}`
 )
 
 function injectApiKey(scriptTemplate, currentUserApiKey) {

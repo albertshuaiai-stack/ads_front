@@ -4,6 +4,7 @@ import AdsTaskLogSection from './components/AdsTaskLogSection/AdsTaskLogSection'
 import AffiliateAutoTaskManagementSection from './components/AffiliateAutoTaskManagementSection/AffiliateAutoTaskManagementSection'
 import AffiliateJobDetailSection from './components/AffiliateJobDetailSection/AffiliateJobDetailSection'
 import AffiliatePostBackManagementSection from './components/AffiliatePostBackManagementSection/AffiliatePostBackManagementSection'
+import AdsAdvisorSection from './components/AdsAdvisorSection/AdsAdvisorSection'
 import AffiliateSyncResultManagementSection from './components/AffiliateSyncResultManagementSection/AffiliateSyncResultManagementSection'
 import AffiliateTestResultManagementSection from './components/AffiliateTestResultManagementSection/AffiliateTestResultManagementSection'
 import AffiliateTriggerSection from './components/AffiliateTriggerSection/AffiliateTriggerSection'
@@ -5868,6 +5869,8 @@ setAdsAccountStatus(item.status || '')
           ? 'Affiliate Ads'
         : activeMenu === 'affiliate-post-back'
           ? 'Post Back'
+        : activeMenu === 'ads-advisor'
+          ? 'Ads Advisor'
         : activeMenu === 'affiliate-trigger'
           ? 'Auto Trigger'
         : activeMenu === 'affiliate-ip-proxy'
@@ -6658,6 +6661,14 @@ setAdsAccountStatus(item.status || '')
         onImportPostBackCsv={importPostBackCsv}
         onDeletePostBack={deletePostBack}
         onReattributePostBacks={reattributePostBacks}
+      />
+    )
+  } else if (activeMenu === 'ads-advisor') {
+    activeSection = (
+      <AdsAdvisorSection
+        token={token}
+        showOwnerFilter={showAdminOwnerFilter}
+        ownerOptions={ownerFilterOptions}
       />
     )
   } else if (activeMenu === 'affiliate-test-result') {
