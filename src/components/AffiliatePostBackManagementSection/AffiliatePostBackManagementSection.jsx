@@ -171,6 +171,12 @@ function AffiliatePostBackManagementSection({
     }
   }
 
+  // 必须在 sortedTaskRows 之前声明, 否则渲染时 TDZ 报错白屏 / must be declared before sortedTaskRows (TDZ crash)
+  const taskRows = useMemo(
+    () => (Array.isArray(postBackStats?.tasks) ? postBackStats.tasks : []),
+    [postBackStats],
+  )
+
   // 品牌投入产出表排序 / sortable brand ROI table
   const [taskSortKey, setTaskSortKey] = useState('default')
   const [taskSortDir, setTaskSortDir] = useState('desc')
@@ -272,7 +278,6 @@ function AffiliatePostBackManagementSection({
       ]
     : []
 
-  const taskRows = Array.isArray(postBackStats?.tasks) ? postBackStats.tasks : []
   const platformRows = Array.isArray(postBackStats?.byPlatform) ? postBackStats.byPlatform : []
   const health = postBackStats?.attributionHealth
   const recentSubIds = Array.isArray(health?.recentSubIds) ? health.recentSubIds : []
