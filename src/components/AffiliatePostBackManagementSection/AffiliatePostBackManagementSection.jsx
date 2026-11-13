@@ -49,6 +49,17 @@ function formatCost(amount, currency) {
   return `${formatMoney(amount)} ${currency || 'USD'}`
 }
 
+// 各状态订单数, 如 "pending 10 · approved 5" / order count per status
+function formatStatusCounts(counts) {
+  if (!counts || typeof counts !== 'object') {
+    return ''
+  }
+  return Object.entries(counts)
+    .filter(([, count]) => asNumber(count) > 0)
+    .map(([status, count]) => `${status} ${count}`)
+    .join(' · ')
+}
+
 function AffiliatePostBackManagementSection({
   affiliatePostBacks,
   affiliatePostBacksLoading,
@@ -182,6 +193,7 @@ function AffiliatePostBackManagementSection({
   const taskValue = (task, key) => {
     if (key === 'campainName') return String(task.campainName || '')
     if (key === 'campainCountry') return String(task.campainCountry || '')
+    if (key === 'status') return String(task.status || '')
     return asNumber(task[key])
   }
 
@@ -249,7 +261,7 @@ function AffiliatePostBackManagementSection({
         ['Normal Tasks', postBackStats.normalTaskCount],
         ['Links Issued', postBackStats.issuedClickIds],
         ['Ad Clicks (lifetime)', postBackStats.reportedClicks],
-        ['Orders', postBackStats.orderCount],
+        ['Orders', postBackStats.orderCount, formatStatusCounts(postBackStats.orderStatusCounts)],
         ['Refunded Orders', postBackStats.refundedOrderCount],
         ['Unmatched Orders', postBackStats.unmatchedOrderCount],
         ['GMV', postBackStats.orderAmount],
@@ -425,10 +437,11 @@ function AffiliatePostBackManagementSection({
           {postBackStatsLoading ? <p className="pb-hint">Loading summary...</p> : null}
           {postBackStats ? (
             <div className="pb-cards">
-              {summaryCards.map(([label, value]) => (
+              {summaryCards.map(([label, value, detail]) => (
                 <div key={label} className="pb-card">
                   <span>{label}</span>
                   <strong>{formatTableValue(value)}</strong>
+                  {detail ? <small className="pb-status-counts">{detail}</small> : null}
                 </div>
               ))}
             </div>
@@ -499,21 +512,21 @@ function AffiliatePostBackManagementSection({
                 <tr>
                   <th>{taskSortHeader('Campaign', 'campainName')}</th>
                   <th>{taskSortHeader('Country', 'campainCountry')}</th>
-                  <th>Status</th>
+                  <th>{taskSortHeader('Status', 'status')}</th>
                   <th>{taskSortHeader('Ad Clicks', 'reportedClicks')}</th>
                   <th>{taskSortHeader('Orders', 'orderCount')}</th>
                   <th>{taskSortHeader('Refunded', 'refundedOrderCount')}</th>
                   <th>{taskSortHeader('Conversion', 'conversionRate')}</th>
                   <th>{taskSortHeader('Ad Cost (USD)', 'adCostUsd')}</th>
-                  <th>Ad Cost (orig)</th>
+                  <th>{taskSortHeader('Ad Cost (orig)', 'adCost')}</th>
                   <th>{taskSortHeader('Commission', 'commission')}</th>
                   <th>{taskSortHeader('Profit (USD)', 'profitUsd')}</th>
                   <th>{taskSortHeader('ROAS', 'roas')}</th>
                   <th>{taskSortHeader('GMV', 'orderAmount')}</th>
-                  <th>Task ID</th>
-                  <th>Advertiser ID (a=)</th>
-                  <th>Links Issued</th>
-                  <th>Matched Click IDs</th>
+                  <th>{taskSortHeader('Task ID', 'normalAdsId')}</th>
+                  <th>{taskSortHeader('Advertiser ID (a=)', 'advertiserId')}</th>
+                  <th>{taskSortHeader('Links Issued', 'issuedClickIds')}</th>
+                  <th>{taskSortHeader('Matched Click IDs', 'matchedClickIds')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -525,7 +538,12 @@ function AffiliatePostBackManagementSection({
                     <td>{formatTableValue(task.campainCountry)}</td>
                     <td>{formatTableValue(task.status)}</td>
                     <td>{formatTableValue(task.reportedClicks)}</td>
-                    <td>{formatTableValue(task.orderCount)}</td>
+                    <td>
+                      {formatTableValue(task.orderCount)}
+                      {formatStatusCounts(task.orderStatusCounts)
+                        ? <small className="pb-status-counts">{formatStatusCounts(task.orderStatusCounts)}</small>
+                        : null}
+                    </td>
                     <td className={asNumber(task.refundedOrderCount) > 0 ? 'pb-negative' : ''}>
                       {formatTableValue(task.refundedOrderCount)}
                     </td>
