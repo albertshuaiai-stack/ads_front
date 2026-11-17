@@ -594,6 +594,9 @@ function AffiliatePostBackManagementSection({
             USD with the latest stored rate{postBackStats?.usdCnyRate ? ` (1 USD = ${postBackStats.usdCnyRate} CNY)` : ''}.
             Commission is treated as USD. Profit = Commission − Ad Cost (USD); ROAS = Commission ÷ Ad Cost (USD),
             above 1.00x means the brand is profitable.
+            {' '}Commission here is the raw sum of every postback order (approved + pending + rejected) over the full
+            lifetime, with no date filter; Daily Review instead uses effective commission
+            (approved + pending x approval rate) and adds 7-day columns, so the two tables are not directly comparable.
             {asNumber(postBackStats?.unconvertedCostTasks) > 0
               ? ` ${postBackStats.unconvertedCostTasks} task(s) have no exchange rate for their currency and are excluded from the totals.`
               : ''}

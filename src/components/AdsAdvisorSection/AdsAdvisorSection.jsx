@@ -348,6 +348,9 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
             per order with no order (under 5% chance to break even). After the stop line: ROAS below 0.5 = STOP,
             0.5-1 = OPTIMIZE, at least 1 = CONTINUE, at least 1.3 with 5+ orders = SCALE. Money is in USD.
             Click a row for the reasons, actions and negative keyword candidates.
+            Unlike the Post Back &quot;By Normal Task&quot; table, this table uses effective commission
+            (approved + pending x approval rate); Spend 7d and ROAS 7d cover only the last 7 days.
+            Tasks sharing a campaign name are merged into one row.
           </p>
 
           <div className="pb-cards">
@@ -387,7 +390,14 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
                   return (
                     <Fragment key={task.normalAdsId}>
                       <tr className="adv-row" onClick={() => toggleRow(task.normalAdsId)}>
-                        <td>{isOpen ? '▾ ' : '▸ '}{formatTableValue(task.campaignName)}</td>
+                        <td>
+                          {isOpen ? '▾ ' : '▸ '}{formatTableValue(task.campaignName)}
+                          {task.taskCount > 1 ? (
+                            <small className="pb-status-counts">
+                              {task.taskCount} tasks: {task.taskIds?.join(', ')}
+                            </small>
+                          ) : null}
+                        </td>
                         <td>{formatTableValue(task.country)}</td>
                         <td>
                           <span className={`adv-badge adv-decision-${String(task.decision).toLowerCase()}`}>
@@ -446,6 +456,48 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
                                     lost to rank {formatPct(task.settings.rankLostShare)}.
                                   </p>
                                 ) : <p className="pb-hint">Not reported yet (update the Google Ads script).</p>}
+                                <div className="adv-subtitle">Keyword performance (estimated, last 7 days)</div>
+                                <p className="pb-hint">
+                                  Affiliate postbacks carry no search term, so orders and effective commission are
+                                  split by each term&apos;s share of 7-day search clicks. Estimates, not exact attribution.
+                                  {task.keywordPerformance?.totalTerms > (task.keywordPerformance?.rows || []).length
+                                    ? ` Top ${(task.keywordPerformance.rows || []).length} of ${task.keywordPerformance.totalTerms} terms.`
+                                    : ''}
+                                </p>
+                                {(task.keywordPerformance?.rows || []).length === 0 ? (
+                                  <p className="pb-hint">No search term data (PMax/Display campaigns do not report search terms).</p>
+                                ) : (
+                                  <div className="pb-table-wrap">
+                                    <table className="pb-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Search term</th>
+                                          <th>Clicks</th>
+                                          <th>Cost USD</th>
+                                          <th>Est. orders</th>
+                                          <th>Est. commission</th>
+                                          <th>Est. ROAS</th>
+                                          <th>Verdict</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {(task.keywordPerformance?.rows || []).map((item) => (
+                                          <tr key={item.term}>
+                                            <td><code>{item.term}</code></td>
+                                            <td>{formatTableValue(item.clicks)}</td>
+                                            <td>{formatUsd(item.costUsd)}</td>
+                                            <td>{formatTableValue(item.estimatedOrders)}</td>
+                                            <td>{formatUsd(item.estimatedCommission)}</td>
+                                            <td className={item.estimatedRoas != null && Number(item.estimatedRoas) < 1 ? 'pb-negative' : ''}>
+                                              {formatRatio(item.estimatedRoas)}
+                                            </td>
+                                            <td>{item.verdict}{item.negativeIntent ? ` (${item.negativeIntent})` : ''}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
                                 <div className="adv-subtitle">Negative keyword candidates (last 7 days)</div>
                                 {(task.negativeCandidates || []).length === 0 ? (
                                   <p className="pb-hint">None found.</p>
