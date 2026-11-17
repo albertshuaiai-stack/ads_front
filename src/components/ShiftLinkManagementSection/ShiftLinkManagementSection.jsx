@@ -1,6 +1,6 @@
 import InlineFormCard from '../InlineFormCard/InlineFormCard'
 import PaginationControls from '../PaginationControls/PaginationControls'
-import { firstDefinedValue, formatTableValue, getStatusToneClass } from '../../lib/adsPortal'
+import { firstDefinedValue, formatTableValue } from '../../lib/adsPortal'
 import './ShiftLinkManagementSection.css'
 
 function ShiftLinkManagementSection({
@@ -28,12 +28,8 @@ function ShiftLinkManagementSection({
   onAdsUrlFiltersChange,
   onApplyAdsUrlFilters,
   onReloadAdsUrlFilters,
-  onToggleAdsStatus,
   onEditAds,
   onDeleteAds,
-  formatAdsStatusLabel,
-  getAdsStatusActionLabel,
-  getNextAdsStatus,
   showAdsModal,
   editingAdsId,
   capMainName,
@@ -46,8 +42,6 @@ function ShiftLinkManagementSection({
   onAdsUserNameChange,
   fullUrl,
   onFullUrlChange,
-  displayNumber,
-  onDisplayNumberChange,
   remark,
   onRemarkChange,
   userNameOptions,
@@ -65,8 +59,6 @@ function ShiftLinkManagementSection({
   showFolderImportModal,
   folderImportAdsType,
   onFolderImportAdsTypeChange,
-  folderImportDisplayNumber,
-  onFolderImportDisplayNumberChange,
   folderImportSaving,
   folderImportError,
   folderImportMessage,
@@ -257,30 +249,13 @@ function ShiftLinkManagementSection({
                 </thead>
                 <tbody>
                   {adsUrls.map((item) => (
-                    <tr key={item.id} className={getStatusToneClass(firstDefinedValue(item, ['status']))}>
+                    <tr key={item.id}>
                       {adsUrlColumns.map((column) => (
                         <td key={column.key} className={column.key === 'fullUrl' ? 'truncate' : ''}>
-                          {column.key === 'status'
-                            ? (
-                                <span
-                                  className={`status-badge ${getStatusToneClass(
-                                    firstDefinedValue(item, column.fields),
-                                  )}`}
-                                >
-                                  {formatAdsStatusLabel(firstDefinedValue(item, column.fields))}
-                                </span>
-                              )
-                            : formatTableValue(firstDefinedValue(item, column.fields))}
+                          {formatTableValue(firstDefinedValue(item, column.fields))}
                         </td>
                       ))}
                       <td className="actions">
-                        <button
-                          type="button"
-                          className="secondary"
-                          onClick={() => onToggleAdsStatus(item, getNextAdsStatus(item.status))}
-                        >
-                          {getAdsStatusActionLabel(item.status)}
-                        </button>
                         <button type="button" className="secondary" onClick={() => onEditAds(item)}>
                           Edit
                         </button>
@@ -380,17 +355,6 @@ function ShiftLinkManagementSection({
               required
             />
 
-            <label htmlFor="displayNumber">Display Capacity</label>
-            <input
-              id="displayNumber"
-              type="number"
-              min="0"
-              step="1"
-              value={displayNumber}
-              onChange={(event) => onDisplayNumberChange(event.target.value)}
-              placeholder="Enter display capacity"
-            />
-
             <label htmlFor="remark">Remarks</label>
             <input
               id="remark"
@@ -428,7 +392,8 @@ function ShiftLinkManagementSection({
 
             <p className="field-help">
               Use these Excel headers only: adsType, adsName, platformName, fullUrl,
-              landingPageUrl, displayNumber, remarks.
+              landingPageUrl, remarks. The click threshold for switching links is a global
+              server setting.
             </p>
 
             {bulkAdsError ? (
@@ -479,22 +444,12 @@ function ShiftLinkManagementSection({
               required
             />
 
-            <label htmlFor="folderImportDisplayNumber">Display Number</label>
-            <input
-              id="folderImportDisplayNumber"
-              type="number"
-              min="0"
-              step="1"
-              value={folderImportDisplayNumber}
-              onChange={(event) => onFolderImportDisplayNumberChange(event.target.value)}
-              required
-            />
-
             <p className="field-help">
               Folder structure: <code>root / platform / campaign-file</code>. First-level folders
-              are platform names, file names (without extension) are Campaign Names, and each line
-              inside a file is one Full URL. Display Number applies to every imported link. Missing
-              platforms are created automatically.
+              are platform names, file names (without extension) are brand / Campaign Names, and
+              each line inside a file is one Full URL. Display Number applies to every imported
+              link. Missing platforms are created automatically. Links containing a Gmail Link
+              Rule Match ID are classified to that Gmail account automatically.
             </p>
 
             {folderImportError ? (

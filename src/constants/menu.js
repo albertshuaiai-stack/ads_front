@@ -28,7 +28,6 @@ export const MENU_GROUPS = [
       { id: 'ads-url-management', label: 'Shift Link' },
       { id: 'shift-link-log', label: 'Shift Link Log' },
       { id: 'test-shift-link', label: 'Shift Link Testing' },
-      { id: 'tracker-management', label: 'Tracker' },
     ],
   },
   {
@@ -37,6 +36,7 @@ export const MENU_GROUPS = [
     items: [
       { id: 'brand-review-management', label: 'Brand Review' },
       { id: 'email-management', label: 'Email' },
+      { id: 'gmail-platform-link', label: 'Gmail Link Rule' },
       { id: 'tool-ip-management', label: 'IP Management' },
       { id: 'tool-cloud-phone-management', label: 'Cloud Phone' },
       { id: 'cash-bach-account', label: 'Cash Back Account' },
@@ -65,6 +65,7 @@ export const MENU_GROUPS = [
       { id: 'affiliate-test-result', label: 'Affiliate Test' },
       { id: 'affiliate-sync-result', label: 'Affiliate Ads' },
       { id: 'affiliate-post-back', label: 'Post Back' },
+      { id: 'ads-advisor', label: 'Ads Advisor' },
     ],
   },
 ]
@@ -73,6 +74,7 @@ export const MENU_GROUPS = [
 export const TOOL_MENU_IDS = [
   'brand-review-management',
   'email-management',
+  'gmail-platform-link',
   'tool-ip-management',
   'tool-cloud-phone-management',
   'cash-bach-account',
@@ -98,6 +100,7 @@ export const AFFILIATE_ADS_MENU_IDS = [
   'affiliate-test-result',
   'affiliate-sync-result',
   'affiliate-post-back',
+  'ads-advisor',
 ]
 
 export const NON_ADMIN_AFFILIATE_ADS_MENU_IDS = [
@@ -106,6 +109,7 @@ export const NON_ADMIN_AFFILIATE_ADS_MENU_IDS = [
   'affiliate-test-result',
   'affiliate-sync-result',
   'affiliate-post-back',
+  'ads-advisor',
 ]
 
 // Shift Link 批量导入模板下载地址 / Shift Link bulk-upload template url

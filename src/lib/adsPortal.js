@@ -452,6 +452,7 @@ function createEmptyAffiliateRow() {
     affiliteUrl: '',
     displayNumber: '',
     userName: '',
+    matchId: '',
   }
 }
 
@@ -461,6 +462,7 @@ function normalizeAffiliateRow(row) {
     affiliteUrl: toOptionalTrimmedString(row?.affiliteUrl) || '',
     displayNumber: toOptionalTrimmedString(row?.displayNumber) || '',
     userName: toOptionalTrimmedString(row?.userName) || '',
+    matchId: toOptionalTrimmedString(row?.matchId) || '',
   }
 }
 

@@ -1,0 +1,176 @@
+.adv-row {
+  cursor: pointer;
+}
+
+.adv-detail-row td {
+  background: #fafbff;
+  white-space: normal;
+}
+
+.adv-detail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  padding: 6px 4px;
+}
+
+.adv-detail ul,
+.adv-evaluation ul,
+.adv-issues ul {
+  margin: 4px 0 10px;
+  padding-left: 18px;
+}
+
+.adv-detail li,
+.adv-evaluation li,
+.adv-issues li {
+  margin: 3px 0;
+  line-height: 1.5;
+}
+
+.adv-subtitle {
+  font-size: 12px;
+  font-weight: 650;
+  color: #374151;
+  margin: 8px 0 2px;
+}
+
+.adv-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 650;
+  background: #eef0f4;
+  color: #4b5563;
+}
+
+.adv-decision-stop,
+.adv-verdict-no_go {
+  background: #fdecea;
+  color: #c0392b;
+}
+
+.adv-decision-no_data,
+.adv-verdict-need_info {
+  background: #fff4e5;
+  color: #b26a00;
+}
+
+.adv-decision-optimize,
+.adv-verdict-test_small {
+  background: #fff7e0;
+  color: #a86400;
+}
+
+.adv-decision-watch {
+  background: #e8f0fe;
+  color: #2f54eb;
+}
+
+.adv-decision-continue,
+.adv-verdict-go {
+  background: #e7f6ec;
+  color: #1e8449;
+}
+
+.adv-decision-scale {
+  background: #d4efdf;
+  color: #145a32;
+}
+
+.pb-card.adv-card {
+  border-width: 1px;
+}
+
+.adv-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px 14px;
+  margin-bottom: 10px;
+}
+
+.adv-form .adv-wide {
+  grid-column: span 2;
+}
+
+.adv-form .adv-text {
+  grid-column: span 2;
+}
+
+.adv-form input,
+.adv-form select,
+.adv-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.adv-form textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.adv-evaluation {
+  border: 1px solid #e9edf5;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 8px;
+  background: #fff;
+}
+
+.adv-verdict-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.adv-level b {
+  display: inline-block;
+  min-width: 46px;
+  margin-right: 6px;
+  font-size: 11px;
+}
+
+.adv-level code {
+  margin-right: 6px;
+}
+
+.adv-level-error b {
+  color: #c0392b;
+}
+
+.adv-level-warn b {
+  color: #b26a00;
+}
+
+.adv-level-info b {
+  color: #2f54eb;
+}
+
+.adv-block {
+  display: block;
+  white-space: pre-wrap;
+  background: #f7f9fd;
+  border: 1px solid #e9edf5;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin: 4px 0 6px;
+  font-size: 12px;
+}
+
+.adv-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.pb-table td.adv-advice {
+  white-space: normal;
+  min-width: 320px;
+}
+
+.adv-evaluation .adv-subtitle {
+  font-size: 13px;
+  margin-top: 12px;
+}

@@ -10,10 +10,9 @@ export const ADS_URL_COLUMNS = [
   { key: 'adsType', label: 'Ads Type', fields: ['adsType', 'ads_type'] },
   { key: 'platformName', label: 'Platform Name', fields: ['platformName', 'platform'] },
   { key: 'seqNumber', label: 'Seq Number', fields: ['seqNumber'] },
-  { key: 'displayNumber', label: 'Display Capacity', fields: ['displayNumber'] },
   {
     key: 'displayTimes',
-    label: 'Display Times',
+    label: 'Clicks Used',
     fields: ['displayTimes'],
   },
   {
@@ -23,7 +22,6 @@ export const ADS_URL_COLUMNS = [
   },
   { key: 'fullUrl', label: 'Full Url', fields: ['fullUrl'] },
   { key: 'userName', label: 'User Name', fields: ['userName', 'user_name'] },
-  { key: 'status', label: 'Status', fields: ['status'] },
   { key: 'createDate', label: 'Create Date', fields: ['createDate'] },
   { key: 'updateDate', label: 'Update Date', fields: ['updateDate'] },
 ]
