@@ -4,9 +4,9 @@ import './GoogleAdsScriptPanel.css'
 // 脚本服务器地址走环境变量配置(见 .env.production / .env.development.local), 未配置时回退默认域名
 // Script server base URL comes from env config; falls back to the default domain
 const ADS_SCRIPT_NORMAL_BASE_URL =
-  import.meta.env.VITE_ADS_SCRIPT_NORMAL_BASE_URL || 'https://track.lunalvabeau.com'
+  import.meta.env.VITE_ADS_SCRIPT_NORMAL_BASE_URL || 'https://ads.admirecars.com'
 const ADS_SCRIPT_MATRIX_BASE_URL =
-  import.meta.env.VITE_ADS_SCRIPT_MATRIX_BASE_URL || 'https://track.lunalvabeau.com'
+  import.meta.env.VITE_ADS_SCRIPT_MATRIX_BASE_URL || 'https://ads.admirecars.com'
 
 // 高频替换场景: setTrackingTemplate 不返回服务端结果, 失败只写进更改日志, 文本日志会一直显示成功。
 // 改为 mutateAll + partialFailure, 逐条读取 isSuccessful/getErrorMessages, 并对瞬时错误自动重试。

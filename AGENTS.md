@@ -1,6 +1,6 @@
 # ads_front — 换链系统管理后台前端
 
-React 19 + Vite。构建产物部署到 track.lunalvabeau.com，与 ads_runner 同域。
+React 19 + Vite。构建产物部署到 ads.admirecars.com，与 ads_runner 同域。
 
 ## 系统全景（本仓库是其中一环）
 
@@ -33,7 +33,7 @@ React 19 + Vite。构建产物部署到 track.lunalvabeau.com，与 ads_runner �
 - 每次运行先 POST `/api/track/report`（body `{data:[{name,clicks,cost,currency}]}`，`api_key` 在 URL query）上报**累计**点击数和花费（`metrics.costMicros` 换算，账户币种 `AdsApp.currentAccount().getCurrencyCode()`）。
 - `AdsApp.search` 返回**嵌套对象**：`row.campaign.name`、`row.metrics.clicks`，不是 `row['campaign.name']`（踩过坑，全部数据变 null）。
 - 再逐 campaign GET `/api/normal/ads|/api/matrix/ads?campaign_name=...&api_key=...` 拿模板（纯文本，`{lpurl}` 占位），`mutateAll` + partialFailure 写 tracking template，瞬时错误自动重试。
-- 服务器地址走 env：`VITE_ADS_SCRIPT_NORMAL_BASE_URL` / `VITE_ADS_SCRIPT_MATRIX_BASE_URL`（见 `.env.production`，默认 `https://track.lunalvabeau.com`）。
+- 服务器地址走 env：`VITE_ADS_SCRIPT_NORMAL_BASE_URL` / `VITE_ADS_SCRIPT_MATRIX_BASE_URL`（见 `.env.production`，默认 `https://ads.admirecars.com`）。
 - **后端协议变化（如新增 cost 字段）后，用户必须重新复制脚本贴到 Google Ads，旧脚本不会自动更新**。
 
 ## 投入产出页（Conversions）要点
