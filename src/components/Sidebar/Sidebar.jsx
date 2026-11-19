@@ -129,22 +129,6 @@ function getIconFor(id) {
           <path d="M12 8v4l3 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )
-    case 'affiliate-ip-proxy':
-      return (
-        <svg {...common} aria-hidden focusable="false">
-          <path d="M7 12a5 5 0 0 1 10 0" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.2" />
-          <path d="M4 17h16" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-        </svg>
-      )
-    case 'affiliate-sync-result':
-      return (
-        <svg {...common} aria-hidden focusable="false">
-          <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.2" />
-          <path d="M8 9h8M8 13h8M8 17h5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-          <path d="M16 7l2 2-4 4-2-2 4-4z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      )
     case 'affiliate-post-back':
       return (
         <svg {...common} aria-hidden focusable="false">
