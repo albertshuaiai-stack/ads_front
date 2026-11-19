@@ -246,23 +246,6 @@
   border-bottom: 0;
 }
 
-/* offer 汇总表限高滚动, 选中行高亮 / offer summary scrolls vertically, selected row highlighted */
-.pb-offer-table-wrap {
-  max-height: 320px;
-  overflow-y: auto;
-}
-
-.pb-offer-table-wrap .pb-table th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
-
-.pb-table tbody tr.is-selected,
-.pb-table tbody tr.is-selected:hover {
-  background: #e8eeff;
-}
-
 .pb-empty {
   text-align: center;
   color: #9aa3b2;
