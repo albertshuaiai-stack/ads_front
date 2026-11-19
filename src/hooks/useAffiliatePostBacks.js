@@ -16,9 +16,12 @@ export function useAffiliatePostBacks(token, defaultAdsOwner, isAdminView) {
     orderNo: '',
     status: '',
     ownerPhoneNumber: '',
+    advertiserShopId: '',
+    advertiserShopName: '',
   })
   const [affiliatePostBackQueryApplied, setAffiliatePostBackQueryApplied] = useState(false)
   const affiliatePostBackFiltersRef = useRef(affiliatePostBackFilters)
+  const [postBackOffers, setPostBackOffers] = useState([])
 
   const [postBackStats, setPostBackStats] = useState(null)
   const [postBackClicks, setPostBackClicks] = useState([])
@@ -50,19 +53,33 @@ export function useAffiliatePostBacks(token, defaultAdsOwner, isAdminView) {
           ? toOptionalTrimmedString(filters.ownerPhoneNumber)
           : toOptionalTrimmedString(defaultAdsOwner)
 
-        const response = await requestApi(
-          `/postback${buildQueryString({
-            adsOwner: resolvedAdsOwner,
-            affiliateSite: filters.affiliateSite,
-            orderNo: filters.orderNo,
-            status: filters.status,
-            page: pageConfig.page,
-            size: pageConfig.size,
-          })}`,
-          { token },
-        )
+        // offer 汇总不带 offer/订单号条件, 下拉框始终列出全部 offer / the offer summary ignores offer and order no filters
+        const [response, offers] = await Promise.all([
+          requestApi(
+            `/postback${buildQueryString({
+              adsOwner: resolvedAdsOwner,
+              affiliateSite: filters.affiliateSite,
+              orderNo: filters.orderNo,
+              status: filters.status,
+              advertiserShopId: filters.advertiserShopId,
+              advertiserShopName: filters.advertiserShopName,
+              page: pageConfig.page,
+              size: pageConfig.size,
+            })}`,
+            { token },
+          ),
+          requestApi(
+            `/postback/offers${buildQueryString({
+              adsOwner: resolvedAdsOwner,
+              affiliateSite: filters.affiliateSite,
+              status: filters.status,
+            })}`,
+            { token },
+          ).catch(() => []),
+        ])
         setAffiliatePostBacks(extractItems(response))
         setAffiliatePostBackPagination(buildPaginationState(response, pageConfig))
+        setPostBackOffers(Array.isArray(offers) ? offers : [])
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
         setAffiliatePostBacksError(message)
@@ -196,6 +213,7 @@ export function useAffiliatePostBacks(token, defaultAdsOwner, isAdminView) {
     affiliatePostBackQueryApplied, setAffiliatePostBackQueryApplied,
     affiliatePostBackFiltersRef,
     loadAffiliatePostBacks,
+    postBackOffers,
     postBackStats, postBackClicks, postBackClickSummary,
     postBackStatsLoading, postBackStatsError,
     postBackImporting, postBackImportMessage, postBackImportError,

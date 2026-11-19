@@ -705,6 +705,7 @@ function App() {
     affiliatePostBackQueryApplied, setAffiliatePostBackQueryApplied,
     affiliatePostBackFiltersRef,
     loadAffiliatePostBacks,
+    postBackOffers,
     postBackStats, postBackClicks, postBackClickSummary,
     postBackStatsLoading, postBackStatsError,
     postBackImporting, postBackImportMessage, postBackImportError,
@@ -3646,6 +3647,8 @@ function App() {
       orderNo: '',
       status: '',
       ownerPhoneNumber: '',
+      advertiserShopId: '',
+      advertiserShopName: '',
     })
     setAffiliatePostBackQueryApplied(false)
     setIpProxyOptionsSource([])
@@ -4387,9 +4390,23 @@ function App() {
       orderNo: '',
       status: '',
       ownerPhoneNumber: '',
+      advertiserShopId: '',
+      advertiserShopName: '',
     })
     setAffiliatePostBackQueryApplied(false)
     void loadAffiliatePostBacks({}, { page: 0, size: affiliatePostBackPaginationRef.current.size })
+  }
+
+  // 选中 offer 后立即查该 offer 下全部订单, offer 为 null 表示清除 / filter orders to one offer, null clears it
+  function filterAffiliatePostBacksByOffer(offer) {
+    const nextFilters = {
+      ...affiliatePostBackFiltersRef.current,
+      advertiserShopId: offer?.advertiserShopId || '',
+      advertiserShopName: offer && !offer.advertiserShopId ? offer.advertiserShopName || '' : '',
+    }
+    setAffiliatePostBackFilters(nextFilters)
+    setAffiliatePostBackQueryApplied(true)
+    void loadAffiliatePostBacks(nextFilters, { page: 0, size: affiliatePostBackPaginationRef.current.size })
   }
 
   function reloadAffiliateJobDetailFilters() {
@@ -6643,6 +6660,8 @@ setAdsAccountStatus(item.status || '')
         onAffiliatePostBackFiltersChange={setAffiliatePostBackFilters}
         onApplyAffiliatePostBackFilters={applyAffiliatePostBackFilters}
         onReloadAffiliatePostBackFilters={reloadAffiliatePostBackFilters}
+        postBackOffers={postBackOffers}
+        onFilterPostBacksByOffer={filterAffiliatePostBacksByOffer}
         showOwnerFilter={showAdminOwnerFilter}
         ownerOptions={ownerFilterOptions}
         pagination={affiliatePostBackPagination}

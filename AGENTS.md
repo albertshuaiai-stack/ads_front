@@ -41,6 +41,7 @@ React 19 + Vite。构建产物部署到 track.lunalvabeau.com，与 ads_runner �
 - 数据来自 `GET /postback/stats`，字段：tasks[]（每任务 adCost/adCostUsd/commission/profitUsd/roas/refundedOrderCount/conversionRate 等）和汇总。
 - By Normal Task 表列头可点击排序（taskSortKey/taskSortDir），决策列在前（Campaign/Orders/Refunded/Conversion/Ad Cost USD/Profit/ROAS），参考列在后。
 - 利润为负、退单>0 红色显示（`.pb-negative`）。
+- Postback Orders 区有 By Offer 汇总（`GET /postback/offers`，按商家 ID 分组、无 ID 按名称，跟随 owner/平台/状态筛选）；点行或 Offer 下拉会带 `advertiserShopId`/`advertiserShopName` 重查 `/postback` 列表（`filterAffiliatePostBacksByOffer`）。
 
 ## 已定设计
 

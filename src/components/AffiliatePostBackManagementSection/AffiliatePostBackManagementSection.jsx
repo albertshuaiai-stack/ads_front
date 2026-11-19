@@ -60,6 +60,17 @@ function formatStatusCounts(counts) {
     .join(' · ')
 }
 
+// offer 唯一键: 有商家ID用ID, 否则用名称, 与后端分组规则一致 / offer key: shop id, else name (matches backend grouping)
+function offerKey(offer) {
+  if (!offer) {
+    return ''
+  }
+  if (offer.advertiserShopId) {
+    return `id:${offer.advertiserShopId}`
+  }
+  return offer.advertiserShopName ? `name:${String(offer.advertiserShopName).toLowerCase()}` : ''
+}
+
 // 任务表列定义, id 同时作为排序字段 / normal task table columns, id doubles as the sort key
 const TASK_COLUMNS = [
   { id: 'campainName', label: 'Campaign', text: true, render: (task) => formatTableValue(task.campainName) },
@@ -132,6 +143,8 @@ function AffiliatePostBackManagementSection({
   onAffiliatePostBackFiltersChange,
   onApplyAffiliatePostBackFilters,
   onReloadAffiliatePostBackFilters,
+  postBackOffers,
+  onFilterPostBacksByOffer,
   showOwnerFilter,
   ownerOptions,
   pagination,
@@ -433,6 +446,22 @@ function AffiliatePostBackManagementSection({
   const healthOk = healthMessage.startsWith('Attribution is working')
   const unmatchedAdvertisers = Array.isArray(postBackStats?.unmatchedByAdvertiser)
     ? postBackStats.unmatchedByAdvertiser : []
+  const offerRows = useMemo(() => (Array.isArray(postBackOffers) ? postBackOffers : []), [postBackOffers])
+  const selectedOfferKey = affiliatePostBackFilters.advertiserShopId
+    ? `id:${affiliatePostBackFilters.advertiserShopId}`
+    : affiliatePostBackFilters.advertiserShopName
+      ? `name:${String(affiliatePostBackFilters.advertiserShopName).toLowerCase()}`
+      : ''
+  const selectedOffer = offerRows.find((offer) => offerKey(offer) === selectedOfferKey) || null
+  const offerTotals = useMemo(() => offerRows.reduce((acc, offer) => ({
+    orders: acc.orders + asNumber(offer.orderCount),
+    refunded: acc.refunded + asNumber(offer.refundedOrderCount),
+    gmv: acc.gmv + asNumber(offer.orderAmount),
+    commission: acc.commission + asNumber(offer.commission),
+  }), { orders: 0, refunded: 0, gmv: 0, commission: 0 }), [offerRows])
+  const handleOfferSelect = (key) => {
+    onFilterPostBacksByOffer?.(offerRows.find((offer) => offerKey(offer) === key) || null)
+  }
   const nextShopSort = shopSort === 'default' ? 'asc' : shopSort === 'asc' ? 'desc' : 'default'
   const shopSortLabel = shopSort === 'asc' ? 'A→Z' : shopSort === 'desc' ? 'Z→A' : '↕'
 
@@ -966,6 +995,23 @@ function AffiliatePostBackManagementSection({
                 placeholder="Search order no"
               />
             </label>
+            <label className="pb-field">
+              Offer
+              <select value={selectedOfferKey} onChange={(event) => handleOfferSelect(event.target.value)}>
+                <option value="">All offers</option>
+                {selectedOfferKey && !selectedOffer ? (
+                  <option value={selectedOfferKey}>
+                    {affiliatePostBackFilters.advertiserShopName || affiliatePostBackFilters.advertiserShopId}
+                  </option>
+                ) : null}
+                {offerRows.map((offer) => (
+                  <option key={offerKey(offer)} value={offerKey(offer)}>
+                    {formatTableValue(offer.advertiserShopName)}
+                    {offer.advertiserShopId ? ` (${offer.advertiserShopId})` : ''} · {offer.orderCount}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button type="button" className="pb-btn" onClick={() => setShopSort(nextShopSort)}>
               Shop Name {shopSortLabel}
             </button>
@@ -976,6 +1022,95 @@ function AffiliatePostBackManagementSection({
               Reload All
             </button>
           </div>
+
+          <div className="pb-block-title">By Offer</div>
+          <p className="pb-hint">
+            Orders grouped by advertiser shop (shop ID, or name when the ID is missing), using the owner / platform /
+            status filters above (order no and offer filters are ignored here). Refunded = status contains reject /
+            refund / cancel / void / decline / revers. Matched = attributed to a click ID. Click a row to list all
+            orders of that offer below.
+          </p>
+          <div className="pb-mini-stats">
+            <span>Offers <b>{offerRows.length}</b></span>
+            <span>Orders <b>{offerTotals.orders}</b></span>
+            <span>Refunded <b>{offerTotals.refunded}</b></span>
+            <span>GMV <b>{offerTotals.gmv.toFixed(2)}</b></span>
+            <span>Commission <b>{offerTotals.commission.toFixed(2)}</b></span>
+          </div>
+          <div className="pb-table-wrap pb-offer-table-wrap">
+            <table className="pb-table">
+              <thead>
+                <tr>
+                  <th>Offer</th>
+                  <th>Shop ID</th>
+                  <th>Platform</th>
+                  <th>Orders</th>
+                  <th>Refunded</th>
+                  <th>Matched</th>
+                  <th>GMV</th>
+                  <th>Commission</th>
+                  <th>First Order</th>
+                  <th>Last Order</th>
+                </tr>
+              </thead>
+              <tbody>
+                {offerRows.length === 0 ? (
+                  <tr><td className="pb-empty" colSpan={10}>No offers found.</td></tr>
+                ) : offerRows.map((offer) => {
+                  const key = offerKey(offer)
+                  const detail = formatStatusCounts(offer.orderStatusCounts)
+                  return (
+                    <tr
+                      key={key}
+                      className={key === selectedOfferKey ? 'is-selected' : undefined}
+                      style={{ cursor: 'pointer' }}
+                      title={key === selectedOfferKey ? 'Click to show all offers' : 'Click to list orders of this offer'}
+                      onClick={() => handleOfferSelect(key === selectedOfferKey ? '' : key)}
+                    >
+                      <td>{formatTableValue(offer.advertiserShopName)}</td>
+                      <td>{formatTableValue(offer.advertiserShopId)}</td>
+                      <td>{formatTableValue(offer.affiliateSites)}</td>
+                      <td>
+                        {formatTableValue(offer.orderCount)}
+                        {detail ? <small className="pb-status-counts">{detail}</small> : null}
+                      </td>
+                      <td className={asNumber(offer.refundedOrderCount) > 0 ? 'pb-negative' : ''}>
+                        {formatTableValue(offer.refundedOrderCount)}
+                      </td>
+                      <td>{formatTableValue(offer.matchedOrderCount)}</td>
+                      <td>{formatMoney(offer.orderAmount)}</td>
+                      <td>{formatMoney(offer.commission)}</td>
+                      <td>{formatDateTimeDisplayValueWithDashedDate(offer.firstOrderTime)}</td>
+                      <td>{formatDateTimeDisplayValueWithDashedDate(offer.lastOrderTime)}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="pb-block-title">
+            {selectedOffer || selectedOfferKey
+              ? `Orders of ${selectedOffer?.advertiserShopName || affiliatePostBackFilters.advertiserShopName || affiliatePostBackFilters.advertiserShopId}`
+              : 'Orders'}
+            {selectedOfferKey ? (
+              <button type="button" className="pb-btn" onClick={() => handleOfferSelect('')}>
+                Show all offers
+              </button>
+            ) : null}
+          </div>
+          {selectedOffer ? (
+            <div className="pb-mini-stats">
+              <span>Orders <b>{formatTableValue(selectedOffer.orderCount)}</b></span>
+              <span>Refunded <b>{formatTableValue(selectedOffer.refundedOrderCount)}</b></span>
+              <span>Matched <b>{formatTableValue(selectedOffer.matchedOrderCount)}</b></span>
+              <span>GMV <b>{formatMoney(selectedOffer.orderAmount)}</b></span>
+              <span>Commission <b>{formatMoney(selectedOffer.commission)}</b></span>
+              {formatStatusCounts(selectedOffer.orderStatusCounts)
+                ? <span>Status <b>{formatStatusCounts(selectedOffer.orderStatusCounts)}</b></span>
+                : null}
+            </div>
+          ) : null}
 
           {affiliatePostBacksError ? <p className="pb-status error" role="alert">{affiliatePostBacksError}</p> : null}
           {affiliatePostBacksMessage ? <p className="pb-status success">{affiliatePostBacksMessage}</p> : null}
