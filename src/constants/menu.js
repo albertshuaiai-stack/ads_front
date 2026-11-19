@@ -60,10 +60,6 @@ export const MENU_GROUPS = [
     id: 'affiliate-ads',
     title: 'AFFILIATE',
     items: [
-      { id: 'affiliate-auto-task', label: 'Auto Task' },
-      { id: 'affiliate-ip-proxy', label: 'Proxy Config' },
-      { id: 'affiliate-test-result', label: 'Affiliate Test' },
-      { id: 'affiliate-sync-result', label: 'Affiliate Ads' },
       { id: 'affiliate-post-back', label: 'Post Back' },
       { id: 'ads-advisor', label: 'Ads Advisor' },
     ],
@@ -93,21 +89,13 @@ export const REPORT_MENU_IDS = [
 
 // Affiliate Ads 类菜单 id 集合 / Affiliate Ads menu ids
 export const AFFILIATE_ADS_MENU_IDS = [
-  'affiliate-auto-task',
   'affiliate-job-detail',
   'affiliate-trigger',
-  'affiliate-ip-proxy',
-  'affiliate-test-result',
-  'affiliate-sync-result',
   'affiliate-post-back',
   'ads-advisor',
 ]
 
 export const NON_ADMIN_AFFILIATE_ADS_MENU_IDS = [
-  'affiliate-auto-task',
-  'affiliate-ip-proxy',
-  'affiliate-test-result',
-  'affiliate-sync-result',
   'affiliate-post-back',
   'ads-advisor',
 ]

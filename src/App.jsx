@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AdsAccountManagementSection from './components/AdsAccountManagementSection/AdsAccountManagementSection'
 import AdsTaskLogSection from './components/AdsTaskLogSection/AdsTaskLogSection'
-import AffiliateAutoTaskManagementSection from './components/AffiliateAutoTaskManagementSection/AffiliateAutoTaskManagementSection'
 import AffiliateJobDetailSection from './components/AffiliateJobDetailSection/AffiliateJobDetailSection'
 import AffiliatePostBackManagementSection from './components/AffiliatePostBackManagementSection/AffiliatePostBackManagementSection'
 import AdsAdvisorSection from './components/AdsAdvisorSection/AdsAdvisorSection'
-import AffiliateSyncResultManagementSection from './components/AffiliateSyncResultManagementSection/AffiliateSyncResultManagementSection'
-import AffiliateTestResultManagementSection from './components/AffiliateTestResultManagementSection/AffiliateTestResultManagementSection'
 import AffiliateTriggerSection from './components/AffiliateTriggerSection/AffiliateTriggerSection'
-import IpProxyManagementSection from './components/IpProxyManagementSection/IpProxyManagementSection'
 import ToolIpManagementSection from './components/ToolIpManagementSection/ToolIpManagementSection'
 import ToolCloudPhoneManagementSection from './components/ToolCloudPhoneManagementSection/ToolCloudPhoneManagementSection'
 import HouseKeepingSection from './components/HouseKeepingSection/HouseKeepingSection'
@@ -87,14 +83,7 @@ import {
   ADS_ACCOUNT_AGENCY_PLATFORM_OPTIONS,
   ADS_ACCOUNT_STATUS_OPTIONS,
   AFFILIATE_AUTO_TASK_NETWORK_OPTIONS,
-  AFFILIATE_AUTO_TASK_TYPE_OPTIONS,
-  AFFILIATE_AUTO_TASK_STATUS_OPTIONS,
   AFFILIATE_POST_BACK_STATUS_OPTIONS,
-  AFFILIATE_SYNC_RESULT_STATUS_OPTIONS,
-  AFFILIATE_TEST_RESULT_STATUS_OPTIONS,
-  IP_PROXY_TYPE_OPTIONS,
-  IP_PROXY_PROTOCOL_OPTIONS,
-  IP_PROXY_STATUS_OPTIONS,
 } from './constants/options'
 import {
   ADS_URL_COLUMNS,
@@ -959,15 +948,7 @@ function App() {
 
   const affiliateAutoTaskNetworkOptions = AFFILIATE_AUTO_TASK_NETWORK_OPTIONS
 
-  const affiliateAutoTaskTypeOptions = AFFILIATE_AUTO_TASK_TYPE_OPTIONS
-
-  const affiliateAutoTaskStatusOptions = AFFILIATE_AUTO_TASK_STATUS_OPTIONS
-
   const affiliatePostBackStatusOptions = AFFILIATE_POST_BACK_STATUS_OPTIONS
-
-  const affiliateSyncResultStatusOptions = AFFILIATE_SYNC_RESULT_STATUS_OPTIONS
-
-  const affiliateTestResultStatusOptions = AFFILIATE_TEST_RESULT_STATUS_OPTIONS
 
   const adsTypeOptions = useMemo(() => buildAdsTypeOptions(currentUserRole), [currentUserRole])
 
@@ -2674,29 +2655,6 @@ function App() {
       return
     }
 
-    if (activeMenu === 'affiliate-auto-task') {
-      void loadAffiliateAutoTasks(
-        affiliateAutoTaskQueryApplied ? affiliateAutoTaskFiltersRef.current : {},
-      )
-      return
-    }
-
-    if (activeMenu === 'affiliate-test-result') {
-      void loadAffiliateTestResults(
-        affiliateTestResultQueryApplied ? affiliateTestResultFiltersRef.current : {},
-      )
-      void loadPlatformOptions()
-      return
-    }
-
-    if (activeMenu === 'affiliate-sync-result') {
-      void loadAffiliateSyncResults(
-        affiliateSyncResultQueryApplied ? affiliateSyncResultFiltersRef.current : {},
-      )
-      void loadPlatformOptions()
-      return
-    }
-
     if (activeMenu === 'affiliate-post-back') {
       void loadAffiliatePostBacks(
         affiliatePostBackQueryApplied ? affiliatePostBackFiltersRef.current : {},
@@ -2706,11 +2664,6 @@ function App() {
 
     if (activeMenu === 'affiliate-trigger') {
       void loadAffiliateTriggers({})
-      return
-    }
-
-    if (activeMenu === 'affiliate-ip-proxy') {
-      void loadIpProxies(ipProxyQueryApplied ? ipProxyFiltersRef.current : {})
       return
     }
 
@@ -5859,22 +5812,14 @@ setAdsAccountStatus(item.status || '')
           ? 'Income / Expenditure Report'
         : activeMenu === 'ads-account-management'
           ? 'Ads Account Management'
-        : activeMenu === 'affiliate-auto-task'
-          ? 'Auto Task'
         : activeMenu === 'affiliate-job-detail'
           ? 'Auto Job'
-        : activeMenu === 'affiliate-test-result'
-          ? 'Affiliate Test'
-        : activeMenu === 'affiliate-sync-result'
-          ? 'Affiliate Ads'
         : activeMenu === 'affiliate-post-back'
           ? 'Post Back'
         : activeMenu === 'ads-advisor'
           ? 'Ads Advisor'
         : activeMenu === 'affiliate-trigger'
           ? 'Auto Trigger'
-        : activeMenu === 'affiliate-ip-proxy'
-          ? 'Proxy Config'
         : activeMenu === 'tool-ip-management'
           ? 'IP Management'
         : activeMenu === 'tool-cloud-phone-management'
@@ -6567,69 +6512,6 @@ setAdsAccountStatus(item.status || '')
         onPageSizeChange={handleAffiliateJobDetailPageSizeChange}
       />
     )
-  } else if (activeMenu === 'affiliate-auto-task') {
-    activeSection = (
-      <AffiliateAutoTaskManagementSection
-        affiliateAutoTasks={affiliateAutoTasks}
-        affiliateAutoTasksLoading={affiliateAutoTasksLoading}
-        affiliateAutoTasksError={affiliateAutoTasksError}
-        affiliateAutoTasksMessage={affiliateAutoTasksMessage}
-        affiliateAutoTaskFilters={affiliateAutoTaskFilters}
-        onAffiliateAutoTaskFiltersChange={setAffiliateAutoTaskFilters}
-        onApplyAffiliateAutoTaskFilters={applyAffiliateAutoTaskFilters}
-        onReloadAffiliateAutoTaskFilters={reloadAffiliateAutoTaskFilters}
-        onCreateAffiliateAutoTask={openCreateAffiliateAutoTask}
-        onEditAffiliateAutoTask={startEditAffiliateAutoTask}
-        onDeleteAffiliateAutoTask={handleDeleteAffiliateAutoTask}
-        onRunAffiliateAutoTaskSync={handleRunAffiliateAutoTaskSync}
-        onRunAffiliateAutoTaskTest={handleRunAffiliateAutoTaskTest}
-        runningAffiliateAutoTaskId={runningAffiliateAutoTaskId}
-        showAffiliateAutoTaskModal={showAffiliateAutoTaskModal}
-        editingAffiliateAutoTaskId={editingAffiliateAutoTaskId}
-        affiliateAutoTaskNetwork={affiliateAutoTaskNetwork}
-        onAffiliateAutoTaskNetworkChange={setAffiliateAutoTaskNetwork}
-        affiliateAutoTaskType={affiliateAutoTaskType}
-        onAffiliateAutoTaskTypeChange={setAffiliateAutoTaskType}
-        affiliateAutoTaskRegion={affiliateAutoTaskRegion}
-        onAffiliateAutoTaskRegionChange={setAffiliateAutoTaskRegion}
-        onSaveAffiliateAutoTask={handleSaveAffiliateAutoTask}
-        savingAffiliateAutoTask={savingAffiliateAutoTask}
-        onCloseAffiliateAutoTaskModal={() => setShowAffiliateAutoTaskModal(false)}
-        showOwnerFilter={showAdminOwnerFilter}
-        ownerOptions={ownerFilterOptions}
-        affiliateAutoTaskNetworkOptions={affiliateAutoTaskNetworkOptions}
-        affiliateAutoTaskTypeOptions={affiliateAutoTaskTypeOptions}
-        affiliateAutoTaskStatusOptions={affiliateAutoTaskStatusOptions}
-        countryOptions={COUNTRY_OPTIONS}
-        formatDateDisplayValue={formatDateDisplayValue}
-        pagination={affiliateAutoTaskPagination}
-        onPageChange={handleAffiliateAutoTaskPageChange}
-        onPageSizeChange={handleAffiliateAutoTaskPageSizeChange}
-      />
-    )
-  } else if (activeMenu === 'affiliate-sync-result') {
-    activeSection = (
-      <AffiliateSyncResultManagementSection
-        affiliateSyncResults={affiliateSyncResults}
-        affiliateSyncResultsLoading={affiliateSyncResultsLoading}
-        affiliateSyncResultsError={affiliateSyncResultsError}
-        affiliateSyncResultsMessage={affiliateSyncResultsMessage}
-        affiliateSyncResultFilters={affiliateSyncResultFilters}
-        affiliateSyncResultStatusOptions={affiliateSyncResultStatusOptions}
-        onAffiliateSyncResultFiltersChange={setAffiliateSyncResultFilters}
-        onApplyAffiliateSyncResultFilters={applyAffiliateSyncResultFilters}
-        onReloadAffiliateSyncResultFilters={reloadAffiliateSyncResultFilters}
-        onTestAffiliateSyncResult={handleTestAffiliateSyncResult}
-        testingAffiliateSyncResultId={testingAffiliateSyncResultId}
-        showOwnerFilter={showAdminOwnerFilter}
-        ownerOptions={ownerFilterOptions}
-        affiliateNetworkOptions={affiliateAutoTaskNetworkOptions}
-        formatDateDisplayValue={formatDateDisplayValue}
-        pagination={affiliateSyncResultPagination}
-        onPageChange={handleAffiliateSyncResultPageChange}
-        onPageSizeChange={handleAffiliateSyncResultPageSizeChange}
-      />
-    )
   } else if (activeMenu === 'affiliate-post-back') {
     activeSection = (
       <AffiliatePostBackManagementSection
@@ -6671,30 +6553,6 @@ setAdsAccountStatus(item.status || '')
         ownerOptions={ownerFilterOptions}
       />
     )
-  } else if (activeMenu === 'affiliate-test-result') {
-    activeSection = (
-      <AffiliateTestResultManagementSection
-        affiliateTestResults={affiliateTestResults}
-        affiliateTestResultsLoading={affiliateTestResultsLoading}
-        affiliateTestResultsError={affiliateTestResultsError}
-        affiliateTestResultsMessage={affiliateTestResultsMessage}
-        affiliateTestResultFilters={affiliateTestResultFilters}
-        affiliateTestResultStatusOptions={affiliateTestResultStatusOptions}
-        onAffiliateTestResultFiltersChange={setAffiliateTestResultFilters}
-        onApplyAffiliateTestResultFilters={applyAffiliateTestResultFilters}
-        onReloadAffiliateTestResultFilters={reloadAffiliateTestResultFilters}
-        onConvertAffiliateTestResultToNormal={handleConvertAffiliateTestResultToNormal}
-        convertingAffiliateTestResultId={convertingAffiliateTestResultId}
-        showOwnerFilter={showAdminOwnerFilter}
-        ownerOptions={ownerFilterOptions}
-        affiliateNetworkOptions={affiliateAutoTaskNetworkOptions}
-        countryOptions={COUNTRY_OPTIONS}
-        formatDateDisplayValue={formatDateDisplayValue}
-        pagination={affiliateTestResultPagination}
-        onPageChange={handleAffiliateTestResultPageChange}
-        onPageSizeChange={handleAffiliateTestResultPageSizeChange}
-      />
-    )
   } else if (activeMenu === 'affiliate-trigger') {
     activeSection = (
       <AffiliateTriggerSection
@@ -6706,47 +6564,6 @@ setAdsAccountStatus(item.status || '')
         pagination={affiliateTriggerPagination}
         onPageChange={handleAffiliateTriggerPageChange}
         onPageSizeChange={handleAffiliateTriggerPageSizeChange}
-      />
-    )
-  } else if (activeMenu === 'affiliate-ip-proxy') {
-    activeSection = (
-      <IpProxyManagementSection
-        ipProxies={ipProxies}
-        ipProxiesLoading={ipProxiesLoading}
-        ipProxiesError={ipProxiesError}
-        ipProxiesMessage={ipProxiesMessage}
-        ipProxyFilters={ipProxyFilters}
-        onIpProxyFiltersChange={setIpProxyFilters}
-        onApplyIpProxyFilters={applyIpProxyFilters}
-        onReloadIpProxyFilters={reloadIpProxyFilters}
-        onCreateIpProxy={openCreateIpProxy}
-        onEditIpProxy={startEditIpProxy}
-        onDeleteIpProxy={handleDeleteIpProxy}
-        showIpProxyModal={showIpProxyModal}
-        editingIpProxyId={editingIpProxyId}
-        ipProxyType={ipProxyType}
-        onIpProxyTypeChange={setIpProxyType}
-        ipProxyProtocol={ipProxyProtocol}
-        onIpProxyProtocolChange={setIpProxyProtocol}
-        ipProxyInfo={ipProxyInfo}
-        onIpProxyInfoChange={setIpProxyInfo}
-        ipProxyStatus={ipProxyStatus}
-        onIpProxyStatusChange={setIpProxyStatus}
-        ipProxyTargetCountry={ipProxyTargetCountry}
-        onIpProxyTargetCountryChange={setIpProxyTargetCountry}
-        onSaveIpProxy={handleSaveIpProxy}
-        savingIpProxy={savingIpProxy}
-        onCloseIpProxyModal={() => setShowIpProxyModal(false)}
-        showOwnerFilter={showAdminOwnerFilter}
-        ownerOptions={ownerFilterOptions}
-        ipProxyTypeOptions={IP_PROXY_TYPE_OPTIONS}
-        ipProxyProtocolOptions={IP_PROXY_PROTOCOL_OPTIONS}
-        ipProxyStatusOptions={IP_PROXY_STATUS_OPTIONS}
-        countryOptions={COUNTRY_OPTIONS}
-        formatDateDisplayValue={formatDateDisplayValue}
-        pagination={ipProxyPagination}
-        onPageChange={handleIpProxyPageChange}
-        onPageSizeChange={handleIpProxyPageSizeChange}
       />
     )
   } else if (activeMenu === 'tool-ip-management') {
