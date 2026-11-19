@@ -296,8 +296,9 @@ async function createShiftLinkUploadFile(file, fallbackAdsOwner) {
   })
 }
 
-// 解析选中的文件夹为 Shift Link 列表 / Parse the picked folder into shift link entries.
-// 结构约定 / Structure: root/platform/campaignFile ，文件内每行一个 Full URL。
+// 解析选中的文件夹为落地页导入条目 / Parse the picked folder into landing import entries.
+// 结构约定 / Structure: CashBack/gmail/platform/merchant.txt，文件内每行一个落地页 URL；
+// 取路径最后三级，选 CashBack 或它的上级目录都可以 / the last three path levels are used, so the parent folder also works
 async function parseFolderShiftLinks(fileList) {
   const files = Array.from(fileList || [])
   if (files.length === 0) {
@@ -305,22 +306,20 @@ async function parseFolderShiftLinks(fileList) {
   }
 
   const entries = []
-  const platformNames = new Set()
-
   for (const file of files) {
     const relativePath = file.webkitRelativePath || file.name
     const segments = relativePath.split('/').filter(Boolean)
 
-    // 至少需要 root/platform/file 三级 / need at least root/platform/file
-    if (segments.length < 3) {
+    // 至少需要 root/gmail/platform/file 四级 / need at least root/gmail/platform/file
+    if (segments.length < 4 || !/\.txt$/i.test(file.name)) {
       continue
     }
 
-    const platformName = segments[1]
     const fileName = segments[segments.length - 1]
-    const campaignName = fileName.replace(/\.[^.]+$/, '')
-
-    if (!platformName || !campaignName) {
+    const platformName = segments[segments.length - 2]
+    const userName = segments[segments.length - 3]
+    const merchant = fileName.replace(/\.[^.]+$/, '')
+    if (!userName || !platformName || !merchant) {
       continue
     }
 
@@ -328,25 +327,19 @@ async function parseFolderShiftLinks(fileList) {
     const urls = text
       .split(/\r?\n/)
       .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-
-    if (urls.length === 0) {
-      continue
+      .filter((line) => /^https?:\/\//i.test(line))
+    if (urls.length > 0) {
+      entries.push({ userName, platformName, merchant, urls })
     }
-
-    platformNames.add(platformName)
-    urls.forEach((fullUrl) => {
-      entries.push({ platformName, campaignName, fullUrl })
-    })
   }
 
   if (entries.length === 0) {
     throw new Error(
-      'No valid links found. Expected structure: folder / platform / campaign-file with one URL per line.',
+      'No valid links found. Expected structure: CashBack / gmail / platform / merchant.txt with one URL per line.',
     )
   }
 
-  return { entries, platformNames: Array.from(platformNames) }
+  return { entries }
 }
 
 function extractItems(response) {

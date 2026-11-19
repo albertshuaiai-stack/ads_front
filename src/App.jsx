@@ -16,7 +16,6 @@ import LoginForm from './components/LoginForm/LoginForm'
 import CashBachAccountManagementSection from './components/CashBachAccountManagementSection/CashBachAccountManagementSection'
 import BrandReviewManagementSection from './components/BrandReviewManagementSection/BrandReviewManagementSection'
 import GmailPlatformLinkSection from './components/GmailPlatformLinkSection/GmailPlatformLinkSection'
-import ShiftLinkHistorySection from './components/ShiftLinkHistorySection/ShiftLinkHistorySection'
 import CbAccountReportSection from './components/CbAccountReportSection/CbAccountReportSection'
 import ChangePasswordModal from './components/ChangePasswordModal/ChangePasswordModal'
 import EmailManagementSection from './components/EmailManagementSection/EmailManagementSection'
@@ -139,7 +138,6 @@ import { useUserAgents } from './hooks/useUserAgents'
 import { useRoles } from './hooks/useRoles'
 import { useBrandReviews } from './hooks/useBrandReviews'
 import { useGmailPlatformLinks } from './hooks/useGmailPlatformLinks'
-import { useShiftLinkHistory } from './hooks/useShiftLinkHistory'
 import { usePlatforms } from './hooks/usePlatforms'
 import { useNormalAds } from './hooks/useNormalAds'
 import { useMatrixAds } from './hooks/useMatrixAds'
@@ -385,8 +383,6 @@ function App() {
     loadGmailPlatformLinks,
     loadGmailPlatformStats,
   } = useGmailPlatformLinks(token)
-  const shiftLinkHistory = useShiftLinkHistory(token)
-  const loadShiftLinkHistory = shiftLinkHistory.loadHistory
   const {
     userAgents, setUserAgents,
     userAgentsLoading,
@@ -536,6 +532,9 @@ function App() {
     emailParentEmail, setEmailParentEmail,
     emailHomeAddress, setEmailHomeAddress,
     emailRemarks, setEmailRemarks,
+    emailEnvSerial, setEmailEnvSerial,
+    emailPlatformPwd, setEmailPlatformPwd,
+    emailTwoFaUrl, setEmailTwoFaUrl,
     savingEmail, setSavingEmail,
     showEmailModal, setShowEmailModal,
     loadToolEmails,
@@ -1878,6 +1877,9 @@ function App() {
     setEmailParentEmail('')
     setEmailHomeAddress('')
     setEmailRemarks('')
+    setEmailEnvSerial('')
+    setEmailPlatformPwd('')
+    setEmailTwoFaUrl('')
   }
 
   function openCreateEmail() {
@@ -2592,7 +2594,6 @@ function App() {
         gmailPlatformLinkQueryApplied ? gmailPlatformLinkFiltersRef.current : {},
       )
       void loadGmailPlatformStats()
-      void loadShiftLinkHistory()
       void loadAccountEmailOptions()
       void loadPlatformOptions()
       return
@@ -2778,7 +2779,6 @@ function App() {
     loadPaypalAccountOptions,
     loadGmailPlatformLinks,
     loadGmailPlatformStats,
-    loadShiftLinkHistory,
     gmailPlatformLinkQueryApplied,
     gmailPlatformLinkFiltersRef,
     brandReviewQueryApplied,
@@ -3293,10 +3293,8 @@ function App() {
       if (!payload.platformName) {
         throw new Error('Platform is required.')
       }
-      if (!payload.matchId) {
-        throw new Error('Match ID is required.')
-      }
-      if (payload.matchId.length < 4) {
+      // Match ID 留空由后端自增生成(GL000001) / leave Match ID empty to get an auto id from the backend
+      if (payload.matchId && payload.matchId.length < 4) {
         throw new Error('Match ID must be at least 4 characters.')
       }
 
@@ -3327,6 +3325,29 @@ function App() {
       setGmailPlatformLinksError(message)
     } finally {
       setSavingGmailPlatformLink(false)
+    }
+  }
+
+  // 手动切换 邮箱+平台 是否还在运行, 统计随之刷新 / toggle whether the gmail still runs on the platform
+  async function handleToggleGmailPlatformLinkStatus(rule) {
+    setGmailPlatformLinksError('')
+    setGmailPlatformLinksMessage('')
+    const nextStatus = rule.status === 'DISABLED' ? 'RUNNING' : 'DISABLED'
+    try {
+      await requestApi(`/gmail-platform-links/${rule.id}/status?status=${nextStatus}`, {
+        method: 'PUT',
+        token,
+      })
+      setGmailPlatformLinksMessage(`${rule.userName} / ${rule.platformName} marked ${nextStatus}.`)
+      await Promise.all([
+        loadGmailPlatformLinks(
+          gmailPlatformLinkQueryApplied ? gmailPlatformLinkFiltersRef.current : {},
+          gmailPlatformLinkPaginationRef.current,
+        ),
+        loadGmailPlatformStats(),
+      ])
+    } catch (error) {
+      setGmailPlatformLinksError(error instanceof Error ? error.message : 'Unknown error')
     }
   }
 
@@ -4541,58 +4562,21 @@ function App() {
         resolvedDisplayNumber = parsedDisplayNumber
       }
 
-      const { entries, platformNames } = await parseFolderShiftLinks(folderImportFiles)
+      const { entries } = await parseFolderShiftLinks(folderImportFiles)
 
-      // platform 不存在则直接新增 / create missing platforms directly
-      const existingPlatforms = new Set(platformOptions)
-      const createdPlatforms = []
-      for (const platformNameValue of platformNames) {
-        if (existingPlatforms.has(platformNameValue)) {
-          continue
-        }
-        try {
-          await requestApi('/platforms', {
-            method: 'POST',
-            token,
-            body: { platformName: platformNameValue },
-          })
-          createdPlatforms.push(platformNameValue)
-        } catch (error) {
-          // 已存在则忽略 / ignore when the platform already exists
-          const message = error instanceof Error ? error.message : ''
-          if (!/already exists/i.test(message)) {
-            throw error
-          }
-        }
-      }
+      // 后端统一处理: 补建平台和 Gmail Link Rule、跳过 DISABLED 规则、重复链接去重
+      // the backend creates missing platforms and gmail link rules, skips DISABLED rules and dedupes urls
+      const result = await requestApi('/landing-import', {
+        method: 'POST',
+        token,
+        body: { adsType: adsTypeValue, displayNumber: resolvedDisplayNumber, entries },
+      })
 
-      const fallbackAdsOwner = getLoggedInAdsOwner(identifier, currentUser)
-      let createdCount = 0
-      const failures = []
-      for (const entry of entries) {
-        try {
-          const parsedUrl = parseAdsUrl(entry.fullUrl)
-          const payload = {
-            adsType: adsTypeValue,
-            adsName: entry.campaignName,
-            platformName: entry.platformName,
-            fullUrl: entry.fullUrl,
-            landingPageUrl: parsedUrl.landingUrl,
-            urlSuffix: parsedUrl.urlSuffix,
-            displayNumber: resolvedDisplayNumber,
-          }
-          if (fallbackAdsOwner) {
-            payload.adsOwner = fallbackAdsOwner
-          }
-          await requestApi('/shift-links', { method: 'POST', token, body: payload })
-          createdCount += 1
-        } catch (error) {
-          const message = error instanceof Error ? error.message : 'Unknown error'
-          failures.push(`${entry.platformName}/${entry.campaignName}: ${message}`)
-        }
-      }
+      const failures = (result?.entries || [])
+        .filter((item) => item.skippedReason || item.failed > 0)
+        .map((item) => `${item.userName}/${item.platformName}/${item.merchant}: ${item.skippedReason || `${item.failed} failed`}`)
 
-      if (createdPlatforms.length > 0) {
+      if ((result?.createdPlatforms || []).length > 0) {
         await loadPlatformOptions()
       }
       await loadAdsUrls(
@@ -4600,12 +4584,21 @@ function App() {
         adsUrlPaginationRef.current,
       )
 
-      const summaryParts = [`Imported ${createdCount} shift links.`]
-      if (createdPlatforms.length > 0) {
-        summaryParts.push(`Created ${createdPlatforms.length} new platform(s).`)
+      const summaryParts = [`Imported ${result?.imported ?? 0} shift links.`]
+      if (result?.duplicated) {
+        summaryParts.push(`${result.duplicated} duplicated.`)
       }
-      if (failures.length > 0) {
-        summaryParts.push(`${failures.length} failed.`)
+      if ((result?.createdRules || []).length > 0) {
+        summaryParts.push(`Created ${result.createdRules.length} Gmail Link Rule(s).`)
+      }
+      if ((result?.createdPlatforms || []).length > 0) {
+        summaryParts.push(`Created ${result.createdPlatforms.length} new platform(s).`)
+      }
+      if (result?.skippedEntries) {
+        summaryParts.push(`${result.skippedEntries} merchant file(s) skipped.`)
+      }
+      if (result?.failed) {
+        summaryParts.push(`${result.failed} failed.`)
       }
       const summary = summaryParts.join(' ')
 
@@ -4815,6 +4808,9 @@ function App() {
     setEmailParentEmail(item.parentEmail || '')
     setEmailHomeAddress(item.address || '')
     setEmailRemarks(item.remarks || '')
+    setEmailEnvSerial(item.envSerial || '')
+    setEmailPlatformPwd(item.platformPwd || '')
+    setEmailTwoFaUrl(item.twoFaUrl || '')
     setShowEmailModal(true)
   }
 
@@ -4838,6 +4834,10 @@ function App() {
         parentEmail: toOptionalTrimmedString(emailParentEmail),
         address: toOptionalTrimmedString(emailHomeAddress),
         remarks: toOptionalTrimmedString(emailRemarks),
+        // 空串表示清空, 后端只在非 null 时覆盖 / empty string clears the value, the backend only overwrites non-null
+        envSerial: emailEnvSerial.trim(),
+        platformPwd: emailPlatformPwd.trim(),
+        twoFaUrl: emailTwoFaUrl.trim(),
       }
 
       if (editingEmailId) {
@@ -6109,27 +6109,7 @@ setAdsAccountStatus(item.status || '')
         pagination={gmailPlatformLinkPagination}
         onPageChange={handleGmailPlatformLinkPageChange}
         onPageSizeChange={handleGmailPlatformLinkPageSizeChange}
-        historySection={
-          <ShiftLinkHistorySection
-            rows={shiftLinkHistory.historyRows}
-            loading={shiftLinkHistory.historyLoading}
-            error={shiftLinkHistory.historyError}
-            message={shiftLinkHistory.historyMessage}
-            form={shiftLinkHistory.historyForm}
-            onFormChange={shiftLinkHistory.setHistoryForm}
-            importText={shiftLinkHistory.historyImportText}
-            onImportTextChange={shiftLinkHistory.setHistoryImportText}
-            saving={shiftLinkHistory.historySaving}
-            onSave={() => void shiftLinkHistory.saveHistory(loadGmailPlatformStats)}
-            onImport={() => void shiftLinkHistory.importHistory(loadGmailPlatformStats)}
-            onToggleBanned={(row) => void shiftLinkHistory.toggleHistoryBanned(row, loadGmailPlatformStats)}
-            onEdit={shiftLinkHistory.editHistory}
-            onDelete={(id) => void shiftLinkHistory.deleteHistory(id, loadGmailPlatformStats)}
-            onResetForm={shiftLinkHistory.resetHistoryForm}
-            userNameOptions={toolEmailUserOptions}
-            platformOptions={platformOptions}
-          />
-        }
+        onToggleRuleStatus={handleToggleGmailPlatformLinkStatus}
       />
     )
   } else if (activeMenu === 'ads-url-management') {
@@ -6434,6 +6414,12 @@ setAdsAccountStatus(item.status || '')
         onEmailHomeAddressChange={setEmailHomeAddress}
         emailRemarks={emailRemarks}
         onEmailRemarksChange={setEmailRemarks}
+        emailEnvSerial={emailEnvSerial}
+        onEmailEnvSerialChange={setEmailEnvSerial}
+        emailPlatformPwd={emailPlatformPwd}
+        onEmailPlatformPwdChange={setEmailPlatformPwd}
+        emailTwoFaUrl={emailTwoFaUrl}
+        onEmailTwoFaUrlChange={setEmailTwoFaUrl}
         onSaveEmail={handleSaveEmail}
         savingEmail={savingEmail}
         onCloseEmailModal={() => setShowEmailModal(false)}

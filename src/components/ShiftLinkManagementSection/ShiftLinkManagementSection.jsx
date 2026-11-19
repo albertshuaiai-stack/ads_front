@@ -445,11 +445,11 @@ function ShiftLinkManagementSection({
             />
 
             <p className="field-help">
-              Folder structure: <code>root / platform / campaign-file</code>. First-level folders
-              are platform names, file names (without extension) are brand / Campaign Names, and
-              each line inside a file is one Full URL. Display Number applies to every imported
-              link. Missing platforms are created automatically. Links containing a Gmail Link
-              Rule Match ID are classified to that Gmail account automatically.
+              Folder structure: <code>CashBack / gmail / cash back platform / merchant.txt</code> (the output of
+              the landing collector). Each line inside a file is one landing URL; the file name is the merchant /
+              Campaign Name. Links are saved under that Gmail, missing platforms and Gmail Link Rules are created
+              automatically, and files of a Gmail + platform whose rule is DISABLED are skipped. Duplicate URLs are
+              ignored. Display Number applies to every imported link.
             </p>
 
             {folderImportError ? (

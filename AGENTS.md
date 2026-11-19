@@ -43,6 +43,12 @@ React 19 + Vite。构建产物部署到 track.lunalvabeau.com，与 ads_runner �
 - 利润为负、退单>0 红色显示（`.pb-negative`）。
 - Postback Orders 区有 Offer 下拉筛选（选项来自 `GET /postback/offers`，按商家 ID 分组、无 ID 按名称，跟随 owner/平台/状态筛选）；选中后带 `advertiserShopId`/`advertiserShopName` 重查 `/postback` 列表（`filterAffiliatePostBacksByOffer`），并在订单表上方显示该 offer 的统计条。
 
+## 落地页 / Gmail Link Rules
+
+- Email Management 有 `envSerial`（指纹浏览器环境编号）、`platformPwd`（返利平台密码）、`twoFaUrl`，供 `lunalvabeau_site/landing_collector` 采集工具读取。
+- Gmail Link Rules：Match ID 可留空（后端自增 `GL000001`）；Status 列按钮切换 RUNNING / DISABLED（`handleToggleGmailPlatformLinkStatus`）。原上方的 History Data Entry 表已从页面移除。
+- Shift Links → Import from Folder：结构为 `CashBack/邮箱/平台/商家.txt`（`parseFolderShiftLinks` 取最后三级），整批 POST `/landing-import` 由后端处理建规则、跳过 DISABLED、去重。
+
 ## 已定设计
 
 - ShiftLink 链接**没有状态概念**：停投/恢复只由 Normal/Matrix 任务（Ads 级）控制，列表只有 Edit/Delete。早期版本有 Status 列和 Pause/Active 按钮，已按"链接状态无意义、会导致 ads 一直用同一条链"的结论移除。
