@@ -30,7 +30,7 @@ React 19 + Vite。构建产物部署到 track.lunalvabeau.com，与 ads_runner �
 ## Google Ads 脚本（GoogleAdsScriptPanel.jsx）
 
 脚本模板是前后端协议的一部分，改它要同步考虑后端：
-- 每次运行先 POST `/api/track/report`（body `{data:[{name,clicks,cost,currency}]}`，`api_key` 在 URL query）上报**累计**点击数和花费（`metrics.costMicros` 换算，账户币种 `AdsApp.currentAccount().getCurrencyCode()`）。
+- 每次运行先 POST `/api/track/report`（body `{data:[{id,name,status,clicks,cost,currency}]}`，`api_key` 在 URL query）上报**累计**点击数和花费（`metrics.costMicros` 换算，账户币种 `AdsApp.currentAccount().getCurrencyCode()`）。查询 `campaign.status != REMOVED`，`id`/`status` 供后端按 campaign 记花费台账，PAUSED 行后端只记花费不换链。
 - `AdsApp.search` 返回**嵌套对象**：`row.campaign.name`、`row.metrics.clicks`，不是 `row['campaign.name']`（踩过坑，全部数据变 null）。
 - 再逐 campaign GET `/api/normal/ads|/api/matrix/ads?campaign_name=...&api_key=...` 拿模板（纯文本，`{lpurl}` 占位），`mutateAll` + partialFailure 写 tracking template，瞬时错误自动重试。
 - 服务器地址走 env：`VITE_ADS_SCRIPT_NORMAL_BASE_URL` / `VITE_ADS_SCRIPT_MATRIX_BASE_URL`（见 `.env.production`，默认 `https://track.lunalvabeau.com`）。

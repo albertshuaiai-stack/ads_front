@@ -163,6 +163,11 @@ function AffiliatePostBackManagementSection({
   const [shopSort, setShopSort] = useState('default')
   const [actionError, setActionError] = useState('')
   const [reattributeMessage, setReattributeMessage] = useState('')
+  // 按天/全部视图切换: Click 页签看广告日快照, Conversions 页签看订单按天明细 / daily-vs-all view toggles
+  const [clicksView, setClicksView] = useState('all')
+  const [statsView, setStatsView] = useState('all')
+  // By day 视图选中的日期 / selected date in the By day view
+  const [statsDailyDate, setStatsDailyDate] = useState('')
   const fileInputRef = useRef(null)
 
   const summaryClicks = useMemo(
@@ -359,13 +364,55 @@ function AffiliatePostBackManagementSection({
         ['Unmatched Orders', postBackStats.unmatchedOrderCount],
         ['GMV', postBackStats.orderAmount],
         ['Commission (USD)', postBackStats.commission],
-        ['Ad Cost (USD)', formatMoney(postBackStats.adCostUsd)],
+        [
+          'Ad Cost (USD)',
+          formatMoney(postBackStats.adCostUsd),
+          // 已删除任务的历史投入仍计入总花费 / spend of deleted tasks stays in the total
+          asNumber(postBackStats.deletedTaskAdCostUsd) > 0
+            ? `incl. ${formatMoney(postBackStats.deletedTaskAdCostUsd)} from ${postBackStats.deletedTaskCampaigns || 0} deleted task campaign(s)`
+            : '',
+        ],
         ['Profit (USD)', formatMoney(postBackStats.profitUsd)],
         ['ROAS', formatRoas(postBackStats.roas)],
       ]
     : []
 
   const platformRows = Array.isArray(postBackStats?.byPlatform) ? postBackStats.byPlatform : []
+  // 后端 stats.daily: { days: [...最近7天], rows: [{date, campaignName, normalAdsId, impressions, adClicks,
+  // adCostUsd, orderCount, orderAmount, commission, profitUsd, roas}] } / per-day per-offer rows
+  const dailyDays = Array.isArray(postBackStats?.daily?.days) ? postBackStats.daily.days : []
+  const dailyOfferRows = Array.isArray(postBackStats?.daily?.rows) ? postBackStats.daily.rows : []
+  const selectedDailyDate = dailyDays.includes(statsDailyDate) ? statsDailyDate : dailyDays[dailyDays.length - 1] || ''
+  const rowsForDate = useMemo(
+    () => dailyOfferRows.filter((row) => row.date === selectedDailyDate),
+    [dailyOfferRows, selectedDailyDate],
+  )
+  // 选中日期的合计行 / totals row for the selected day
+  const dailyTotals = useMemo(() => {
+    const totals = rowsForDate.reduce((acc, row) => ({
+      impressions: acc.impressions + asNumber(row.impressions),
+      adClicks: acc.adClicks + asNumber(row.adClicks),
+      adCostUsd: acc.adCostUsd + asNumber(row.adCostUsd),
+      orderCount: acc.orderCount + asNumber(row.orderCount),
+      orderAmount: acc.orderAmount + asNumber(row.orderAmount),
+      commission: acc.commission + asNumber(row.commission),
+    }), { impressions: 0, adClicks: 0, adCostUsd: 0, orderCount: 0, orderAmount: 0, commission: 0 })
+    totals.profitUsd = totals.commission - totals.adCostUsd
+    totals.roas = totals.adCostUsd > 0 ? totals.commission / totals.adCostUsd : null
+    return totals
+  }, [rowsForDate])
+  // Click 页签的按天表: 每个 offer 行按天汇总 / per-day totals for the Click tab
+  const dailyClickRows = useMemo(() => {
+    const byDay = new Map()
+    dailyOfferRows.forEach((row) => {
+      const agg = byDay.get(row.date) || { date: row.date, impressions: 0, adClicks: 0, adCostUsd: 0 }
+      agg.impressions += asNumber(row.impressions)
+      agg.adClicks += asNumber(row.adClicks)
+      agg.adCostUsd += asNumber(row.adCostUsd)
+      byDay.set(row.date, agg)
+    })
+    return [...byDay.values()].sort((a, b) => (a.date > b.date ? 1 : -1))
+  }, [dailyOfferRows])
   const health = postBackStats?.attributionHealth
   const recentSubIds = Array.isArray(health?.recentSubIds) ? health.recentSubIds : []
   const healthMessage = useMemo(() => {
@@ -452,6 +499,22 @@ function AffiliatePostBackManagementSection({
             <button type="button" className="pb-btn pb-btn-primary" onClick={() => onReloadClickSummary?.()}>
               Refresh
             </button>
+            <span className="pb-view-toggle">
+              <button
+                type="button"
+                className={`pb-btn ${clicksView === 'all' ? 'pb-btn-primary' : ''}`}
+                onClick={() => setClicksView('all')}
+              >
+                All time
+              </button>
+              <button
+                type="button"
+                className={`pb-btn ${clicksView === 'daily' ? 'pb-btn-primary' : ''}`}
+                onClick={() => setClicksView('daily')}
+              >
+                By day
+              </button>
+            </span>
           </div>
 
           <div className="pb-mini-stats">
@@ -463,57 +526,95 @@ function AffiliatePostBackManagementSection({
             <span>GMV <b>{clickTotals.gmv.toFixed(2)}</b></span>
             <span>Commission <b>{clickTotals.commission.toFixed(2)}</b></span>
           </div>
-          <p className="pb-hint">
-            Link clicks = (Google Ads cumulative clicks at report time) − (click base reserved when the link
-            became active), i.e. the click increment each link carried while active. When the active link reaches
-            the click threshold, rotation switches to the newest link that has never been used; older unused links
-            are skipped and purged by the daily housekeeping. The list contains every link that has been activated
-            ({formatTableValue(postBackClickSummary?.reachedLinks)}) plus the newest 500 generated links; links that
-            were never activated show 0. Ad clicks (lifetime) is the campaign total counted once
-            per task, it is not a per-link value. Use the filter button to show only links with clicks; click a
-            column header to sort.
-          </p>
+          {clicksView === 'all' ? (
+            <>
+              <p className="pb-hint">
+                Link clicks = (Google Ads cumulative clicks at report time) − (click base reserved when the link
+                became active), i.e. the click increment each link carried while active. When the active link reaches
+                the click threshold, rotation switches to the newest link that has never been used; older unused links
+                are skipped and purged by the daily housekeeping. The list contains every link that has been activated
+                ({formatTableValue(postBackClickSummary?.reachedLinks)}) plus the newest 500 generated links; links that
+                were never activated show 0. Ad clicks (lifetime) is the campaign total counted once
+                per task, it is not a per-link value. Use the filter button to show only links with clicks; click a
+                column header to sort.
+              </p>
 
-          <div className="pb-table-wrap">
-            <table className="pb-table">
-              <thead>
-                <tr>
-                  <th>{clickSortHeader('Click ID', 'clickId')}</th>
-                  <th>Owner</th>
-                  <th>Ad Platform</th>
-                  <th>Brand</th>
-                  <th>Task ID</th>
-                  <th>{clickSortHeader('Created', 'created')}</th>
-                  <th>{clickSortHeader('Link clicks', 'linkClicks')}</th>
-                  <th>{clickSortHeader('Orders', 'orderCount')}</th>
-                  <th>{clickSortHeader('GMV', 'orderAmount')}</th>
-                  <th>{clickSortHeader('Commission', 'commission')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleClicks.length === 0 ? (
-                  <tr><td className="pb-empty" colSpan={10}>
-                    {clickFilter === 'link'
-                      ? 'No link has been reached by the rotation yet.'
-                      : 'No click IDs recorded yet.'}
-                  </td></tr>
-                ) : visibleClicks.map((item) => (
-                  <tr key={item.clickId}>
-                    <td>{formatTableValue(item.clickId)}</td>
-                    <td>{formatTableValue(item.adsOwner)}</td>
-                    <td>{formatTableValue(item.platformName)}</td>
-                    <td>{formatTableValue(item.campainName)}</td>
-                    <td>{formatTableValue(item.normalAdsId)}</td>
-                    <td>{formatDateTimeDisplayValueWithDashedDate(item.createDate)}</td>
-                    <td>{formatTableValue(item.linkClicks)}</td>
-                    <td>{formatTableValue(item.orderCount)}</td>
-                    <td>{formatTableValue(item.orderAmount)}</td>
-                    <td>{formatTableValue(item.commission)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              <div className="pb-table-wrap">
+                <table className="pb-table">
+                  <thead>
+                    <tr>
+                      <th>{clickSortHeader('Click ID', 'clickId')}</th>
+                      <th>Owner</th>
+                      <th>Ad Platform</th>
+                      <th>Brand</th>
+                      <th>Task ID</th>
+                      <th>{clickSortHeader('Created', 'created')}</th>
+                      <th>{clickSortHeader('Link clicks', 'linkClicks')}</th>
+                      <th>{clickSortHeader('Orders', 'orderCount')}</th>
+                      <th>{clickSortHeader('GMV', 'orderAmount')}</th>
+                      <th>{clickSortHeader('Commission', 'commission')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleClicks.length === 0 ? (
+                      <tr><td className="pb-empty" colSpan={10}>
+                        {clickFilter === 'link'
+                          ? 'No link has been reached by the rotation yet.'
+                          : 'No click IDs recorded yet.'}
+                      </td></tr>
+                    ) : visibleClicks.map((item) => (
+                      <tr key={item.clickId}>
+                        <td>{formatTableValue(item.clickId)}</td>
+                        <td>{formatTableValue(item.adsOwner)}</td>
+                        <td>{formatTableValue(item.platformName)}</td>
+                        <td>{formatTableValue(item.campainName)}</td>
+                        <td>{formatTableValue(item.normalAdsId)}</td>
+                        <td>{formatDateTimeDisplayValueWithDashedDate(item.createDate)}</td>
+                        <td>{formatTableValue(item.linkClicks)}</td>
+                        <td>{formatTableValue(item.orderCount)}</td>
+                        <td>{formatTableValue(item.orderAmount)}</td>
+                        <td>{formatTableValue(item.commission)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="pb-hint">
+                By-day ad metrics come from the Google Ads script snapshots (impressions / clicks / cost, cost
+                converted to USD with the latest stored rate), last 7 days. The owner /
+                platform / brand filters above apply to the link table only, not to this daily view.
+              </p>
+              <div className="pb-table-wrap">
+                <table className="pb-table">
+                  <thead>
+                    <tr>
+                      <th>Date (account TZ)</th>
+                      <th>Impressions</th>
+                      <th>Ad Clicks</th>
+                      <th>Ad Cost (USD)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dailyClickRows.length === 0 ? (
+                      <tr><td className="pb-empty" colSpan={4}>
+                        No daily data yet. The Google Ads script writes snapshots on each run; check that it still reports.
+                      </td></tr>
+                    ) : dailyClickRows.map((row) => (
+                      <tr key={row.date}>
+                        <td>{row.date}</td>
+                        <td>{formatTableValue(row.impressions)}</td>
+                        <td>{formatTableValue(row.adClicks)}</td>
+                        <td>{formatMoney(row.adCostUsd)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </div>
       ) : null}
 
@@ -521,6 +622,22 @@ function AffiliatePostBackManagementSection({
         <div className="pb-section">
           <div className="pb-block-title">
             Summary
+            <span className="pb-view-toggle">
+              <button
+                type="button"
+                className={`pb-btn ${statsView === 'all' ? 'pb-btn-primary' : ''}`}
+                onClick={() => setStatsView('all')}
+              >
+                All time
+              </button>
+              <button
+                type="button"
+                className={`pb-btn ${statsView === 'daily' ? 'pb-btn-primary' : ''}`}
+                onClick={() => setStatsView('daily')}
+              >
+                By day
+              </button>
+            </span>
             <button type="button" className="pb-btn" onClick={() => onReloadPostBackStats?.()}>
               Refresh
             </button>
@@ -565,7 +682,85 @@ function AffiliatePostBackManagementSection({
             </>
           ) : null}
 
-          {platformRows.length > 0 ? (
+          {statsView === 'daily' ? (
+            <>
+              <div className="pb-block-title">
+                Daily Breakdown
+                <label className="pb-field">
+                  Date
+                  <select
+                    value={selectedDailyDate}
+                    onChange={(event) => setStatsDailyDate(event.target.value)}
+                  >
+                    {dailyDays.map((day) => <option key={day} value={day}>{day}</option>)}
+                  </select>
+                </label>
+              </div>
+              <p className="pb-hint">
+                One row per offer on the selected day: which offers ran, their impressions / ad clicks / ad cost
+                from the Google Ads script snapshots (cost converted to USD with the latest stored rate), plus the
+                orders / GMV / cashback attributed to that offer. Unmatched orders are grouped in their own row.
+                Covers the last 7 days; all-time totals are the cards above. Owner/platform/status filters below
+                do not apply here.
+              </p>
+              <div className="pb-table-wrap">
+                <table className="pb-table">
+                  <thead>
+                    <tr>
+                      <th>Campaign / Offer</th>
+                      <th>Task ID</th>
+                      <th>Impressions</th>
+                      <th>Ad Clicks</th>
+                      <th>Ad Cost (USD)</th>
+                      <th>Orders</th>
+                      <th>GMV</th>
+                      <th>Cashback (USD)</th>
+                      <th>Profit (USD)</th>
+                      <th>ROAS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dailyDays.length === 0 || rowsForDate.length === 0 ? (
+                      <tr><td className="pb-empty" colSpan={10}>
+                        No daily data yet. The Google Ads script writes snapshots on each run; check that it still reports.
+                      </td></tr>
+                    ) : rowsForDate.map((row) => (
+                      <tr key={`${row.date}-${row.campaignName}-${row.normalAdsId ?? 'x'}`}>
+                        <td>{formatTableValue(row.campaignName)}</td>
+                        <td>{formatTableValue(row.normalAdsId)}</td>
+                        <td>{formatTableValue(row.impressions)}</td>
+                        <td>{formatTableValue(row.adClicks)}</td>
+                        <td>{formatMoney(row.adCostUsd)}</td>
+                        <td>{formatTableValue(row.orderCount)}</td>
+                        <td>{formatMoney(row.orderAmount)}</td>
+                        <td>{formatMoney(row.commission)}</td>
+                        <td className={asNumber(row.profitUsd) < 0 ? 'pb-negative' : ''}>{formatMoney(row.profitUsd)}</td>
+                        <td>{formatRoas(row.roas)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  {rowsForDate.length > 0 ? (
+                    <tfoot>
+                      <tr>
+                        <td>Total ({selectedDailyDate})</td>
+                        <td></td>
+                        <td>{formatTableValue(dailyTotals.impressions)}</td>
+                        <td>{formatTableValue(dailyTotals.adClicks)}</td>
+                        <td>{formatMoney(dailyTotals.adCostUsd)}</td>
+                        <td>{formatTableValue(dailyTotals.orderCount)}</td>
+                        <td>{formatMoney(dailyTotals.orderAmount)}</td>
+                        <td>{formatMoney(dailyTotals.commission)}</td>
+                        <td className={dailyTotals.profitUsd < 0 ? 'pb-negative' : ''}>{formatMoney(dailyTotals.profitUsd)}</td>
+                        <td>{formatRoas(dailyTotals.roas)}</td>
+                      </tr>
+                    </tfoot>
+                  ) : null}
+                </table>
+              </div>
+            </>
+          ) : null}
+
+          {statsView === 'all' && platformRows.length > 0 ? (
             <>
               <div className="pb-block-title">By Platform</div>
               <div className="pb-table-wrap">
@@ -588,10 +783,14 @@ function AffiliatePostBackManagementSection({
             </>
           ) : null}
 
+          {statsView === 'all' ? (
+            <>
           <div className="pb-block-title">By Normal Task</div>
           <p className="pb-hint">
             Ad Cost is the Google Ads lifetime cost reported by the script in the account currency, converted to
             USD with the latest stored rate{postBackStats?.usdCnyRate ? ` (1 USD = ${postBackStats.usdCnyRate} CNY)` : ''}.
+            It is kept per Google Ads campaign, so a task's cost includes earlier campaigns with the same name that
+            were removed or recreated, and the total still counts tasks that have been deleted.
             Commission is treated as USD. Profit = Commission − Ad Cost (USD); ROAS = Commission ÷ Ad Cost (USD),
             above 1.00x means the brand is profitable.
             {' '}Commission here is the raw sum of every postback order (approved + pending + rejected) over the full
@@ -677,8 +876,10 @@ function AffiliatePostBackManagementSection({
               </tbody>
             </table>
           </div>
+            </>
+          ) : null}
 
-          {unmatchedAdvertisers.length > 0 ? (
+          {statsView === 'all' && unmatchedAdvertisers.length > 0 ? (
             <>
               <div className="pb-block-title">Unmatched by Advertiser</div>
               <div className="pb-table-wrap">
@@ -702,6 +903,8 @@ function AffiliatePostBackManagementSection({
             </>
           ) : null}
 
+          {statsView === 'all' ? (
+            <>
           <div className="pb-block-title">Postback Orders</div>
           <div className="pb-toolbar">
             {showOwnerFilter ? (
@@ -845,6 +1048,8 @@ function AffiliatePostBackManagementSection({
               onPageSizeChange={onPageSizeChange}
             />
           </div>
+            </>
+          ) : null}
         </div>
       ) : null}
 
