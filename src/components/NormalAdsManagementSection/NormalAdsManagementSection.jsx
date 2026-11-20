@@ -17,6 +17,7 @@ const NORMAL_TABLE_COLUMN_ORDER = [
   'lastSuccessDate',
   'successCount',
   'failedCount',
+  'availableCount',
   'status',
 ]
 
@@ -31,8 +32,9 @@ const NORMAL_TABLE_COLUMN_LABELS = {
   lastExecuteTime: 'Last Execute Time',
   nextExecuteTime: 'Next Execute Time',
   lastSuccessDate: 'Last Success Date',
-  successCount: 'Success Count',
-  failedCount: 'Failed Count',
+  successCount: 'Today Success',
+  failedCount: 'Today Failed',
+  availableCount: 'Available Links',
   status: 'Status',
 }
 

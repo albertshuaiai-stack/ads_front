@@ -81,6 +81,7 @@ export const NORMAL_ADS_PREFERRED_COLUMNS = [
   'lastSuccessDate',
   'successCount',
   'failedCount',
+  'availableCount',
   'status',
 ]
 
@@ -105,6 +106,7 @@ export const MATRIX_ADS_PREFERRED_COLUMNS = [
   'lastSuccessDate',
   'successCount',
   'failedCount',
+  'availableCount',
   'status',
 ]
 
