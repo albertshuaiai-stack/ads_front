@@ -1,6 +1,7 @@
 import InlineFormCard from '../InlineFormCard/InlineFormCard'
 import PaginationControls from '../PaginationControls/PaginationControls'
 import { formatTableValue } from '../../lib/adsPortal'
+import { EMAIL_BROWSER_TYPE_OPTIONS, formatEmailBrowserTypeLabel } from '../../constants/options'
 
 function EmailManagementSection({
   emails,
@@ -30,6 +31,8 @@ function EmailManagementSection({
   onEmailHomeAddressChange,
   emailRemarks,
   onEmailRemarksChange,
+  emailBrowserType,
+  onEmailBrowserTypeChange,
   emailEnvSerial,
   onEmailEnvSerialChange,
   emailPlatformPwd,
@@ -143,6 +146,7 @@ function EmailManagementSection({
                     <th>Email Password</th>
                     <th>Parent Email</th>
                     <th>Address</th>
+                    <th>BrowserType</th>
                     <th>Env Serial</th>
                     <th>Platform Password</th>
                     <th>2FA URL</th>
@@ -162,6 +166,7 @@ function EmailManagementSection({
                       <td>{formatTableValue(item.emailPwd)}</td>
                       <td>{formatTableValue(item.parentEmail)}</td>
                       <td>{formatTableValue(item.address)}</td>
+                      <td>{formatEmailBrowserTypeLabel(item.browserType)}</td>
                       <td>{formatTableValue(item.envSerial)}</td>
                       <td>{formatTableValue(item.platformPwd)}</td>
                       <td className="truncate" title={item.twoFaUrl || ''}>{formatTableValue(item.twoFaUrl)}</td>
@@ -247,6 +252,22 @@ function EmailManagementSection({
               value={emailHomeAddress}
               onChange={(event) => onEmailHomeAddressChange(event.target.value)}
             />
+
+            <label htmlFor="emailManagementBrowserType">BrowserType</label>
+            <select
+              id="emailManagementBrowserType"
+              value={Number(emailBrowserType) || 1}
+              onChange={(event) => onEmailBrowserTypeChange(Number(event.target.value))}
+            >
+              {EMAIL_BROWSER_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="field-help">
+              Browser used by the landing collector for this Gmail. Env Serial is the profile id in that browser.
+            </p>
 
             <label htmlFor="emailManagementEnvSerial">Env Serial</label>
             <input

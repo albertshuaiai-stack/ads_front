@@ -45,7 +45,7 @@ React 19 + Vite。构建产物部署到 track.lunalvabeau.com，与 ads_runner �
 
 ## 落地页 / Gmail Link Rules
 
-- Email Management 有 `envSerial`（指纹浏览器环境编号）、`platformPwd`（返利平台密码）、`twoFaUrl`，供 `lunalvabeau_site/landing_collector` 采集工具读取。
+- Email Management 有 `browserType`（1=AdsPower Browser，2=比特浏览器）、`envSerial`（对应浏览器里的环境编号）、`platformPwd`（返利平台密码）、`twoFaUrl`，供 `lunalvabeau_site/landing_collector` 采集工具读取；采集脚本的 `targets` 可限定邮箱/平台/广告。
 - Gmail Link Rules：Match ID 可留空（后端自增 `GL000001`）；Status 列按钮切换 RUNNING / DISABLED（`handleToggleGmailPlatformLinkStatus`）。原上方的 History Data Entry 表已从页面移除。
 - Shift Links → Import from Folder：结构为 `CashBack/邮箱/平台/商家.txt`（`parseFolderShiftLinks` 取最后三级），整批 POST `/landing-import` 由后端处理建规则、跳过 DISABLED、去重。
 

@@ -1,5 +1,16 @@
 // 静态下拉选项常量 / static select option constants
 
+// 落地页采集浏览器类型 / browser type for the landing collector
+export const EMAIL_BROWSER_TYPE_OPTIONS = [
+  { value: 1, label: 'AdsPower Browser' },
+  { value: 2, label: '比特浏览器' },
+]
+
+export function formatEmailBrowserTypeLabel(value) {
+  const option = EMAIL_BROWSER_TYPE_OPTIONS.find((item) => item.value === Number(value))
+  return option ? option.label : '—'
+}
+
 export const ADS_STATUS_OPTIONS = [
   { value: 'RUNNING', label: 'Running' },
   { value: 'PAUSED', label: 'Paused' },

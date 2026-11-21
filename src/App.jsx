@@ -532,6 +532,7 @@ function App() {
     emailParentEmail, setEmailParentEmail,
     emailHomeAddress, setEmailHomeAddress,
     emailRemarks, setEmailRemarks,
+    emailBrowserType, setEmailBrowserType,
     emailEnvSerial, setEmailEnvSerial,
     emailPlatformPwd, setEmailPlatformPwd,
     emailTwoFaUrl, setEmailTwoFaUrl,
@@ -1877,6 +1878,7 @@ function App() {
     setEmailParentEmail('')
     setEmailHomeAddress('')
     setEmailRemarks('')
+    setEmailBrowserType(1)
     setEmailEnvSerial('')
     setEmailPlatformPwd('')
     setEmailTwoFaUrl('')
@@ -4808,6 +4810,7 @@ function App() {
     setEmailParentEmail(item.parentEmail || '')
     setEmailHomeAddress(item.address || '')
     setEmailRemarks(item.remarks || '')
+    setEmailBrowserType(Number(item.browserType) === 2 ? 2 : 1)
     setEmailEnvSerial(item.envSerial || '')
     setEmailPlatformPwd(item.platformPwd || '')
     setEmailTwoFaUrl(item.twoFaUrl || '')
@@ -4834,6 +4837,7 @@ function App() {
         parentEmail: toOptionalTrimmedString(emailParentEmail),
         address: toOptionalTrimmedString(emailHomeAddress),
         remarks: toOptionalTrimmedString(emailRemarks),
+        browserType: Number(emailBrowserType) === 2 ? 2 : 1,
         // 空串表示清空, 后端只在非 null 时覆盖 / empty string clears the value, the backend only overwrites non-null
         envSerial: emailEnvSerial.trim(),
         platformPwd: emailPlatformPwd.trim(),
@@ -6414,6 +6418,8 @@ setAdsAccountStatus(item.status || '')
         onEmailHomeAddressChange={setEmailHomeAddress}
         emailRemarks={emailRemarks}
         onEmailRemarksChange={setEmailRemarks}
+        emailBrowserType={emailBrowserType}
+        onEmailBrowserTypeChange={setEmailBrowserType}
         emailEnvSerial={emailEnvSerial}
         onEmailEnvSerialChange={setEmailEnvSerial}
         emailPlatformPwd={emailPlatformPwd}
