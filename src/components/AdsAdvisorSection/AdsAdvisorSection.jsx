@@ -25,6 +25,14 @@ const VERDICT_HINTS = {
   NEED_INFO: 'Missing commission info',
 }
 
+// 上架日来源, 越靠前越准 / where the launch date came from, most accurate first
+const LAUNCH_SOURCE_LABELS = {
+  GOOGLE_ADS: 'first spend in Google Ads',
+  DAILY_STATS: 'first spend in daily stats',
+  FIRST_REPORT: 'first script report, update the script for the exact date',
+  TASK_CREATED: 'task creation, no Google Ads data yet',
+}
+
 // 推广词带来的流量类型 / traffic each keyword brings
 const CATEGORY_LABELS = {
   BRAND_BUY: 'Brand + buying',
@@ -454,7 +462,8 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
                                 </p>
                                 <div className="adv-subtitle">Judged spend</div>
                                 <p className="pb-hint">
-                                  Days running {formatTableValue(m.daysRunning)}, postback lag {formatTableValue(m.reportLagDays)} days.
+                                  Launched {task.launchDate || '—'} ({LAUNCH_SOURCE_LABELS[task.launchSource] || 'unknown'}),
+                                  days running {formatTableValue(m.daysRunning)}, postback lag {formatTableValue(m.reportLagDays)} days.
                                   Awaiting orders {formatUsd(m.lagCostUsd)}, judged spend {formatUsd(m.judgedCostUsd)},
                                   judged ROAS {formatRatio(m.judgedRoas)}.
                                   Non-search clicks {formatPct(m.junkNetworkShare)}, non-buying term spend {formatPct(m.nonBuyingTermCostShare)}

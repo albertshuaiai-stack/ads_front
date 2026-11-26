@@ -23,6 +23,7 @@ var API_BASE_URL = '${apiBaseUrl}';
 var API_REPORT_URL = '${reportUrl}';
 var API_DAILY_URL = '${dailyUrl}';
 var DAILY_LOOKBACK_DAYS = 7;
+var FIRST_SPEND_LOOKBACK_DAYS = 180;
 var MAX_SEARCH_TERMS = 1000;
 var BATCH_SIZE = 50;
 var MAX_RETRIES = 3;
@@ -184,12 +185,28 @@ function reportDaily() {
       });
     });
 
+    // 每个广告系列首次产生花费的日期 = 真正上架日 / first day with spend per campaign = real launch date
+    var firstSpend = {};
+    var spendFrom = Utilities.formatDate(new Date(Date.now() - FIRST_SPEND_LOOKBACK_DAYS * 86400000), tz, 'yyyy-MM-dd');
+    (safeSearch('SELECT campaign.name, segments.date FROM campaign WHERE campaign.status != REMOVED AND ' +
+        "metrics.cost_micros > 0 AND segments.date BETWEEN '" + spendFrom + "' AND '" + today + "'") || [])
+        .forEach(function (row) {
+          if (!row.campaign || !row.segments) {
+            return;
+          }
+          var name = row.campaign.name;
+          if (!firstSpend[name] || row.segments.date < firstSpend[name]) {
+            firstSpend[name] = row.segments.date;
+          }
+        });
+
     var payload = {
       currency: account.getCurrencyCode(),
       reportDate: today,
       campaigns: Object.keys(campaigns).map(function (key) { return campaigns[key]; }),
       daily: daily,
-      searchTerms: terms
+      searchTerms: terms,
+      firstSpend: Object.keys(firstSpend).map(function (key) { return {name: key, date: firstSpend[key]}; })
     };
     var response = UrlFetchApp.fetch(API_DAILY_URL, {
       method: 'post',
