@@ -44,6 +44,7 @@ const EMPTY_PLAN = {
   avgOrderValue: '',
   approvalPercent: '',
   expectedCpc: '',
+  reportLagDays: '',
   keywords: '',
   negativeKeywords: '',
   notes: '',
@@ -85,6 +86,7 @@ function formToPayload(form) {
     avgOrderValue: toNumberOrNull(form.avgOrderValue),
     expectedApprovalRate: approval === null ? null : approval / 100,
     expectedCpc: toNumberOrNull(form.expectedCpc),
+    reportLagDays: toNumberOrNull(form.reportLagDays),
     keywords: form.keywords,
     negativeKeywords: form.negativeKeywords,
     notes: form.notes,
@@ -347,7 +349,11 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
             Commission counts approved orders plus pending orders at the approval rate. Stop line = 3x net commission
             per order with no order (under 5% chance to break even). After the stop line: ROAS below 0.5 = STOP
             (only WATCH before day 7 if the campaign has orders), 0.5-1 = OPTIMIZE, at least 1 = CONTINUE,
-            at least 1.3 with 5+ orders = SCALE. From day 7, no order in the last 7 days = STOP. Money is in USD.
+            at least 1.3 with 5+ orders = SCALE. From day 7 + postback lag, no order in the last 7 days = STOP
+            (without commission info only after $15 judged spend). Stop checks use judged spend: spend of the last
+            3 days (set per plan) is still awaiting orders and not judged, and polluted traffic (30%+ non-search
+            clicks or 40%+ spend on login/contact style terms) is judged on its clean share and marked OPTIMIZE.
+            Money is in USD.
             Click a row for the reasons, actions and negative keyword candidates.
             Unlike the Post Back &quot;By Normal Task&quot; table, this table uses effective commission
             (approved + pending x approval rate); Spend 7d and ROAS 7d cover only the last 7 days.
@@ -445,6 +451,14 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
                                   orders {formatTableValue(m.orders7d)}. Networks:{' '}
                                   {Object.entries(m.networkClicks7d || {}).map(([network, clicks]) => `${network} ${clicks}`).join(', ') || '—'}.
                                   Last daily data: {task.lastDailyDate || 'none'}.
+                                </p>
+                                <div className="adv-subtitle">Judged spend</div>
+                                <p className="pb-hint">
+                                  Days running {formatTableValue(m.daysRunning)}, postback lag {formatTableValue(m.reportLagDays)} days.
+                                  Awaiting orders {formatUsd(m.lagCostUsd)}, judged spend {formatUsd(m.judgedCostUsd)},
+                                  judged ROAS {formatRatio(m.judgedRoas)}.
+                                  Non-search clicks {formatPct(m.junkNetworkShare)}, non-buying term spend {formatPct(m.nonBuyingTermCostShare)}
+                                  {m.polluted ? ' (polluted: only the clean share is judged)' : ''}.
                                 </p>
                                 <div className="adv-subtitle">Campaign settings</div>
                                 {task.settings ? (
@@ -614,6 +628,7 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
             ) : null}
             <label className="pb-field">Expected approval %<input type="number" step="1" value={form.approvalPercent} onChange={updateForm('approvalPercent')} placeholder="70" /></label>
             <label className="pb-field">Expected CPC USD<input type="number" step="0.01" value={form.expectedCpc} onChange={updateForm('expectedCpc')} /></label>
+            <label className="pb-field">Postback lag days<input type="number" step="1" min="0" max="7" value={form.reportLagDays} onChange={updateForm('reportLagDays')} placeholder="3" /></label>
             <label className="pb-field adv-text">Keywords<textarea rows={8} value={form.keywords} onChange={updateForm('keywords')} /></label>
             <label className="pb-field adv-text">Negative keywords<textarea rows={8} value={form.negativeKeywords} onChange={updateForm('negativeKeywords')} /></label>
             <label className="pb-field adv-wide">Notes<input value={form.notes} onChange={updateForm('notes')} /></label>
