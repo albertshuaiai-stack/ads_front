@@ -25,6 +25,14 @@ const VERDICT_HINTS = {
   NEED_INFO: 'Missing commission info',
 }
 
+// 上架日来源, 越靠前越准 / where the launch date came from, most accurate first
+const LAUNCH_SOURCE_LABELS = {
+  GOOGLE_ADS: 'first spend in Google Ads',
+  DAILY_STATS: 'first spend in daily stats',
+  FIRST_REPORT: 'first script report, update the script for the exact date',
+  TASK_CREATED: 'task creation, no Google Ads data yet',
+}
+
 // 推广词带来的流量类型 / traffic each keyword brings
 const CATEGORY_LABELS = {
   BRAND_BUY: 'Brand + buying',
@@ -44,6 +52,7 @@ const EMPTY_PLAN = {
   avgOrderValue: '',
   approvalPercent: '',
   expectedCpc: '',
+  reportLagDays: '',
   keywords: '',
   negativeKeywords: '',
   notes: '',
@@ -85,6 +94,7 @@ function formToPayload(form) {
     avgOrderValue: toNumberOrNull(form.avgOrderValue),
     expectedApprovalRate: approval === null ? null : approval / 100,
     expectedCpc: toNumberOrNull(form.expectedCpc),
+    reportLagDays: toNumberOrNull(form.reportLagDays),
     keywords: form.keywords,
     negativeKeywords: form.negativeKeywords,
     notes: form.notes,
@@ -344,10 +354,20 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
           </div>
           {reviewError ? <p className="pb-status error" role="alert">{reviewError}</p> : null}
           <p className="pb-hint">
-            Commission counts approved orders plus pending orders at the approval rate. Stop line = 3x net commission
-            per order with no order (under 5% chance to break even). After the stop line: ROAS below 0.5 = STOP,
-            0.5-1 = OPTIMIZE, at least 1 = CONTINUE, at least 1.3 with 5+ orders = SCALE. Money is in USD.
+            Hard stop: no approved or pending order after more than $15 spend or more than 100 clicks = STOP,
+            regardless of days. Commission counts approved orders plus pending orders at the approval rate. Stop line = 3x net commission
+            per order with no order (under 5% chance to break even). After the stop line: ROAS below 0.3 = STOP
+            (only WATCH before day 7 if the campaign has orders), 0.3-1 = OPTIMIZE (it converts but costs too much:
+            lower CPC to the shown target and fix keywords), at least 1 = CONTINUE,
+            at least 1.3 with 5+ orders = SCALE. From day 7 + postback lag, no order in the last 7 days = STOP
+            (without commission info only after $15 judged spend). Stop checks use judged spend: spend of the last
+            3 days (set per plan) is still awaiting orders and not judged, and polluted traffic (30%+ non-search
+            clicks or 40%+ spend on login/contact style terms) is judged on its clean share and marked OPTIMIZE.
+            Money is in USD.
             Click a row for the reasons, actions and negative keyword candidates.
+            Unlike the Post Back &quot;By Normal Task&quot; table, this table uses effective commission
+            (approved + pending x approval rate); Spend 7d and ROAS 7d cover only the last 7 days.
+            Tasks sharing a campaign name are merged into one row.
           </p>
 
           <div className="pb-cards">
@@ -387,7 +407,14 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
                   return (
                     <Fragment key={task.normalAdsId}>
                       <tr className="adv-row" onClick={() => toggleRow(task.normalAdsId)}>
-                        <td>{isOpen ? '▾ ' : '▸ '}{formatTableValue(task.campaignName)}</td>
+                        <td>
+                          {isOpen ? '▾ ' : '▸ '}{formatTableValue(task.campaignName)}
+                          {task.taskCount > 1 ? (
+                            <small className="pb-status-counts">
+                              {task.taskCount} tasks: {task.taskIds?.join(', ')}
+                            </small>
+                          ) : null}
+                        </td>
                         <td>{formatTableValue(task.country)}</td>
                         <td>
                           <span className={`adv-badge adv-decision-${String(task.decision).toLowerCase()}`}>
@@ -435,6 +462,15 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
                                   {Object.entries(m.networkClicks7d || {}).map(([network, clicks]) => `${network} ${clicks}`).join(', ') || '—'}.
                                   Last daily data: {task.lastDailyDate || 'none'}.
                                 </p>
+                                <div className="adv-subtitle">Judged spend</div>
+                                <p className="pb-hint">
+                                  Launched {task.launchDate || '—'} ({LAUNCH_SOURCE_LABELS[task.launchSource] || 'unknown'}),
+                                  days running {formatTableValue(m.daysRunning)}, postback lag {formatTableValue(m.reportLagDays)} days.
+                                  Awaiting orders {formatUsd(m.lagCostUsd)}, judged spend {formatUsd(m.judgedCostUsd)},
+                                  judged ROAS {formatRatio(m.judgedRoas)}.
+                                  Non-search clicks {formatPct(m.junkNetworkShare)}, non-buying term spend {formatPct(m.nonBuyingTermCostShare)}
+                                  {m.polluted ? ' (polluted: only the clean share is judged)' : ''}.
+                                </p>
                                 <div className="adv-subtitle">Campaign settings</div>
                                 {task.settings ? (
                                   <p className="pb-hint">
@@ -446,6 +482,48 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
                                     lost to rank {formatPct(task.settings.rankLostShare)}.
                                   </p>
                                 ) : <p className="pb-hint">Not reported yet (update the Google Ads script).</p>}
+                                <div className="adv-subtitle">Keyword performance (estimated, last 7 days)</div>
+                                <p className="pb-hint">
+                                  Affiliate postbacks carry no search term, so orders and effective commission are
+                                  split by each term&apos;s share of 7-day search clicks. Estimates, not exact attribution.
+                                  {task.keywordPerformance?.totalTerms > (task.keywordPerformance?.rows || []).length
+                                    ? ` Top ${(task.keywordPerformance.rows || []).length} of ${task.keywordPerformance.totalTerms} terms.`
+                                    : ''}
+                                </p>
+                                {(task.keywordPerformance?.rows || []).length === 0 ? (
+                                  <p className="pb-hint">No search term data (PMax/Display campaigns do not report search terms).</p>
+                                ) : (
+                                  <div className="pb-table-wrap">
+                                    <table className="pb-table">
+                                      <thead>
+                                        <tr>
+                                          <th>Search term</th>
+                                          <th>Clicks</th>
+                                          <th>Cost USD</th>
+                                          <th>Est. orders</th>
+                                          <th>Est. commission</th>
+                                          <th>Est. ROAS</th>
+                                          <th>Verdict</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {(task.keywordPerformance?.rows || []).map((item) => (
+                                          <tr key={item.term}>
+                                            <td><code>{item.term}</code></td>
+                                            <td>{formatTableValue(item.clicks)}</td>
+                                            <td>{formatUsd(item.costUsd)}</td>
+                                            <td>{formatTableValue(item.estimatedOrders)}</td>
+                                            <td>{formatUsd(item.estimatedCommission)}</td>
+                                            <td className={item.estimatedRoas != null && Number(item.estimatedRoas) < 1 ? 'pb-negative' : ''}>
+                                              {formatRatio(item.estimatedRoas)}
+                                            </td>
+                                            <td>{item.verdict}{item.negativeIntent ? ` (${item.negativeIntent})` : ''}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
                                 <div className="adv-subtitle">Negative keyword candidates (last 7 days)</div>
                                 {(task.negativeCandidates || []).length === 0 ? (
                                   <p className="pb-hint">None found.</p>
@@ -561,6 +639,7 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
             ) : null}
             <label className="pb-field">Expected approval %<input type="number" step="1" value={form.approvalPercent} onChange={updateForm('approvalPercent')} placeholder="70" /></label>
             <label className="pb-field">Expected CPC USD<input type="number" step="0.01" value={form.expectedCpc} onChange={updateForm('expectedCpc')} /></label>
+            <label className="pb-field">Postback lag days<input type="number" step="1" min="0" max="7" value={form.reportLagDays} onChange={updateForm('reportLagDays')} placeholder="3" /></label>
             <label className="pb-field adv-text">Keywords<textarea rows={8} value={form.keywords} onChange={updateForm('keywords')} /></label>
             <label className="pb-field adv-text">Negative keywords<textarea rows={8} value={form.negativeKeywords} onChange={updateForm('negativeKeywords')} /></label>
             <label className="pb-field adv-wide">Notes<input value={form.notes} onChange={updateForm('notes')} /></label>

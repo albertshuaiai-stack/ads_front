@@ -23,6 +23,7 @@ var API_BASE_URL = '${apiBaseUrl}';
 var API_REPORT_URL = '${reportUrl}';
 var API_DAILY_URL = '${dailyUrl}';
 var DAILY_LOOKBACK_DAYS = 7;
+var FIRST_SPEND_LOOKBACK_DAYS = 180;
 var MAX_SEARCH_TERMS = 1000;
 var BATCH_SIZE = 50;
 var MAX_RETRIES = 3;
@@ -54,12 +55,14 @@ function isMccAccount() {
 
 // 先上报 campaign 累计真实点击数, 服务端据此换链; 上报失败不影响模板同步
 // 换链只由真实点击驱动: 与上次换链时的点击数差值达到 displayNumber 才换, 与脚本执行频率无关
-// Report lifetime clicks; rotation happens only when clicks grow past the recorded base
+// 带 campaign id 和状态: 服务端按 id 记花费台账, 删除/重建同名广告后历史投入不丢; 暂停的广告只记花费不换链
+// Report lifetime clicks; rotation happens only when clicks grow past the recorded base.
+// Campaign id and status let the server keep a per-campaign cost ledger; paused campaigns only update cost.
 function reportClicks() {
   try {
     var rows = AdsApp.search(
-        'SELECT campaign.name, metrics.clicks, metrics.cost_micros FROM campaign ' +
-        'WHERE campaign.status = ENABLED');
+        'SELECT campaign.id, campaign.name, campaign.status, metrics.clicks, metrics.cost_micros FROM campaign ' +
+        'WHERE campaign.status != REMOVED');
     // 花费单位是账户币种, 服务端按汇率折算 USD / cost is in account currency; the server converts it to USD
     var currency = AdsApp.currentAccount().getCurrencyCode();
     var data = [];
@@ -73,7 +76,9 @@ function reportClicks() {
         continue;
       }
       data.push({
+        id: row.campaign.id != null ? String(row.campaign.id) : null,
         name: name,
+        status: row.campaign.status || null,
         clicks: isNaN(clicks) ? 0 : clicks,
         cost: isNaN(costMicros) ? 0 : Math.round(costMicros / 10000) / 100,
         currency: currency
@@ -180,12 +185,28 @@ function reportDaily() {
       });
     });
 
+    // 每个广告系列首次产生花费的日期 = 真正上架日 / first day with spend per campaign = real launch date
+    var firstSpend = {};
+    var spendFrom = Utilities.formatDate(new Date(Date.now() - FIRST_SPEND_LOOKBACK_DAYS * 86400000), tz, 'yyyy-MM-dd');
+    (safeSearch('SELECT campaign.name, segments.date FROM campaign WHERE campaign.status != REMOVED AND ' +
+        "metrics.cost_micros > 0 AND segments.date BETWEEN '" + spendFrom + "' AND '" + today + "'") || [])
+        .forEach(function (row) {
+          if (!row.campaign || !row.segments) {
+            return;
+          }
+          var name = row.campaign.name;
+          if (!firstSpend[name] || row.segments.date < firstSpend[name]) {
+            firstSpend[name] = row.segments.date;
+          }
+        });
+
     var payload = {
       currency: account.getCurrencyCode(),
       reportDate: today,
       campaigns: Object.keys(campaigns).map(function (key) { return campaigns[key]; }),
       daily: daily,
-      searchTerms: terms
+      searchTerms: terms,
+      firstSpend: Object.keys(firstSpend).map(function (key) { return {name: key, date: firstSpend[key]}; })
     };
     var response = UrlFetchApp.fetch(API_DAILY_URL, {
       method: 'post',

@@ -25,6 +25,12 @@ export function useEmails(token) {
   const [emailParentEmail, setEmailParentEmail] = useState('')
   const [emailHomeAddress, setEmailHomeAddress] = useState('')
   const [emailRemarks, setEmailRemarks] = useState('')
+  // 落地页采集用: 浏览器类型 / 环境编号 / 返利平台密码 / 2FA 取码网址
+  // browser type: 1=AdsPower Browser, 2=BitBrowser
+  const [emailBrowserType, setEmailBrowserType] = useState(1)
+  const [emailEnvSerial, setEmailEnvSerial] = useState('')
+  const [emailPlatformPwd, setEmailPlatformPwd] = useState('')
+  const [emailTwoFaUrl, setEmailTwoFaUrl] = useState('')
   const [savingEmail, setSavingEmail] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
 
@@ -82,6 +88,10 @@ export function useEmails(token) {
     emailParentEmail, setEmailParentEmail,
     emailHomeAddress, setEmailHomeAddress,
     emailRemarks, setEmailRemarks,
+    emailBrowserType, setEmailBrowserType,
+    emailEnvSerial, setEmailEnvSerial,
+    emailPlatformPwd, setEmailPlatformPwd,
+    emailTwoFaUrl, setEmailTwoFaUrl,
     savingEmail, setSavingEmail,
     showEmailModal, setShowEmailModal,
     loadToolEmails,

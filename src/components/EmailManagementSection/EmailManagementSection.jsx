@@ -1,6 +1,7 @@
 import InlineFormCard from '../InlineFormCard/InlineFormCard'
 import PaginationControls from '../PaginationControls/PaginationControls'
 import { formatTableValue } from '../../lib/adsPortal'
+import { EMAIL_BROWSER_TYPE_OPTIONS, formatEmailBrowserTypeLabel } from '../../constants/options'
 
 function EmailManagementSection({
   emails,
@@ -30,6 +31,14 @@ function EmailManagementSection({
   onEmailHomeAddressChange,
   emailRemarks,
   onEmailRemarksChange,
+  emailBrowserType,
+  onEmailBrowserTypeChange,
+  emailEnvSerial,
+  onEmailEnvSerialChange,
+  emailPlatformPwd,
+  onEmailPlatformPwdChange,
+  emailTwoFaUrl,
+  onEmailTwoFaUrlChange,
   onSaveEmail,
   savingEmail,
   onCloseEmailModal,
@@ -137,6 +146,10 @@ function EmailManagementSection({
                     <th>Email Password</th>
                     <th>Parent Email</th>
                     <th>Address</th>
+                    <th>BrowserType</th>
+                    <th>Env Serial</th>
+                    <th>Platform Password</th>
+                    <th>2FA URL</th>
                     <th>Remarks</th>
                     <th>Create Date</th>
                     <th>Update Date</th>
@@ -153,6 +166,10 @@ function EmailManagementSection({
                       <td>{formatTableValue(item.emailPwd)}</td>
                       <td>{formatTableValue(item.parentEmail)}</td>
                       <td>{formatTableValue(item.address)}</td>
+                      <td>{formatEmailBrowserTypeLabel(item.browserType)}</td>
+                      <td>{formatTableValue(item.envSerial)}</td>
+                      <td>{formatTableValue(item.platformPwd)}</td>
+                      <td className="truncate" title={item.twoFaUrl || ''}>{formatTableValue(item.twoFaUrl)}</td>
                       <td>{formatTableValue(item.remarks)}</td>
                       <td>{formatDateDisplayValue(item.createDate)}</td>
                       <td>{formatDateDisplayValue(item.updateDate)}</td>
@@ -235,6 +252,56 @@ function EmailManagementSection({
               value={emailHomeAddress}
               onChange={(event) => onEmailHomeAddressChange(event.target.value)}
             />
+
+            <label htmlFor="emailManagementBrowserType">BrowserType</label>
+            <select
+              id="emailManagementBrowserType"
+              value={Number(emailBrowserType) || 1}
+              onChange={(event) => onEmailBrowserTypeChange(Number(event.target.value))}
+            >
+              {EMAIL_BROWSER_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="field-help">
+              Browser used by the landing collector for this Gmail. Env Serial is the profile id in that browser.
+            </p>
+
+            <label htmlFor="emailManagementEnvSerial">Env Serial</label>
+            <input
+              id="emailManagementEnvSerial"
+              value={emailEnvSerial}
+              onChange={(event) => onEmailEnvSerialChange(event.target.value)}
+              placeholder="e.g. 1"
+            />
+            <p className="field-help">
+              Browser profile serial number of this Gmail (the number in the AdsPower profile list).
+              The landing collector opens this profile.
+            </p>
+
+            <label htmlFor="emailManagementPlatformPwd">Platform Password</label>
+            <input
+              id="emailManagementPlatformPwd"
+              value={emailPlatformPwd}
+              onChange={(event) => onEmailPlatformPwdChange(event.target.value)}
+            />
+            <p className="field-help">
+              Cash back platform password, shared by all platforms. The login account is the email address.
+            </p>
+
+            <label htmlFor="emailManagementTwoFaUrl">2FA URL</label>
+            <input
+              id="emailManagementTwoFaUrl"
+              value={emailTwoFaUrl}
+              onChange={(event) => onEmailTwoFaUrlChange(event.target.value)}
+              placeholder="https://..."
+            />
+            <p className="field-help">
+              Page that shows the current 2FA code. The collector opens it and reads the first 6-digit code when a
+              platform asks for verification.
+            </p>
 
             <label htmlFor="emailManagementRemarks">Remarks</label>
             <input

@@ -50,7 +50,7 @@ function GmailPlatformLinkSection({
   pagination,
   onPageChange,
   onPageSizeChange,
-  historySection = null,
+  onToggleRuleStatus,
 }) {
   return (
     <>
@@ -134,8 +134,8 @@ function GmailPlatformLinkSection({
           <p className="field-help">
             Rating by ban distribution of the accounts promoting each merchant: AVOID = every
             account promoting it was banned, CAUTION = partially banned, SAFE = no banned
-            accounts, UNKNOWN = no matching cash back account row. Banned flags from History Data
-            Entry below are included.
+            accounts, UNKNOWN = no matching cash back account row. A Gmail Link Rule marked DISABLED
+            below counts as banned.
           </p>
           {!statsLoading && merchantRatings.length === 0 ? (
             <p>No merchants found.</p>
@@ -182,8 +182,6 @@ function GmailPlatformLinkSection({
           )}
         </div>
       </div>
-
-      {historySection}
 
       <div className="panel gmail-platform-link-management">
         <div className="user-list">
@@ -250,11 +248,10 @@ function GmailPlatformLinkSection({
           </form>
 
           <p className="field-help">
-            Match ID is the unique ID bound to a Gmail account and platform (e.g.{' '}
-            <code>151919334</code> from <code>u1=151919334x...</code>). When a Shift Link is
-            uploaded without a User Name, any link containing this ID is classified to the
-            matching Gmail account automatically. Brand names come from the upload file name
-            (Folder Import) or the adsName column (Excel), and are listed in the stats above.
+            One rule per Gmail + platform. Landing uploads (folder <code>CashBack/gmail/platform/merchant.txt</code>)
+            create the rule automatically with an auto-increment Match ID (<code>GL000001</code>). Status DISABLED
+            means the account no longer works on that platform: uploads for it are skipped and the stats count it as
+            banned. Click the status button to switch.
           </p>
 
           {rulesError ? (
@@ -275,6 +272,7 @@ function GmailPlatformLinkSection({
                     <th>Gmail (User Name)</th>
                     <th>Platform</th>
                     <th>Match ID</th>
+                    <th>Status</th>
                     <th>Remarks</th>
                     <th>Create Date</th>
                     <th>Actions</th>
@@ -282,10 +280,23 @@ function GmailPlatformLinkSection({
                 </thead>
                 <tbody>
                   {rules.map((item) => (
-                    <tr key={item.id}>
+                    <tr
+                      key={item.id}
+                      className={item.status === 'DISABLED' ? getStatusToneClass('PAUSED') : undefined}
+                    >
                       <td>{formatTableValue(item.userName)}</td>
                       <td>{formatTableValue(item.platformName)}</td>
                       <td className="truncate">{formatTableValue(item.matchId)}</td>
+                      <td>
+                        <button
+                          type="button"
+                          className={item.status === 'DISABLED' ? 'secondary' : 'primary'}
+                          title="Click to switch RUNNING / DISABLED"
+                          onClick={() => onToggleRuleStatus(item)}
+                        >
+                          {item.status === 'DISABLED' ? 'DISABLED' : 'RUNNING'}
+                        </button>
+                      </td>
                       <td>{formatTableValue(item.remarks)}</td>
                       <td>{formatTableValue(formatDateDisplayValue(item.createDate))}</td>
                       <td className="actions">
@@ -360,12 +371,11 @@ function GmailPlatformLinkSection({
               id="gmailPlatformLinkMatchId"
               value={ruleMatchId}
               onChange={(event) => onRuleMatchIdChange(event.target.value)}
-              placeholder="e.g. 151919334"
-              required
+              placeholder="Leave empty for auto ID"
             />
             <p className="field-help">
-              The unique ID bound to this Gmail account and platform. Any uploaded link
-              containing this ID is classified here. At least 4 characters.
+              Leave empty to get the next auto ID (GL000001, GL000002 ...). Links uploaded without a Gmail are still
+              classified by this ID when the link contains it. At least 4 characters when filled.
             </p>
 
             <label htmlFor="gmailPlatformLinkRemarks">Remarks</label>

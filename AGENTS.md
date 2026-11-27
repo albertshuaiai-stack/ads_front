@@ -30,7 +30,7 @@ React 19 + Vite。构建产物部署到 ads.admirecars.com，与 ads_runner 同�
 ## Google Ads 脚本（GoogleAdsScriptPanel.jsx）
 
 脚本模板是前后端协议的一部分，改它要同步考虑后端：
-- 每次运行先 POST `/api/track/report`（body `{data:[{name,clicks,cost,currency}]}`，`api_key` 在 URL query）上报**累计**点击数和花费（`metrics.costMicros` 换算，账户币种 `AdsApp.currentAccount().getCurrencyCode()`）。
+- 每次运行先 POST `/api/track/report`（body `{data:[{id,name,status,clicks,cost,currency}]}`，`api_key` 在 URL query）上报**累计**点击数和花费（`metrics.costMicros` 换算，账户币种 `AdsApp.currentAccount().getCurrencyCode()`）。查询 `campaign.status != REMOVED`，`id`/`status` 供后端按 campaign 记花费台账，PAUSED 行后端只记花费不换链。
 - `AdsApp.search` 返回**嵌套对象**：`row.campaign.name`、`row.metrics.clicks`，不是 `row['campaign.name']`（踩过坑，全部数据变 null）。
 - 再逐 campaign GET `/api/normal/ads|/api/matrix/ads?campaign_name=...&api_key=...` 拿模板（纯文本，`{lpurl}` 占位），`mutateAll` + partialFailure 写 tracking template，瞬时错误自动重试。
 - 服务器地址走 env：`VITE_ADS_SCRIPT_NORMAL_BASE_URL` / `VITE_ADS_SCRIPT_MATRIX_BASE_URL`（见 `.env.production`，默认 `https://ads.admirecars.com`）。
@@ -41,6 +41,13 @@ React 19 + Vite。构建产物部署到 ads.admirecars.com，与 ads_runner 同�
 - 数据来自 `GET /postback/stats`，字段：tasks[]（每任务 adCost/adCostUsd/commission/profitUsd/roas/refundedOrderCount/conversionRate 等）和汇总。
 - By Normal Task 表列头可点击排序（taskSortKey/taskSortDir），决策列在前（Campaign/Orders/Refunded/Conversion/Ad Cost USD/Profit/ROAS），参考列在后。
 - 利润为负、退单>0 红色显示（`.pb-negative`）。
+- Postback Orders 区有 Offer 下拉筛选（选项来自 `GET /postback/offers`，按商家 ID 分组、无 ID 按名称，跟随 owner/平台/状态筛选）；选中后带 `advertiserShopId`/`advertiserShopName` 重查 `/postback` 列表（`filterAffiliatePostBacksByOffer`），并在订单表上方显示该 offer 的统计条。
+
+## 落地页 / Gmail Link Rules
+
+- Email Management 有 `browserType`（1=AdsPower Browser，2=比特浏览器）、`envSerial`（对应浏览器里的环境编号）、`platformPwd`（返利平台密码）、`twoFaUrl`，供 `lunalvabeau_site/landing_collector` 采集工具读取；采集脚本的 `targets` 可限定邮箱/平台/广告。
+- Gmail Link Rules：Match ID 可留空（后端自增 `GL000001`）；Status 列按钮切换 RUNNING / DISABLED（`handleToggleGmailPlatformLinkStatus`）。原上方的 History Data Entry 表已从页面移除。
+- Shift Links → Import from Folder：结构为 `CashBack/邮箱/平台/商家.txt`（`parseFolderShiftLinks` 取最后三级），整批 POST `/landing-import` 由后端处理建规则、跳过 DISABLED、去重。
 
 ## 已定设计
 
