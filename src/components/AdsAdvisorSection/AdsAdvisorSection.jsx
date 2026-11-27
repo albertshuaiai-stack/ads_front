@@ -354,9 +354,11 @@ function AdsAdvisorSection({ token, showOwnerFilter, ownerOptions }) {
           </div>
           {reviewError ? <p className="pb-status error" role="alert">{reviewError}</p> : null}
           <p className="pb-hint">
-            Commission counts approved orders plus pending orders at the approval rate. Stop line = 3x net commission
-            per order with no order (under 5% chance to break even). After the stop line: ROAS below 0.5 = STOP
-            (only WATCH before day 7 if the campaign has orders), 0.5-1 = OPTIMIZE, at least 1 = CONTINUE,
+            Hard stop: no approved or pending order after more than $15 spend or more than 100 clicks = STOP,
+            regardless of days. Commission counts approved orders plus pending orders at the approval rate. Stop line = 3x net commission
+            per order with no order (under 5% chance to break even). After the stop line: ROAS below 0.3 = STOP
+            (only WATCH before day 7 if the campaign has orders), 0.3-1 = OPTIMIZE (it converts but costs too much:
+            lower CPC to the shown target and fix keywords), at least 1 = CONTINUE,
             at least 1.3 with 5+ orders = SCALE. From day 7 + postback lag, no order in the last 7 days = STOP
             (without commission info only after $15 judged spend). Stop checks use judged spend: spend of the last
             3 days (set per plan) is still awaiting orders and not judged, and polluted traffic (30%+ non-search
